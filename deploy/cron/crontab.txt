@@ -1,0 +1,14 @@
+# ==============================================================================
+# OneStall Marketplace — Production Crontab Entries
+# Install via: crontab -u www-data -e
+# ==============================================================================
+
+# 1. Laravel Scheduled Tasks (Runs every minute)
+# Executes: settlements generation, sitemap updates, notifications retries, inventory alerts
+* * * * * cd /var/www/multivendorecommerce/current && /usr/bin/php8.2 artisan schedule:run >> /dev/null 2>&1
+
+# 2. Automated Daily Database Backup (2:00 AM IST daily)
+0 2 * * * /bin/bash /var/www/multivendorecommerce/deploy/scripts/backup-db.sh >> /var/log/onestall_backup.log 2>&1
+
+# 3. Weekly Automated Backup Restore Test (3:30 AM IST every Sunday)
+30 3 * * 0 /bin/bash /var/www/multivendorecommerce/deploy/scripts/restore-db-test.sh >> /var/log/onestall_restore_test.log 2>&1
