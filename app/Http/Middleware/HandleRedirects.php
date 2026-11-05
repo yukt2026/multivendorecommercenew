@@ -25,9 +25,13 @@ class HandleRedirects
         $path = '/' . ltrim(rtrim($request->path(), '/'), '/');
 
         // Look up active redirect rule
-        $rule = RedirectRule::active()
-            ->where('source_path', $path)
-            ->first();
+        try {
+            $rule = RedirectRule::active()
+                ->where('source_path', $path)
+                ->first();
+        } catch (\Throwable) {
+            $rule = null;
+        }
 
         if ($rule) {
             $rule->recordHit();
