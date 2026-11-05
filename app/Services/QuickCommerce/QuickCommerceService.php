@@ -103,12 +103,12 @@ class QuickCommerceService
         $storeIds = $nearbyStores->pluck('id')->all();
 
         $query = Product::query()
-            ->with(['variants.inventories.location', 'seller', 'media', 'categories'])
+            ->with(['variants.inventories.location', 'seller', 'media', 'category'])
             ->where('is_quick_capable', true)
             ->where('status', \App\Enums\ProductStatus::ACTIVE);
 
         if ($categorySlug) {
-            $query->whereHas('categories', fn ($q) => $q->where('slug', $categorySlug));
+            $query->whereHas('category', fn ($q) => $q->where('slug', $categorySlug));
         }
 
         if ($search) {

@@ -65,7 +65,15 @@ class Product extends Model
 
     public function category(): BelongsTo
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(Category::class, 'category_id');
+    }
+
+    /**
+     * Alias for category to support both singular and plural eager loads.
+     */
+    public function categories(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'category_id');
     }
 
     public function variants(): HasMany

@@ -17,6 +17,11 @@
 <meta name="description" content="{{ $meta['description'] }}">
 <meta name="robots" content="{{ $meta['robots'] }}">
 
+<!-- Favicons -->
+<link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon.png') }}">
+<link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+
 <!-- Canonical URL -->
 <link rel="canonical" href="{{ $meta['canonical'] }}">
 
