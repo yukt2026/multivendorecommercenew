@@ -154,7 +154,7 @@ class SellerDashboardService
                 'change_type' => $todaySalesChange >= 0 ? 'up' : 'down',
                 'badge' => 'Gross Earnings',
                 'color' => 'emerald',
-                'url' => route('seller.dashboard', ['filter' => 'today']),
+                'url' => route('seller.payments.index'),
             ],
             'total_orders' => [
                 'label' => 'Total Orders',
@@ -163,7 +163,7 @@ class SellerDashboardService
                 'change_type' => $ordersChange >= 0 ? 'up' : 'down',
                 'badge' => 'Volume',
                 'color' => 'primary',
-                'url' => route('seller.dashboard', ['filter' => 'all']),
+                'url' => route('seller.orders.index'),
             ],
             'quick_orders' => [
                 'label' => 'Quick Orders',
@@ -172,7 +172,7 @@ class SellerDashboardService
                 'change_type' => 'neutral',
                 'badge' => '⚡ 10-30m SLA',
                 'color' => 'amber',
-                'url' => route('seller.dashboard', ['filter' => 'quick']),
+                'url' => route('seller.quick.live'),
             ],
             'online_orders' => [
                 'label' => 'Online Orders',
@@ -181,7 +181,7 @@ class SellerDashboardService
                 'change_type' => 'neutral',
                 'badge' => 'Marketplace',
                 'color' => 'sky',
-                'url' => route('seller.dashboard', ['filter' => 'online']),
+                'url' => route('seller.orders.index', ['tab' => 'online']),
             ],
             'pending_orders' => [
                 'label' => 'Pending Orders',
@@ -190,7 +190,7 @@ class SellerDashboardService
                 'change_type' => $pendingCount > 0 ? 'down' : 'up',
                 'badge' => $pendingCount > 0 ? 'Urgent' : 'All Clear',
                 'color' => $pendingCount > 0 ? 'rose' : 'primary',
-                'url' => route('seller.dashboard', ['filter' => 'pending']),
+                'url' => route('seller.orders.index', ['status' => 'pending']),
             ],
             'delivered_orders' => [
                 'label' => 'Delivered Orders',
@@ -199,7 +199,7 @@ class SellerDashboardService
                 'change_type' => 'up',
                 'badge' => 'Completed',
                 'color' => 'emerald',
-                'url' => route('seller.dashboard', ['filter' => 'delivered']),
+                'url' => route('seller.orders.index', ['status' => 'delivered']),
             ],
             'returned_orders' => [
                 'label' => 'Returns & RTO',
@@ -208,7 +208,7 @@ class SellerDashboardService
                 'change_type' => $returnRate > 5 ? 'down' : 'neutral',
                 'badge' => 'Reverse Logistics',
                 'color' => 'amber',
-                'url' => route('seller.dashboard', ['filter' => 'returns']),
+                'url' => route('seller.returns.index'),
             ],
             'low_stock' => [
                 'label' => 'Low Stock Items',
@@ -217,7 +217,7 @@ class SellerDashboardService
                 'change_type' => $lowStockCount > 0 ? 'down' : 'up',
                 'badge' => 'Catalog Alert',
                 'color' => $lowStockCount > 0 ? 'rose' : 'emerald',
-                'url' => route('seller.dashboard', ['filter' => 'low_stock']),
+                'url' => route('seller.inventory.index', ['stock_status' => 'low_stock']),
             ],
         ];
     }
@@ -480,31 +480,31 @@ class SellerDashboardService
                 'title' => 'Store Branding (Logo & Banner)',
                 'description' => 'Personalize your digital storefront branding.',
                 'done' => (bool) $hasBranding,
-                'url' => route('seller.onboarding'),
+                'url' => route('seller.store.edit'),
             ],
             [
                 'title' => 'Add First Product',
                 'description' => 'Publish SKU with attributes, barcodes, and MRP.',
                 'done' => $hasProducts,
-                'url' => route('seller.onboarding'),
+                'url' => route('seller.products.create'),
             ],
             [
                 'title' => 'Set Stock & Inventory',
                 'description' => 'Assign inventory on hand at your store location.',
                 'done' => $hasStock,
-                'url' => route('seller.dashboard', ['filter' => 'low_stock']),
+                'url' => route('seller.inventory.index'),
             ],
             [
                 'title' => 'Set Operating Timings',
                 'description' => 'Configure daily opening and closing hours for 10-30m dispatch.',
                 'done' => (bool) $hasTimings,
-                'url' => route('seller.onboarding'),
+                'url' => route('seller.store.edit'),
             ],
             [
                 'title' => 'Store Active & Live',
                 'description' => 'Toggle store status to Open to accept customer orders.',
                 'done' => (bool) $isLive,
-                'url' => route('seller.dashboard'),
+                'url' => route('seller.stores.index'),
             ],
         ];
 

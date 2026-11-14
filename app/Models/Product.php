@@ -121,18 +121,33 @@ class Product extends Model
             return asset('storage/' . $item->path);
         }
 
-        $title = rawurlencode(substr($this->title ?? 'OneStall', 0, 22));
-        return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300' width='300' height='300'><rect width='300' height='300' rx='20' fill='%23f1f5f9'/><circle cx='150' cy='130' r='55' fill='%23e2e8f0'/><text x='150' y='145' font-size='38' text-anchor='middle'>🛍️</text><text x='150' y='230' font-family='sans-serif' font-size='13' font-weight='bold' fill='%23475569' text-anchor='middle'>{$title}</text></svg>";
+        return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300' width='300' height='300'><rect width='300' height='300' rx='24' fill='%23f8fafc'/><circle cx='150' cy='135' r='54' fill='%23e2e8f0'/><text x='150' y='152' font-size='38' text-anchor='middle'>🛍️</text><text x='150' y='235' font-family='sans-serif' font-size='11' font-weight='800' fill='%2394a3b8' letter-spacing='1.5' text-anchor='middle'>ONESTALL</text></svg>";
     }
 
     public function getEffectivePriceAttribute(): float
     {
-        return (float) ($this->defaultVariant?->selling_price ?? $this->variants->min('selling_price') ?? 0);
+        if ($this->relationLoaded('defaultVariant') && $this->defaultVariant) {
+            return (float) $this->defaultVariant->selling_price;
+        }
+
+        if ($this->relationLoaded('variants') && $this->variants->isNotEmpty()) {
+            return (float) ($this->variants->firstWhere('is_default', true)?->selling_price ?? $this->variants->min('selling_price') ?? 0);
+        }
+
+        return (float) ($this->defaultVariant?->selling_price ?? 0);
     }
 
     public function getEffectiveMrpAttribute(): float
     {
-        return (float) ($this->defaultVariant?->mrp ?? $this->variants->max('mrp') ?? 0);
+        if ($this->relationLoaded('defaultVariant') && $this->defaultVariant) {
+            return (float) $this->defaultVariant->mrp;
+        }
+
+        if ($this->relationLoaded('variants') && $this->variants->isNotEmpty()) {
+            return (float) ($this->variants->firstWhere('is_default', true)?->mrp ?? $this->variants->max('mrp') ?? 0);
+        }
+
+        return (float) ($this->defaultVariant?->mrp ?? 0);
     }
 
     public function getDiscountPercentAttribute(): int

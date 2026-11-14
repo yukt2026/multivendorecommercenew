@@ -42,13 +42,13 @@ class WishlistController extends Controller
             $products = Product::whereHas('wishlists', function ($q) use ($customer) {
                 $q->where('customer_id', $customer->id);
             })
-            ->with(['media', 'brand', 'seller', 'variants.inventories', 'defaultVariant'])
+            ->with(['media', 'brand', 'seller', 'variants.inventories', 'variants.media', 'defaultVariant.inventories', 'defaultVariant.media'])
             ->latest('id')
             ->paginate(16);
         } else {
             $guestIds = $request->session()->get('guest_wishlist', []);
             $products = Product::whereIn('id', $guestIds)
-                ->with(['media', 'brand', 'seller', 'variants.inventories', 'defaultVariant'])
+                ->with(['media', 'brand', 'seller', 'variants.inventories', 'variants.media', 'defaultVariant.inventories', 'defaultVariant.media'])
                 ->latest('id')
                 ->paginate(16);
         }
@@ -71,7 +71,7 @@ class WishlistController extends Controller
         $products = Product::whereHas('wishlists', function ($q) use ($customer) {
             $q->where('customer_id', $customer->id);
         })
-        ->with(['media', 'brand', 'seller', 'variants.inventories', 'defaultVariant'])
+        ->with(['media', 'brand', 'seller', 'variants.inventories', 'variants.media', 'defaultVariant.inventories', 'defaultVariant.media'])
         ->latest('id')
         ->paginate(16);
 

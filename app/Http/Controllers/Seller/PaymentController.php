@@ -35,7 +35,7 @@ class PaymentController extends Controller
             ->whereHas('fulfilmentOrder', function ($q) use ($seller) {
                 $q->where('seller_id', $seller->id);
             })
-            ->with(['fulfilmentOrder.order', 'rule'])
+            ->with(['fulfilmentOrder.order', 'rule', 'settlementItem.settlement'])
             ->latest('id');
 
         if ($search = $request->query('search')) {

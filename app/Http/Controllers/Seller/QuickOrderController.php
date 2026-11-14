@@ -35,7 +35,7 @@ class QuickOrderController extends Controller
             abort(403, 'Seller profile required.');
         }
 
-        $activeStoreId = session('active_store_id');
+        $activeStoreId = session('seller_active_store_id') ?: session('active_store_id');
         $store = $activeStoreId ? Store::find($activeStoreId) : $seller->stores()->first();
 
         $activeQuickOrders = FulfilmentOrder::query()
@@ -69,7 +69,7 @@ class QuickOrderController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        $activeStoreId = session('active_store_id');
+        $activeStoreId = session('seller_active_store_id') ?: session('active_store_id');
 
         $orders = FulfilmentOrder::query()
             ->with(['order.customerAddress', 'items', 'deliveryAssignment.deliveryPartner'])

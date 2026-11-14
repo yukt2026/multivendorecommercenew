@@ -68,7 +68,11 @@ class OrderController extends Controller
 
         // Apply Status Filter
         if ($status && $status !== 'all') {
-            $baseQuery->where('status', $status);
+            if ($status === 'pending') {
+                $baseQuery->whereIn('status', ['placed', 'store_accepted', 'packing']);
+            } else {
+                $baseQuery->where('status', $status);
+            }
         }
 
         // Apply Store Filter

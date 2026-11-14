@@ -41,24 +41,25 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-full flex flex-col font-sans antialiased text-slate-800 bg-slate-50 pb-24 sm:pb-0"
+<body class="min-h-full flex flex-col font-sans antialiased text-slate-800 bg-slate-50 pb-24 sm:pb-0 overflow-x-hidden"
       x-data="{
         mobileCategoryOpen: false,
         megaMenuOpen: false
       }">
 
     <!-- Top Announcement & Quick Delivery Ticker -->
-    <div class="bg-slate-950 text-slate-200 px-4 py-2 text-xs font-semibold shadow-inner">
+    <div class="bg-slate-950 text-slate-200 px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-semibold shadow-inner">
         <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
             <div class="flex items-center space-x-2 min-w-0">
                 <span class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse flex-shrink-0"></span>
                 <span class="truncate text-[11px] sm:text-xs">
-                    ⚡ <strong>Quick Commerce Live:</strong> 10-30 Min Delivery within {{ setting('default_delivery_radius_km', 8) }} km radius
+                    <span class="sm:hidden">⚡ <strong>Quick Commerce:</strong> 10-30m Delivery ({{ (int) setting('default_delivery_radius_km', 8) }} km)</span>
+                    <span class="hidden sm:inline">⚡ <strong>Quick Commerce Live:</strong> 10-30 Min Delivery within {{ setting('default_delivery_radius_km', 8) }} km radius</span>
                 </span>
             </div>
             <div class="hidden sm:flex items-center space-x-6 text-xs font-medium text-slate-300">
                 <span>Free delivery on orders over <strong class="text-amber-400">{{ format_currency(setting('free_delivery_threshold', 499)) }}</strong></span>
-                <a href="{{ route('seller.dashboard') }}" class="hover:text-amber-300 transition">Sell on OneStall</a>
+                <a href="{{ route('seller.dashboard') }}" class="hover:text-amber-300 transition">Sell on {{ setting('name', 'OneStall') }}</a>
                 <a href="{{ route('admin.dashboard') }}" class="hover:text-amber-300 transition">Admin Portal</a>
             </div>
         </div>
@@ -85,31 +86,33 @@
         }
     }">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-4">
+            <div class="flex items-center justify-between h-14 sm:h-20 gap-2 sm:gap-4">
 
                 <!-- Logo & Mobile Drawer Trigger -->
-                <div class="flex items-center space-x-2 sm:space-x-4 lg:space-x-6 flex-shrink-0">
+                <div class="flex items-center space-x-1.5 sm:space-x-4 lg:space-x-6 min-w-0">
                     <button type="button"
                             @click="mobileCategoryOpen = true"
-                            class="sm:hidden p-2 text-slate-700 hover:text-indigo-600 rounded-xl hover:bg-slate-100 active:scale-95 transition"
+                            class="sm:hidden p-1.5 rounded-xl text-slate-700 hover:text-indigo-600 hover:bg-slate-100 active:scale-95 transition flex-shrink-0"
                             aria-label="Open All Categories">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
 
-                    <a href="{{ route('home') }}" class="flex items-center space-x-2 group">
-                        <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-indigo-700 via-indigo-600 to-amber-400 flex items-center justify-center text-white font-extrabold text-xl sm:text-2xl shadow-md group-hover:scale-105 transition-transform flex-shrink-0">
+                    <a href="{{ route('home') }}" class="flex items-center space-x-1.5 sm:space-x-2 group min-w-0">
+                        <div class="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-indigo-700 via-indigo-600 to-amber-400 flex items-center justify-center text-white font-extrabold text-sm sm:text-2xl shadow-md group-hover:scale-105 transition-transform flex-shrink-0">
                             1S
                         </div>
-                        <div>
-                            <span class="text-xl sm:text-2xl font-black tracking-tight text-slate-900 group-hover:text-indigo-600 transition">OneStall<span class="text-amber-500">.in</span></span>
-                            <span class="hidden sm:block text-[10px] font-bold text-slate-400 tracking-wider uppercase -mt-1">Omnichannel Commerce</span>
+                        <div class="min-w-0">
+                            <span class="text-base sm:text-2xl font-black tracking-tight text-slate-900 group-hover:text-indigo-600 transition truncate block">
+                                {{ setting('name', 'OneStall') }}<span class="text-amber-500">.in</span>
+                            </span>
+                            <span class="hidden sm:block text-[10px] font-bold text-slate-400 tracking-wider uppercase -mt-1">{{ setting('tagline', 'Omnichannel Commerce') }}</span>
                         </div>
                     </a>
 
                     <!-- Location Selector Button (Desktop: md:flex) -->
                     <button type="button"
                             @click="$store.location.modalOpen = true"
-                            class="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition text-left">
+                            class="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition text-left flex-shrink-0">
                         <div class="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -118,7 +121,7 @@
                         <div class="text-xs">
                             <span class="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Deliver to</span>
                             <span class="font-bold text-slate-900 flex items-center max-w-[140px] truncate" x-text="$store.location.current.address_label || 'Select Location'">
-                                {{ $location['address_label'] ?? 'Bengaluru 560001' }}
+                                {{ $location['address_label'] ?? (setting('default_city', 'Bengaluru') . ' ' . setting('default_pincode', '560001')) }}
                             </span>
                         </div>
                         <svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -253,32 +256,32 @@
                 </form>
 
                 <!-- Right Action Bar: Wishlist, Cart Drawer, User Dropdown -->
-                <div class="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+                <div class="flex items-center space-x-1.5 sm:space-x-3 flex-shrink-0">
 
                     <!-- Wishlist Button -->
                     <a href="{{ route('wishlist.index') }}"
-                       class="relative p-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-rose-500 transition"
+                       class="relative p-2 sm:p-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-rose-500 transition flex items-center justify-center"
                        title="View Wishlist">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                         </svg>
                         <span x-show="$store.wishlist.count > 0"
                               x-text="$store.wishlist.count"
-                              class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-500 text-white shadow-sm">
+                              class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full text-[9px] sm:text-[10px] font-black bg-rose-500 text-white shadow-sm">
                         </span>
                     </a>
 
                     <!-- Mini-Cart Drawer Trigger -->
                     <button type="button"
                             @click="$store.cart.toggleDrawer()"
-                            class="relative flex items-center space-x-2 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-95 transition">
-                        <div class="relative">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="relative flex items-center justify-center p-2 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-95 transition">
+                        <div class="relative flex items-center justify-center">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                             </svg>
                             <span x-show="$store.cart.itemCount > 0"
                                   x-text="$store.cart.itemCount"
-                                  class="absolute -top-2 -right-2 px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 shadow-sm">
+                                  class="absolute -top-2 -right-2 px-1.5 py-0.2 rounded-full text-[9px] sm:text-[10px] font-black bg-amber-400 text-slate-950 shadow-sm">
                             </span>
                         </div>
                         <div class="hidden md:block text-left pl-1">
@@ -290,14 +293,14 @@
                     <!-- Account Menu -->
                     <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                         @auth
-                            <button @click="open = !open" type="button" class="flex items-center space-x-2 p-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
-                                <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
+                            <button @click="open = !open" type="button" class="flex items-center space-x-1 sm:space-x-2 p-1 sm:p-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition" title="Account">
+                                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
                                     {{ substr(auth()->user()->name, 0, 1) }}
                                 </div>
                                 <span class="hidden lg:inline text-xs font-bold text-slate-800 max-w-[100px] truncate">
                                     {{ auth()->user()->name }}
                                 </span>
-                                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                <svg class="hidden sm:block w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                             </button>
 
                             <div x-show="open" x-transition class="absolute right-0 mt-2 w-56 rounded-2xl bg-white shadow-2xl border border-slate-200 py-2 z-50 text-xs divide-y divide-slate-100">
@@ -328,9 +331,9 @@
                                 </div>
                             </div>
                         @else
-                            <a href="{{ route('login') }}" class="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs shadow-sm transition flex items-center space-x-1.5">
-                                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                                <span>Sign In</span>
+                            <a href="{{ route('login') }}" class="p-2 sm:px-3.5 sm:py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs shadow-sm transition flex items-center justify-center space-x-1.5" title="Sign In">
+                                <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                <span class="hidden sm:inline">Sign In</span>
                             </a>
                         @endauth
                     </div>
@@ -349,7 +352,7 @@
                         <div class="flex items-center space-x-1.5 min-w-0 text-xs">
                             <span class="text-[10px] font-semibold text-slate-500 uppercase flex-shrink-0">Deliver to:</span>
                             <span class="font-extrabold text-slate-900 truncate" x-text="$store.location.current.address_label || 'Select Location'">
-                                {{ $location['address_label'] ?? 'Bengaluru 560001' }}
+                                {{ $location['address_label'] ?? (setting('default_city', 'Bengaluru') . ' ' . setting('default_pincode', '560001')) }}
                             </span>
                         </div>
                     </div>
@@ -753,7 +756,10 @@
     <div x-show="mobileCategoryOpen"
          x-cloak
          class="fixed inset-0 z-50 overflow-hidden sm:hidden"
-         role="dialog" aria-modal="true">
+         role="dialog" aria-modal="true"
+         x-data="{ activeCat: null }">
+        
+        <!-- Backdrop -->
         <div x-show="mobileCategoryOpen"
              x-transition:enter="ease-in-out duration-300"
              x-transition:enter-start="opacity-0"
@@ -764,7 +770,7 @@
              @click="mobileCategoryOpen = false"
              class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm"></div>
 
-        <div class="fixed inset-y-0 left-0 max-w-full flex pr-10">
+        <div class="fixed inset-y-0 left-0 max-w-full flex pr-8">
             <div x-show="mobileCategoryOpen"
                  x-transition:enter="transform transition ease-in-out duration-300"
                  x-transition:enter-start="-translate-x-full"
@@ -772,37 +778,221 @@
                  x-transition:leave="transform transition ease-in-out duration-300"
                  x-transition:leave-start="translate-x-0"
                  x-transition:leave-end="-translate-x-full"
-                 class="w-screen max-w-xs bg-white shadow-2xl flex flex-col">
-                <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-                    <div class="flex items-center space-x-2">
-                        <span class="text-base">🛍️</span>
-                        <h3 class="font-extrabold text-sm text-slate-900">All Categories</h3>
+                 class="w-[88vw] max-w-[340px] bg-white shadow-2xl flex flex-col h-full">
+
+                <!-- Drawer Header: User Profile / Welcome -->
+                <div class="p-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between flex-shrink-0 shadow-sm">
+                    <div class="flex items-center space-x-3 min-w-0">
+                        @auth
+                            <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white font-extrabold text-sm flex items-center justify-center shadow-md flex-shrink-0">
+                                {{ substr(auth()->user()->name, 0, 1) }}
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-[10px] text-indigo-300 font-medium uppercase tracking-wider">Hello,</p>
+                                <h3 class="font-extrabold text-sm text-white truncate">{{ auth()->user()->name }}</h3>
+                            </div>
+                        @else
+                            <div class="w-10 h-10 rounded-xl bg-white/10 text-white font-extrabold text-lg flex items-center justify-center shadow-md flex-shrink-0">
+                                🛍️
+                            </div>
+                            <div class="min-w-0">
+                                <h3 class="font-extrabold text-sm text-white">{{ setting('name', 'OneStall') }} Menu</h3>
+                                <a href="{{ route('login') }}" class="text-[11px] text-amber-400 font-bold hover:underline flex items-center space-x-1">
+                                    <span>Sign in for best deals</span>
+                                    <span>&rarr;</span>
+                                </a>
+                            </div>
+                        @endauth
                     </div>
-                    <button type="button" @click="mobileCategoryOpen = false" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    <button type="button"
+                            @click="mobileCategoryOpen = false"
+                            class="p-2 text-slate-300 hover:text-white rounded-xl hover:bg-white/10 active:scale-95 transition flex-shrink-0"
+                            aria-label="Close Navigation">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
                     </button>
                 </div>
-                <div class="flex-1 overflow-y-auto p-4 space-y-4 divide-y divide-slate-100">
+
+                <!-- Quick Navigation Strip -->
+                <div class="p-3 bg-slate-50 border-b border-slate-200 grid grid-cols-3 gap-2 text-center text-xs flex-shrink-0">
+                    <a href="{{ route('home') }}" @click="mobileCategoryOpen = false" class="p-2 rounded-xl bg-white border border-slate-200/80 hover:border-indigo-300 hover:bg-indigo-50/40 text-slate-700 transition flex flex-col items-center">
+                        <span class="text-base mb-0.5">🏠</span>
+                        <span class="text-[10px] font-bold text-slate-800">Home</span>
+                    </a>
+                    <a href="{{ route('quick.index') }}" @click="mobileCategoryOpen = false" class="p-2 rounded-xl bg-white border border-slate-200/80 hover:border-amber-300 hover:bg-amber-50/40 text-slate-700 transition flex flex-col items-center">
+                        <span class="text-base mb-0.5">⚡</span>
+                        <span class="text-[10px] font-bold text-slate-800">Quick 15m</span>
+                    </a>
+                    <a href="{{ route('stores.index') }}" @click="mobileCategoryOpen = false" class="p-2 rounded-xl bg-white border border-slate-200/80 hover:border-emerald-300 hover:bg-emerald-50/40 text-slate-700 transition flex flex-col items-center">
+                        <span class="text-base mb-0.5">🏪</span>
+                        <span class="text-[10px] font-bold text-slate-800">Stores</span>
+                    </a>
+                </div>
+
+                <!-- Section Title -->
+                <div class="px-4 py-2 bg-slate-100/70 border-b border-slate-200/60 flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-slate-500 flex-shrink-0">
+                    <span>Shop By Category</span>
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white text-indigo-600 border border-slate-200 shadow-2xs">
+                        {{ $categoriesList->count() }} Categories
+                    </span>
+                </div>
+
+                <!-- Scrollable Category List with Accordions -->
+                <div class="flex-1 overflow-y-auto p-3 space-y-2">
+                    @php
+                        $categoryIcons = [
+                            'groceries' => '🛒',
+                            'grocery' => '🛒',
+                            'fruits' => '🍎',
+                            'vegetables' => '🥬',
+                            'dairy' => '🥛',
+                            'snacks' => '🍪',
+                            'beverages' => '🧃',
+                            'personal' => '🧴',
+                            'hygiene' => '🧼',
+                            'beauty' => '💄',
+                            'electronics' => '📱',
+                            'gadgets' => '⚡',
+                            'home' => '🏠',
+                            'kitchen' => '🍳',
+                            'fashion' => '👕',
+                            'clothing' => '👗',
+                            'baby' => '🍼',
+                            'pharmacy' => '💊',
+                            'medicines' => '💊',
+                            'meat' => '🍗',
+                            'fish' => '🐟',
+                            'bakery' => '🍞',
+                            'stationery' => '📚',
+                        ];
+                    @endphp
+
                     @foreach($categoriesList as $cat)
-                        <div class="pt-3 first:pt-0 space-y-1.5">
-                            <a href="{{ route('category.show', $cat->slug) }}" class="flex items-center justify-between font-bold text-xs text-slate-900 hover:text-indigo-600">
-                                <span>{{ $cat->name }}</span>
-                                @if($cat->is_quick_eligible)
-                                    <span class="text-[9px] font-extrabold text-amber-500">⚡ 15m</span>
-                                @endif
-                            </a>
-                            @if($cat->children && $cat->children->isNotEmpty())
-                                <div class="grid grid-cols-2 gap-1.5 pl-2 text-[11px] text-slate-500">
-                                    @foreach($cat->children as $sub)
-                                        <a href="{{ route('category.show', $sub->slug) }}" class="hover:text-indigo-600 py-0.5 truncate">
-                                            {{ $sub->name }}
-                                        </a>
-                                    @endforeach
+                        @php
+                            $catIcon = '🛍️';
+                            $haystack = strtolower($cat->slug . ' ' . $cat->name);
+                            foreach($categoryIcons as $term => $emoji) {
+                                if (str_contains($haystack, $term)) {
+                                    $catIcon = $emoji;
+                                    break;
+                                }
+                            }
+                            $hasChildren = $cat->children && $cat->children->isNotEmpty();
+                        @endphp
+
+                        <div class="rounded-2xl border border-slate-200/90 overflow-hidden bg-white shadow-xs transition hover:border-slate-300">
+                            <!-- Category Header Button -->
+                            @if($hasChildren)
+                                <button type="button"
+                                        @click="activeCat = (activeCat === {{ $cat->id }} ? null : {{ $cat->id }})"
+                                        class="w-full p-3 flex items-center justify-between text-left hover:bg-slate-50/80 transition"
+                                        :class="activeCat === {{ $cat->id }} ? 'bg-indigo-50/40' : ''">
+                                    <div class="flex items-center space-x-2.5 min-w-0 pr-2">
+                                        <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-base flex-shrink-0 shadow-2xs">
+                                            @if($cat->image)
+                                                <img src="{{ asset('storage/' . $cat->image) }}" alt="{{ $cat->name }}" class="w-full h-full object-cover rounded-xl" />
+                                            @else
+                                                <span>{{ $catIcon }}</span>
+                                            @endif
+                                        </div>
+                                        <div class="min-w-0">
+                                            <span class="font-extrabold text-xs text-slate-900 block leading-tight">{{ $cat->name }}</span>
+                                            <span class="text-[10px] text-slate-400 font-medium">{{ $cat->children->count() }} Subcategories</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-1.5 flex-shrink-0">
+                                        @if($cat->is_quick_eligible)
+                                            <span class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">⚡ 15m</span>
+                                        @endif
+                                        <svg class="w-4 h-4 text-slate-400 transition-transform duration-200"
+                                             :class="activeCat === {{ $cat->id }} ? 'rotate-180 text-indigo-600' : ''"
+                                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </button>
+                            @else
+                                <a href="{{ route('category.show', $cat->slug) }}"
+                                   @click="mobileCategoryOpen = false"
+                                   class="w-full p-3 flex items-center justify-between text-left hover:bg-slate-50 transition">
+                                    <div class="flex items-center space-x-2.5 min-w-0 pr-2">
+                                        <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-base flex-shrink-0 shadow-2xs">
+                                            @if($cat->image)
+                                                <img src="{{ asset('storage/' . $cat->image) }}" alt="{{ $cat->name }}" class="w-full h-full object-cover rounded-xl" />
+                                            @else
+                                                <span>{{ $catIcon }}</span>
+                                            @endif
+                                        </div>
+                                        <span class="font-extrabold text-xs text-slate-900 block leading-tight">{{ $cat->name }}</span>
+                                    </div>
+                                    <div class="flex items-center space-x-1.5 flex-shrink-0">
+                                        @if($cat->is_quick_eligible)
+                                            <span class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">⚡ 15m</span>
+                                        @endif
+                                        <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                    </div>
+                                </a>
+                            @endif
+
+                            <!-- Accordion Expanded Subcategories (Full text, clean list, no truncation!) -->
+                            @if($hasChildren)
+                                <div x-show="activeCat === {{ $cat->id }}"
+                                     x-transition:enter="transition ease-out duration-200"
+                                     x-transition:enter-start="opacity-0 -translate-y-1"
+                                     x-transition:enter-end="opacity-100 translate-y-0"
+                                     class="p-2.5 bg-slate-50/80 border-t border-slate-100 space-y-1">
+
+                                    <!-- View All in Parent Category Link -->
+                                    <a href="{{ route('category.show', $cat->slug) }}"
+                                       @click="mobileCategoryOpen = false"
+                                       class="flex items-center justify-between px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 font-bold text-xs hover:bg-indigo-100 transition">
+                                        <span>All {{ $cat->name }} Products</span>
+                                        <span class="text-xs">&rarr;</span>
+                                    </a>
+
+                                    <div class="space-y-0.5 pt-1">
+                                        @foreach($cat->children as $sub)
+                                            <a href="{{ route('category.show', $sub->slug) }}"
+                                               @click="mobileCategoryOpen = false"
+                                               class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:text-indigo-600 hover:bg-white transition group">
+                                                <span class="leading-snug pr-2">{{ $sub->name }}</span>
+                                                <svg class="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                                </svg>
+                                            </a>
+                                        @endforeach
+                                    </div>
                                 </div>
                             @endif
                         </div>
                     @endforeach
                 </div>
+
+                <!-- Drawer Footer: Quick Profile / Support Links -->
+                <div class="p-3 bg-slate-100/90 border-t border-slate-200 flex-shrink-0 space-y-1 text-xs">
+                    <div class="flex items-center justify-between px-2 py-1 text-slate-600">
+                        <a href="{{ route('pages.show', 'help-support') }}" @click="mobileCategoryOpen = false" class="hover:text-indigo-600 font-medium flex items-center space-x-1.5">
+                            <span>💬</span>
+                            <span>Help & Support</span>
+                        </a>
+                        <a href="{{ route('seller.dashboard') }}" @click="mobileCategoryOpen = false" class="text-amber-600 font-bold hover:underline flex items-center space-x-1">
+                            <span>Sell with us &rarr;</span>
+                        </a>
+                    </div>
+                    @auth
+                        <div class="pt-1 border-t border-slate-200/80 flex items-center justify-between px-2">
+                            <a href="{{ route('orders.index') }}" @click="mobileCategoryOpen = false" class="text-indigo-600 font-semibold hover:underline">
+                                My Orders
+                            </a>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="text-rose-600 font-semibold hover:underline">Sign Out</button>
+                            </form>
+                        </div>
+                    @endauth
+                </div>
+
             </div>
         </div>
     </div>

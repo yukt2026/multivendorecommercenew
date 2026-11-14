@@ -107,18 +107,21 @@
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
                 @foreach ($products as $product)
                     @php
-                        $variant = $product->defaultVariant ?: $product->variants->first();
+                        $variant = ($product->relationLoaded('variants') ? $product->variants->firstWhere('is_default', true) : null)
+                            ?: $product->defaultVariant
+                            ?: ($product->relationLoaded('variants') ? $product->variants->first() : null);
                         $price = (float) ($variant?->selling_price ?? 0);
                         $mrp = (float) ($variant?->mrp ?? $price);
                         $discountPct = ($mrp > $price && $mrp > 0) ? (int) round((($mrp - $price) / $mrp) * 100) : 0;
                         
-                        $hasInv = $variant && $variant->inventories->isNotEmpty();
+                        $hasInv = $variant && $variant->relationLoaded('inventories') && $variant->inventories->isNotEmpty();
                         $available = $hasInv ? (int) $variant->inventories->sum(fn ($i) => max(0, $i->quantity_on_hand - $i->quantity_reserved)) : 100;
                         $isOut = $hasInv && $available <= 0;
 
-                        $primaryMedia = $variant?->media->first() ?: $product->media->first();
-                        $imageUrl = null;
-                        if ($primaryMedia) {
+                        $primaryMedia = ($variant && $variant->relationLoaded('media') ? $variant->media->first() : null)
+                            ?: ($product->relationLoaded('media') ? $product->media->first() : null);
+                        $imageUrl = $product->primaryImageUrl();
+                        if ($primaryMedia && !empty($primaryMedia->path)) {
                             $path = $primaryMedia->path;
                             $imageUrl = (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) ? $path : asset('storage/' . $path);
                         }

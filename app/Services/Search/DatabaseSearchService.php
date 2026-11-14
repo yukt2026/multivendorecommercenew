@@ -35,11 +35,10 @@ class DatabaseSearchService implements SearchServiceInterface
             ->with([
                 'media',
                 'defaultVariant',
-                'variants.inventories',
+                'variants',
                 'brand',
                 'category',
-                'seller.stores.location',
-                'reviews',
+                'seller',
             ]);
 
         // 1. Text Search with Fulltext & Trigram Token Fallback
@@ -314,16 +313,20 @@ class DatabaseSearchService implements SearchServiceInterface
             return ['suggested_query' => null, 'suggestions' => []];
         }
 
-        // Pull popular product titles & brand names
-        $words = Brand::pluck('name')
-            ->merge(Category::where('is_active', true)->pluck('name'))
-            ->merge(
-                Product::active()->take(50)->pluck('title')->flatMap(function ($title) {
-                    return explode(' ', $title);
-                })
-            )
-            ->filter(fn ($w) => strlen(trim($w)) > 3)
-            ->unique();
+        // Pull popular product titles & brand names (cached 30 min)
+        $words = \Illuminate\Support\Facades\Cache::remember('search.dictionary_words', 1800, function () {
+            return Brand::pluck('name')
+                ->merge(Category::where('is_active', true)->pluck('name'))
+                ->merge(
+                    Product::active()->take(50)->pluck('title')->flatMap(function ($title) {
+                        return explode(' ', $title);
+                    })
+                )
+                ->filter(fn ($w) => strlen(trim($w)) > 3)
+                ->unique()
+                ->values()
+                ->all();
+        });
 
         $bestWord = null;
         $bestDistance = 999;
@@ -353,6 +356,21 @@ class DatabaseSearchService implements SearchServiceInterface
      * Get facet counts / aggregations for sidebar filters.
      */
     public function getFilterFacets(string $query = '', array $currentFilters = []): array
+    {
+        // Cache global facets when no keyword is searched (10 min)
+        if (trim($query) === '') {
+            return \Illuminate\Support\Facades\Cache::remember('search.global_facets', 600, function () {
+                return $this->computeFacets('');
+            });
+        }
+
+        return $this->computeFacets($query);
+    }
+
+    /**
+     * Compute actual facet aggregations.
+     */
+    protected function computeFacets(string $query): array
     {
         $baseQuery = Product::active();
 

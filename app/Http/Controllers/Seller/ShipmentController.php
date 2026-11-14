@@ -36,7 +36,11 @@ class ShipmentController extends Controller
 
         $query = Shipment::query()
             ->whereHas('fulfilmentOrder', fn($q) => $q->where('seller_id', $seller->id))
-            ->with(['fulfilmentOrder.order.user', 'ndrCases' => fn($q) => $q->latest()])
+            ->with([
+                'fulfilmentOrder.order.customer.user',
+                'fulfilmentOrder.order.customerAddress',
+                'ndrCases' => fn($q) => $q->latest()
+            ])
             ->latest('id');
 
         // Status filter
@@ -93,7 +97,7 @@ class ShipmentController extends Controller
 
         $shipment->load([
             'fulfilmentOrder.order.customerAddress',
-            'fulfilmentOrder.order.user',
+            'fulfilmentOrder.order.customer.user',
             'fulfilmentOrder.items.variant',
             'tracking',
             'ndrCases' => fn($q) => $q->latest(),

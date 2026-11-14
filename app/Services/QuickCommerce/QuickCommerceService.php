@@ -103,7 +103,7 @@ class QuickCommerceService
         $storeIds = $nearbyStores->pluck('id')->all();
 
         $query = Product::query()
-            ->with(['variants.inventories.location', 'seller', 'media', 'category'])
+            ->with(['defaultVariant', 'variants.inventories.location', 'seller', 'media', 'category', 'brand'])
             ->where('is_quick_capable', true)
             ->where('status', \App\Enums\ProductStatus::ACTIVE);
 

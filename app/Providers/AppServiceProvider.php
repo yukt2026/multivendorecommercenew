@@ -121,11 +121,13 @@ class AppServiceProvider extends ServiceProvider
         // Performance: Enforce strict eager loading in development & testing to prevent N+1 queries
         Model::preventLazyLoading(! $this->app->isProduction());
 
-        // View Composer: Share dynamic categories and CMS pages across all storefront views
-        \Illuminate\Support\Facades\View::composer(['layouts.storefront', 'storefront.*'], function ($view) {
-            $storefrontService = app(\App\Services\Storefront\StorefrontService::class);
-            $view->with('navCategories', $storefrontService->getCategories());
-            $view->with('footerCmsPages', \App\Models\CmsPage::active()->get());
+        // View Composer: Share dynamic categories across storefront layout (memoized per-request)
+        \Illuminate\Support\Facades\View::composer('layouts.storefront', function ($view) {
+            static $navCategories = null;
+            if ($navCategories === null) {
+                $navCategories = app(\App\Services\Storefront\StorefrontService::class)->getCategories();
+            }
+            $view->with('navCategories', $navCategories);
         });
 
         // Horizon authorization gate (when enabled via config)

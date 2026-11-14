@@ -45,8 +45,9 @@ class InventoryController extends Controller
         }
 
         // Filter by stock level
-        if ($request->filled('stock_status')) {
-            match ($request->stock_status) {
+        $stockStatus = $request->input('stock_status', $request->input('filter'));
+        if (!empty($stockStatus)) {
+            match ($stockStatus) {
                 'out_of_stock' => $query->whereRaw('(quantity_on_hand - quantity_reserved) <= 0'),
                 'low_stock' => $query->whereRaw('(quantity_on_hand - quantity_reserved) > 0')
                     ->whereRaw('(quantity_on_hand - quantity_reserved) <= low_stock_threshold'),

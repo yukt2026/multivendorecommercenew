@@ -35,6 +35,8 @@ class ProductDetailController extends Controller
         $product = Product::where('slug', $slug)
             ->active()
             ->with([
+                'defaultVariant.inventories',
+                'defaultVariant.media',
                 'media',
                 'variants.inventories.location',
                 'variants.media',
@@ -76,13 +78,15 @@ class ProductDetailController extends Controller
             ->take(3)
             ->get();
 
-        // Related Products
-        $relatedProducts = Product::active()
-            ->where('id', '!=', $product->id)
-            ->where('category_id', $product->category_id)
-            ->with(['media', 'defaultVariant', 'variants', 'brand', 'seller'])
-            ->take(8)
-            ->get();
+        // Related Products (cached 10 min per product)
+        $relatedProducts = \Illuminate\Support\Facades\Cache::remember("product.related_{$product->id}", 600, function () use ($product) {
+            return Product::active()
+                ->where('id', '!=', $product->id)
+                ->where('category_id', $product->category_id)
+                ->with(['media', 'defaultVariant', 'variants', 'brand', 'seller'])
+                ->take(8)
+                ->get();
+        });
 
         // Breadcrumbs
         $breadcrumbs = [
@@ -107,8 +111,10 @@ class ProductDetailController extends Controller
 
         // Format Variants for Alpine.js Reactive Switcher
         $variantsData = $product->variants->map(function ($v) {
-            $stock = $v->inventories->sum(fn ($i) => max(0, $i->quantity_on_hand - $i->quantity_reserved));
-            $img = $v->media->first()?->path
+            $stock = $v->relationLoaded('inventories')
+                ? $v->inventories->sum(fn ($i) => max(0, $i->quantity_on_hand - $i->quantity_reserved))
+                : 100;
+            $img = $v->relationLoaded('media') && $v->media->first()?->path
                 ? asset('storage/' . $v->media->first()->path)
                 : null;
 
@@ -131,7 +137,24 @@ class ProductDetailController extends Controller
         });
 
         // JSON-LD Structured Schema
-        $defaultVar = $product->defaultVariant ?? $product->variants->first();
+        $defaultVar = $product->variants->firstWhere('is_default', true)
+            ?? $product->defaultVariant
+            ?? $product->variants->first();
+
+        $inStock = false;
+        if ($defaultVar) {
+            if ($defaultVar->relationLoaded('inventories')) {
+                $inStock = $defaultVar->inventories->sum('quantity_on_hand') > 0;
+            } elseif ($product->relationLoaded('variants')) {
+                $matchingVariant = $product->variants->firstWhere('id', $defaultVar->id);
+                $inStock = $matchingVariant && $matchingVariant->relationLoaded('inventories')
+                    ? $matchingVariant->inventories->sum('quantity_on_hand') > 0
+                    : true;
+            } else {
+                $inStock = true;
+            }
+        }
+
         $schema = [
             '@context' => 'https://schema.org',
             '@type' => 'Product',
@@ -149,7 +172,7 @@ class ProductDetailController extends Controller
                 'priceCurrency' => setting('currency', 'INR'),
                 'price' => $product->effective_price,
                 'itemCondition' => 'https://schema.org/NewCondition',
-                'availability' => ($defaultVar && $defaultVar->inventories->sum('quantity_on_hand') > 0)
+                'availability' => $inStock
                     ? 'https://schema.org/InStock'
                     : 'https://schema.org/OutOfStock',
                 'seller' => [

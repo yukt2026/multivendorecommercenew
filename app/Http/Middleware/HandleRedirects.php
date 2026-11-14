@@ -24,11 +24,15 @@ class HandleRedirects
         // Normalize path: e.g. 'old-category/' -> '/old-category'
         $path = '/' . ltrim(rtrim($request->path(), '/'), '/');
 
-        // Look up active redirect rule
+        // Look up active redirect rule from cached mapping (fast in-memory/file lookup)
         try {
-            $rule = RedirectRule::active()
-                ->where('source_path', $path)
-                ->first();
+            $rulesMap = \Illuminate\Support\Facades\Cache::remember('redirect_rules.map', 3600, function () {
+                return RedirectRule::active()
+                    ->get(['id', 'source_path', 'target_path', 'status_code'])
+                    ->keyBy('source_path')
+                    ->all();
+            });
+            $rule = $rulesMap[$path] ?? null;
         } catch (\Throwable) {
             $rule = null;
         }
