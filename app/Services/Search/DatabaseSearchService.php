@@ -78,13 +78,16 @@ class DatabaseSearchService implements SearchServiceInterface
             });
         }
 
-        // 2. Category Filter
+        // 2. Category Filter (including descendants)
         if (!empty($filters['category'])) {
             $cat = $filters['category'];
-            if (is_numeric($cat)) {
-                $productQuery->where('products.category_id', (int) $cat);
-            } else {
-                $productQuery->whereHas('category', fn ($c) => $c->where('slug', $cat));
+            $targetCategory = is_numeric($cat)
+                ? Category::find((int) $cat)
+                : Category::where('slug', $cat)->first();
+
+            if ($targetCategory) {
+                $catIds = $targetCategory->children()->pluck('id')->push($targetCategory->id)->all();
+                $productQuery->whereIn('products.category_id', $catIds);
             }
         }
 
@@ -142,16 +145,18 @@ class DatabaseSearchService implements SearchServiceInterface
             $lng = (float) $location['lng'];
             $radius = (float) ($location['radius_km'] ?? setting('default_delivery_radius_km', 8.0));
 
-            // Boost products whose seller has an active store nearby
-            $productQuery->leftJoin('sellers', 'products.seller_id', '=', 'sellers.id')
-                ->leftJoin('stores', 'sellers.id', '=', 'stores.seller_id')
-                ->leftJoin('store_locations', 'stores.id', '=', 'store_locations.store_id');
-
+            // Boost products whose seller has an active store nearby using subquery (avoids ONLY_FULL_GROUP_BY issues)
             if (DB::connection()->getDriverName() === 'sqlite') {
                 $latDelta = $radius / 111.0;
                 $lngDelta = $radius / (111.0 * max(0.1, cos(deg2rad($lat))));
                 $productQuery->select('products.*')
-                    ->selectRaw("CASE WHEN store_locations.lat BETWEEN ? AND ? AND store_locations.lng BETWEEN ? AND ? THEN 1 ELSE 0 END as is_nearby", [
+                    ->selectRaw("CASE WHEN EXISTS (
+                        SELECT 1 FROM store_locations
+                        INNER JOIN stores ON stores.id = store_locations.store_id
+                        WHERE stores.seller_id = products.seller_id
+                        AND store_locations.lat BETWEEN ? AND ?
+                        AND store_locations.lng BETWEEN ? AND ?
+                    ) THEN 1 ELSE 0 END as is_nearby", [
                         $lat - $latDelta, $lat + $latDelta, $lng - $lngDelta, $lng + $lngDelta
                     ]);
             } else {
@@ -161,10 +166,13 @@ class DatabaseSearchService implements SearchServiceInterface
                     sin(radians({$lat})) * sin(radians(store_locations.lat))
                 ))";
                 $productQuery->select('products.*')
-                    ->selectRaw("CASE WHEN {$haversine} <= ? THEN 1 ELSE 0 END as is_nearby", [$radius]);
+                    ->selectRaw("CASE WHEN EXISTS (
+                        SELECT 1 FROM store_locations
+                        INNER JOIN stores ON stores.id = store_locations.store_id
+                        WHERE stores.seller_id = products.seller_id
+                        AND {$haversine} <= ?
+                    ) THEN 1 ELSE 0 END as is_nearby", [$radius]);
             }
-
-            $productQuery->groupBy('products.id');
         } else {
             $productQuery->select('products.*');
         }

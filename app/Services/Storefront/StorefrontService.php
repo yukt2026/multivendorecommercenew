@@ -268,7 +268,7 @@ class StorefrontService
                     'brand' => $p->brand?->name,
                     'category' => $p->category?->name,
                     'is_quick' => (bool) $p->is_quick_capable,
-                    'url' => route('home') . '?search=' . urlencode($p->title),
+                    'url' => route('product.show', $p->slug),
                 ];
             })->toArray();
         }
@@ -311,7 +311,7 @@ class StorefrontService
                     'slug' => $b->slug,
                     'logo' => $b->logo ? asset('storage/' . $b->logo) : null,
                     'is_verified' => (bool) $b->is_verified,
-                    'url' => route('home') . '?brand=' . urlencode($b->slug),
+                    'url' => route('brand.show', $b->slug),
                 ];
             })->toArray();
         }

@@ -1,43 +1,10 @@
 @extends('layouts.storefront')
 
 @section('content')
-<div class="space-y-8 sm:space-y-12 pb-16">
-
-    <!-- 1. Location Bar & 2. Mobile Search (Section 6 Order: Location bar > Search) -->
-    <div class="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 text-white px-4 py-3 sm:hidden shadow-sm">
-        <div class="flex items-center justify-between gap-2">
-            <button type="button"
-                    @click="$store.location.modalOpen = true"
-                    class="flex items-center space-x-2 text-left flex-1 min-w-0">
-                <div class="w-8 h-8 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-sm flex-shrink-0">
-                    ⚡
-                </div>
-                <div class="min-w-0">
-                    <div class="text-[10px] font-bold text-amber-300 uppercase tracking-wider">Delivery in 15 Mins to</div>
-                    <div class="text-xs font-black truncate text-white" x-text="$store.location.current.address_label || 'Select Location'">
-                        {{ $location['address_label'] ?? 'Bengaluru 560001' }}
-                    </div>
-                </div>
-                <svg class="w-4 h-4 text-slate-300 ml-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-            </button>
-        </div>
-
-        <!-- Mobile Search Input Bar -->
-        <div class="mt-2.5">
-            <div class="relative flex items-center bg-white rounded-xl shadow-inner">
-                <svg class="w-4 h-4 text-slate-400 absolute left-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                </svg>
-                <input type="text"
-                       placeholder="Search 50,000+ items across local stores & brands..."
-                       @focus="$store.cart.open = false"
-                       class="w-full pl-9 pr-3 py-2 text-xs text-slate-800 placeholder-slate-400 bg-transparent border-0 focus:ring-0 rounded-xl" />
-            </div>
-        </div>
-    </div>
+<div class="space-y-6 sm:space-y-12 pb-16">
 
     <!-- 3. Hero Banner Carousel (Admin Managed via banners table) -->
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
+    <section class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-2 sm:pt-6">
         <div x-data="{
                 activeSlide: 0,
                 slidesCount: {{ $heroBanners->count() > 0 ? $heroBanners->count() : 1 }},
@@ -54,34 +21,48 @@
              x-init="start()"
              @mouseenter="stop()"
              @mouseleave="start()"
-             class="relative rounded-3xl overflow-hidden shadow-xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white min-h-[220px] sm:min-h-[340px]">
+             class="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white min-h-[190px] sm:min-h-[340px]">
 
             <!-- Carousel Slides -->
-            <div class="relative w-full h-[220px] sm:h-[340px]">
+            <div class="relative w-full h-[190px] sm:h-[340px]">
                 @if($heroBanners->isNotEmpty())
                     @foreach($heroBanners as $index => $banner)
+                        @php
+                            $slideGradients = [
+                                'linear-gradient(to right, rgba(6,78,59,0.94) 30%, rgba(15,23,42,0.85) 70%, rgba(15,23,42,0.6) 100%)',
+                                'linear-gradient(to right, rgba(120,53,15,0.94) 30%, rgba(15,23,42,0.85) 70%, rgba(15,23,42,0.6) 100%)',
+                                'linear-gradient(to right, rgba(49,46,129,0.94) 30%, rgba(15,23,42,0.85) 70%, rgba(15,23,42,0.6) 100%)',
+                            ];
+                            $grad = $slideGradients[$index % count($slideGradients)];
+                            $bgStyle = $banner->image 
+                                ? "background-image: {$grad}, url('" . asset('storage/' . $banner->image) . "');"
+                                : "background-image: {$grad};";
+                            $targetUrl = $banner->link ? (str_starts_with($banner->link, 'http') ? $banner->link : url($banner->link)) : route('home');
+                        @endphp
                         <div x-show="activeSlide === {{ $index }}"
+                             x-cloak
+                             :style="activeSlide !== {{ $index }} ? 'display: none;' : ''"
                              x-transition:enter="transition ease-out duration-500"
                              x-transition:enter-start="opacity-0 translate-x-8"
                              x-transition:enter-end="opacity-100 translate-x-0"
                              x-transition:leave="transition ease-in duration-300"
                              x-transition:leave-start="opacity-100 translate-x-0"
                              x-transition:leave-end="opacity-0 -translate-x-8"
-                             class="absolute inset-0 flex items-center justify-between p-6 sm:p-12 bg-cover bg-center"
-                             style="{{ $banner->image ? 'background-image: linear-gradient(to right, rgba(15,23,42,0.95) 45%, rgba(15,23,42,0.6) 80%, rgba(15,23,42,0.3) 100%), url(' . asset('storage/' . $banner->image) . ');' : '' }}">
+                             class="absolute inset-0 flex items-center justify-between p-4 sm:p-12 bg-cover bg-center"
+                             style="{{ $bgStyle }}">
 
-                            <div class="max-w-xl space-y-3 sm:space-y-4 z-10">
-                                <span class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950 shadow-sm">
-                                    <span>⚡ ONESTALL SUPER SAVINGS</span>
+                            <div class="max-w-xl space-y-2 sm:space-y-4 z-10">
+                                <span class="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[9px] sm:text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950 shadow-sm">
+                                    <span>⚡ ONESTALL SPECIAL</span>
                                 </span>
-                                <h2 class="text-xl sm:text-4xl font-black text-white tracking-tight leading-tight">
+                                <h2 class="text-base sm:text-4xl font-black text-white tracking-tight leading-tight line-clamp-2">
                                     {{ $banner->title }}
                                 </h2>
                                 <p class="text-xs sm:text-sm text-slate-300 max-w-md hidden sm:block">
                                     Shop from your trusted neighbourhood retailers with 15-minute express delivery or pan-India marketplace catalog.
                                 </p>
-                                <div class="pt-2">
-                                    <a href="{{ $banner->link ?: route('home') }}" class="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition shadow-lg shadow-amber-400/20 active:scale-95">
+                                <div class="pt-1 sm:pt-2">
+                                    <a href="{{ $targetUrl }}" class="inline-flex items-center space-x-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-[11px] sm:text-xs uppercase tracking-wider transition shadow-lg shadow-amber-400/20 active:scale-95">
                                         <span>Order Now</span>
                                         <span>&rarr;</span>
                                     </a>
@@ -91,37 +72,37 @@
                     @endforeach
                 @else
                     <!-- Fallback hero slide -->
-                    <div class="absolute inset-0 flex items-center p-6 sm:p-12 bg-gradient-to-r from-slate-900 to-indigo-900">
-                        <div class="max-w-xl space-y-4">
-                            <span class="inline-block px-3 py-1 rounded-full text-xs font-black bg-amber-400 text-slate-950">⚡ INSTANT COMMERCE</span>
-                            <h2 class="text-2xl sm:text-4xl font-black text-white">Smart Commerce, Delivered in Minutes.</h2>
-                            <p class="text-xs sm:text-sm text-slate-300">Discover fresh fruits, staples, electronics & lifestyle from local stores.</p>
-                            <a href="#quick-commerce" class="inline-block px-5 py-2.5 rounded-xl bg-amber-400 text-slate-950 font-bold text-xs uppercase">Explore Now</a>
+                    <div class="absolute inset-0 flex items-center p-4 sm:p-12 bg-gradient-to-r from-slate-900 to-indigo-900">
+                        <div class="max-w-xl space-y-3 sm:space-y-4">
+                            <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black bg-amber-400 text-slate-950">⚡ INSTANT COMMERCE</span>
+                            <h2 class="text-lg sm:text-4xl font-black text-white">Smart Commerce, Delivered in Minutes.</h2>
+                            <p class="text-xs sm:text-sm text-slate-300 hidden sm:block">Discover fresh fruits, staples, electronics & lifestyle from local stores.</p>
+                            <a href="{{ route('quick.index') }}" class="inline-block px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-amber-400 text-slate-950 font-bold text-xs uppercase">Explore Now</a>
                         </div>
                     </div>
                 @endif
             </div>
 
-            <!-- Carousel Controls -->
+            <!-- Carousel Controls (Hidden on Mobile) -->
             @if($heroBanners->count() > 1)
                 <button type="button"
                         @click="activeSlide = (activeSlide - 1 + slidesCount) % slidesCount"
-                        class="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-900/60 hover:bg-slate-900 text-white flex items-center justify-center backdrop-blur-sm transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                        class="hidden sm:flex absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-900/70 hover:bg-slate-900 text-white items-center justify-center backdrop-blur-md transition shadow-lg cursor-pointer">
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
                 </button>
                 <button type="button"
                         @click="activeSlide = (activeSlide + 1) % slidesCount"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-900/60 hover:bg-slate-900 text-white flex items-center justify-center backdrop-blur-sm transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                        class="hidden sm:flex absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-900/70 hover:bg-slate-900 text-white items-center justify-center backdrop-blur-md transition shadow-lg cursor-pointer">
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
                 </button>
 
                 <!-- Indicator Dots -->
-                <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center space-x-1.5 z-20">
+                <div class="absolute bottom-2.5 sm:bottom-3 left-1/2 -translate-x-1/2 flex items-center space-x-1.5 z-30">
                     <template x-for="i in slidesCount" :key="i">
                         <button type="button"
                                 @click="activeSlide = i - 1"
-                                :class="activeSlide === (i - 1) ? 'w-6 bg-amber-400' : 'w-2 bg-white/50'"
-                                class="h-2 rounded-full transition-all duration-300"></button>
+                                :class="activeSlide === (i - 1) ? 'w-5 sm:w-6 bg-amber-400' : 'w-2 bg-white/50'"
+                                class="h-1.5 sm:h-2 rounded-full transition-all duration-300"></button>
                     </template>
                 </div>
             @endif
@@ -130,37 +111,37 @@
 
     <!-- 4. Quick Commerce Strip ("Delivery in minutes", Blinkit-inspired, shown when nearby eligible stores exist) -->
     @if($quickCommerce['is_available'] || true)
-        <section id="quick-commerce" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="p-4 sm:p-6 rounded-3xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-slate-950 shadow-lg border border-amber-300 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-center space-x-4">
-                    <div class="w-14 h-14 rounded-2xl bg-slate-950 text-amber-400 flex items-center justify-center font-black text-2xl shadow-md flex-shrink-0 animate-bounce">
+        <section id="quick-commerce" class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div class="p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-slate-950 shadow-lg border border-amber-300 relative overflow-hidden flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
+                <div class="flex items-start sm:items-center space-x-3 sm:space-x-4">
+                    <div class="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-950 text-amber-400 flex items-center justify-center font-black text-lg sm:text-2xl shadow-md flex-shrink-0 animate-bounce">
                         ⚡
                     </div>
-                    <div>
-                        <div class="flex items-center space-x-2">
-                            <span class="px-2 py-0.5 rounded-md bg-slate-950 text-white text-[10px] font-black uppercase tracking-wider">
+                    <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+                            <span class="px-2 py-0.5 rounded-md bg-slate-950 text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wider inline-block">
                                 HYPER-LOCAL QUICK COMMERCE
                             </span>
-                            <span class="text-xs font-bold text-slate-800">
+                            <span class="text-[11px] sm:text-xs font-bold text-slate-800">
                                 &bull; {{ $quickCommerce['store_count'] }} stores live nearby
                             </span>
                         </div>
-                        <h3 class="text-lg sm:text-2xl font-black text-slate-950 tracking-tight mt-0.5">
+                        <h3 class="text-base sm:text-2xl font-black text-slate-950 tracking-tight leading-snug">
                             Delivered to your doorstep in 10-25 Minutes!
                         </h3>
-                        <p class="text-xs font-medium text-slate-800 max-w-lg">
+                        <p class="text-[11px] sm:text-xs font-medium text-slate-800 max-w-lg mt-0.5 line-clamp-2 sm:line-clamp-none">
                             Fresh dairy, instant groceries, medicines, electronics and essentials packaged directly from stores within {{ $deliveryRadius }} km.
                         </p>
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-3 flex-shrink-0 w-full sm:w-auto">
+                <div class="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 w-full md:w-auto pt-1 sm:pt-0">
                     <button type="button"
                             @click="$store.location.modalOpen = true"
-                            class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs shadow-sm border border-slate-200 transition">
+                            class="flex-1 md:flex-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs shadow-sm border border-slate-200 transition text-center">
                         Change Location
                     </button>
-                    <a href="#nearby-stores" class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-extrabold text-xs shadow-md transition text-center">
+                    <a href="#nearby-stores" class="flex-1 md:flex-none px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-extrabold text-xs shadow-md transition text-center">
                         View Local Stores &rarr;
                     </a>
                 </div>
@@ -169,51 +150,53 @@
     @endif
 
     <!-- 5. Categories Grid (Circular / Card Style with Icons) -->
-    <section id="categories" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between mb-4">
+    <section id="categories" class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between mb-3 sm:mb-4">
             <div>
-                <h2 class="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">Explore Categories</h2>
-                <p class="text-xs text-slate-500">Shop by category across quick-delivery and marketplace catalogs</p>
+                <h2 class="text-base sm:text-2xl font-black text-slate-900 tracking-tight">Explore Categories</h2>
+                <p class="text-[11px] sm:text-xs text-slate-500">Shop by category across quick-delivery and marketplace catalogs</p>
             </div>
-            <a href="{{ route('home') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">
-                View All &rarr;
+            <a href="{{ route('search') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center">
+                <span>View All</span>
+                <span class="ml-0.5">&rarr;</span>
             </a>
         </div>
 
-        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4">
+        <div class="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-4">
             @foreach($categories->take(12) as $category)
-                <a href="{{ route('home') }}?category={{ $category->slug }}"
-                   class="group flex flex-col items-center p-3 rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-400 hover:shadow-md transition text-center">
-                    <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-indigo-50 to-amber-50 group-hover:from-indigo-100 group-hover:to-amber-100 flex items-center justify-center p-2 mb-2 transition-transform group-hover:scale-105 overflow-hidden">
-                        @if($category->image)
+                <a href="{{ route('category.show', $category->slug) }}"
+                   class="group flex flex-col items-center p-1.5 sm:p-3 rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-400 hover:shadow-md transition text-center">
+                    <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-indigo-50 to-amber-50 group-hover:from-indigo-100 group-hover:to-amber-100 flex items-center justify-center p-1.5 sm:p-2 mb-1 transition-transform group-hover:scale-105 overflow-hidden flex-shrink-0">
+                        @if($category->image && file_exists(public_path('storage/' . $category->image)))
                             <img src="{{ asset('storage/' . $category->image) }}"
                                  alt="{{ $category->name }}"
                                  loading="lazy"
-                                 onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\' width=\'100\' height=\'100\'><circle cx=\'50\' cy=\'50\' r=\'40\' fill=\'%23e0e7ff\'/><text x=\'50\' y=\'60\' font-size=\'36\' text-anchor=\'middle\'>🛍️</text></svg>';"
-                                 class="w-full h-full object-contain">
+                                 class="w-full h-full object-contain rounded-xl">
                         @else
-                            <span class="text-2xl">
+                            <span class="text-xl sm:text-2xl">
                                 @switch(strtolower($category->slug))
                                     @case('groceries-staples') 🛒 @break
                                     @case('fresh-fruits-vegetables') 🍎 @break
                                     @case('dairy-bread-eggs') 🥛 @break
                                     @case('snacks-beverages') 🥤 @break
+                                    @case('personal-care-hygiene') 🧼 @break
                                     @case('electronics-gadgets') 📱 @break
                                     @case('home-kitchen') 🍳 @break
                                     @case('fashion-apparel') 👕 @break
                                     @case('health-wellness') 💊 @break
                                     @case('beauty-cosmetics') 💄 @break
                                     @case('baby-care-kids') 🧸 @break
-                                    @default 📦
+                                    @case('stationery-office-supplies') 📚 @break
+                                    @default 🛍️
                                 @endswitch
                             </span>
                         @endif
                     </div>
-                    <span class="text-xs font-bold text-slate-800 group-hover:text-indigo-600 line-clamp-1 transition">
+                    <span class="text-[10px] sm:text-xs font-bold text-slate-800 group-hover:text-indigo-600 line-clamp-2 leading-tight h-7 flex items-center justify-center transition">
                         {{ $category->name }}
                     </span>
                     @if($category->is_quick_eligible)
-                        <span class="text-[9px] font-extrabold text-amber-600 mt-0.5">⚡ 15m</span>
+                        <span class="text-[8px] sm:text-[9px] font-extrabold text-amber-600 mt-0.5">⚡ 15m</span>
                     @endif
                 </a>
             @endforeach
@@ -221,16 +204,16 @@
     </section>
 
     <!-- 6. Nearby Stores (Blueprint Section 6: Nearby Stores) -->
-    <section id="nearby-stores" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between mb-4">
+    <section id="nearby-stores" class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between mb-3 sm:mb-4">
             <div>
                 <div class="flex items-center space-x-2">
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    <span class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200">
                         🏪 PHYSICAL & LOCAL CONNECT
                     </span>
                 </div>
-                <h2 class="text-lg sm:text-2xl font-black text-slate-900 tracking-tight mt-1">Nearby Retail Stores & Outlets</h2>
-                <p class="text-xs text-slate-500">Order from registered neighborhood stores with live pickup and instant delivery</p>
+                <h2 class="text-base sm:text-2xl font-black text-slate-900 tracking-tight mt-1">Nearby Retail Stores & Outlets</h2>
+                <p class="text-[11px] sm:text-xs text-slate-500">Order from registered neighborhood stores with live pickup and instant delivery</p>
             </div>
             <button type="button" @click="$store.location.modalOpen = true" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center space-x-1">
                 <span>Change Area</span>
@@ -238,27 +221,28 @@
             </button>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Mobile Horizontal Carousel (sm:hidden) / Desktop Grid (sm:grid) -->
+        <div class="flex sm:grid overflow-x-auto sm:overflow-visible sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 pb-2 sm:pb-0 no-scrollbar snap-x">
             @forelse($nearbyStores as $store)
-                <div class="group flex flex-col bg-white rounded-3xl border border-slate-200/80 hover:border-indigo-400 hover:shadow-xl transition-all duration-300 overflow-hidden">
+                <div class="flex-shrink-0 w-[260px] sm:w-auto snap-start group flex flex-col bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 hover:border-indigo-400 hover:shadow-xl transition-all duration-300 overflow-hidden">
                     <!-- Store Banner / Header -->
-                    <div class="h-28 bg-gradient-to-r from-slate-800 to-indigo-950 relative overflow-hidden">
+                    <div class="h-24 sm:h-28 bg-gradient-to-r from-slate-800 to-indigo-950 relative overflow-hidden flex-shrink-0">
                         @if($store->banner)
                             <img src="{{ asset('storage/' . $store->banner) }}" alt="{{ $store->name }}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                         @endif
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent"></div>
 
                         <!-- Status & Distance Badges -->
-                        <div class="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black {{ $store->isOpenNow() ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300' }}">
+                        <div class="absolute top-2 left-2 right-2 flex items-center justify-between">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black {{ $store->isOpenNow() ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300' }}">
                                 {{ $store->isOpenNow() ? 'Open Now' : 'Closed' }}
                             </span>
                             @if(isset($store->distance_km))
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-white/90 text-slate-900 backdrop-blur-sm shadow-xs">
+                                <span class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black bg-white/90 text-slate-900 backdrop-blur-sm shadow-xs">
                                     📍 {{ number_format((float) $store->distance_km, 1) }} km
                                 </span>
                             @else
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-white/90 text-slate-900 backdrop-blur-sm shadow-xs">
+                                <span class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black bg-white/90 text-slate-900 backdrop-blur-sm shadow-xs">
                                     Within {{ $store->effectiveDeliveryRadius() }} km
                                 </span>
                             @endif
@@ -266,36 +250,36 @@
                     </div>
 
                     <!-- Store Details -->
-                    <div class="p-4 flex-1 flex flex-col justify-between">
+                    <div class="p-3 sm:p-4 flex-1 flex flex-col justify-between">
                         <div>
                             <div class="flex items-center justify-between mb-1">
-                                <h3 class="text-sm font-extrabold text-slate-900 group-hover:text-indigo-600 transition truncate">
+                                <h3 class="text-xs sm:text-sm font-extrabold text-slate-900 group-hover:text-indigo-600 transition truncate">
                                     {{ $store->name }}
                                 </h3>
-                                <div class="flex items-center text-amber-500 text-xs font-bold space-x-0.5">
-                                    <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                                    <span>{{ number_format($store->rating_avg ?? 4.8, 1) }}</span>
+                                <div class="flex items-center text-amber-500 text-xs font-bold space-x-0.5 flex-shrink-0 ml-1">
+                                    <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                    <span class="text-[11px] sm:text-xs">{{ number_format($store->rating_avg ?? 4.8, 1) }}</span>
                                 </div>
                             </div>
-                            <p class="text-xs text-slate-500 line-clamp-1 mb-2">
+                            <p class="text-[11px] sm:text-xs text-slate-500 line-clamp-1 mb-1.5">
                                 {{ $store->description ?: 'Authorized neighbourhood store on OneStall Network' }}
                             </p>
-                            <div class="flex items-center space-x-1.5 text-[10px] font-bold text-slate-600">
+                            <div class="flex items-center space-x-1.5 text-[9px] sm:text-[10px] font-bold text-slate-600">
                                 @if($store->accepts_quick_commerce)
-                                    <span class="text-amber-600">⚡ 15-30m Quick Delivery</span>
+                                    <span class="text-amber-600">⚡ 15-30m Delivery</span>
                                 @endif
                                 @if($store->accepts_pickup)
-                                    <span class="text-indigo-600">&bull; 🛍️ Store Pickup</span>
+                                    <span class="text-indigo-600">&bull; 🛍️ Pickup</span>
                                 @endif
                             </div>
                         </div>
 
                         <!-- Action Link -->
-                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                            <span class="text-[11px] text-slate-500 font-medium">
+                        <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                            <span class="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate max-w-[120px]">
                                 {{ $store->location?->city ?? 'Bengaluru' }}
                             </span>
-                            <a href="{{ route('store.show', $store->slug) }}" class="px-3.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white font-bold text-xs transition">
+                            <a href="{{ route('store.show', $store->slug) }}" class="px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white font-bold text-xs transition">
                                 Enter Store &rarr;
                             </a>
                         </div>
@@ -323,9 +307,25 @@
                     <h2 class="text-xl sm:text-3xl font-black tracking-tight text-white">Up to 40% OFF Daily Essentials</h2>
                     <p class="text-xs text-rose-100">Hand-picked maximum discount deals with direct doorstep dispatch</p>
                 </div>
-                <div class="flex items-center space-x-2 text-xs font-black bg-black/20 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/20">
+                <div x-data="{
+                    timeLeft: '',
+                    initTimer() {
+                        const update = () => {
+                            const now = new Date();
+                            const end = new Date();
+                            end.setHours(23, 59, 59, 999);
+                            const diff = Math.max(0, end - now);
+                            const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
+                            const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+                            const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+                            this.timeLeft = `${h}h : ${m}m : ${s}s`;
+                        };
+                        update();
+                        setInterval(update, 1000);
+                    }
+                }" x-init="initTimer()" class="flex items-center space-x-2 text-xs font-black bg-black/20 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/20">
                     <span>⚡ Ending Soon:</span>
-                    <span class="font-mono text-amber-300">04h : 28m : 15s</span>
+                    <span class="font-mono text-amber-300" x-text="timeLeft">04h : 28m : 15s</span>
                 </div>
             </div>
         </div>
@@ -359,7 +359,7 @@
                 <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-600">Top Rated & Trending</span>
                 <h2 class="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">Best Sellers on OneStall</h2>
             </div>
-            <a href="{{ route('home') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">
+            <a href="{{ route('search', ['sort' => 'rating_desc']) }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">
                 Explore All &rarr;
             </a>
         </div>
@@ -378,14 +378,14 @@
                 <span class="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600">DIRECT BRAND PARTNERS</span>
                 <h2 class="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">Official Brand Stores</h2>
             </div>
-            <a href="{{ route('home') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">
+            <a href="{{ route('search', ['tab' => 'brands']) }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">
                 View All Brands &rarr;
             </a>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
             @foreach($brands as $brand)
-                <a href="{{ route('home') }}?brand={{ $brand->slug }}"
+                <a href="{{ route('brand.show', $brand->slug) }}"
                    class="group p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-400 hover:shadow-md transition text-center flex flex-col items-center justify-between">
                     <div class="w-16 h-16 rounded-xl bg-slate-50 flex items-center justify-center p-2 mb-2 group-hover:scale-105 transition-transform overflow-hidden">
                         @if($brand->logo)
@@ -405,7 +405,7 @@
                                 </svg>
                             @endif
                         </div>
-                        <span class="text-[10px] text-slate-400">{{ $brand->products_count ?? 12 }}+ products</span>
+                        <span class="text-[10px] text-slate-400">{{ $brand->products_count ?? $brand->products()->count() }} products</span>
                     </div>
                 </a>
             @endforeach
@@ -438,7 +438,7 @@
                         </div>
                         <div>
                             <h3 class="text-sm font-extrabold text-slate-900">{{ $osStore->name }}</h3>
-                            <span class="text-[11px] text-slate-500">{{ $osStore->location?->city ?? 'Bengaluru' }} Hub</span>
+                            <span class="text-[11px] text-slate-500">{{ $osStore->location?->city ?? setting('default_city', 'Bengaluru') }} Hub</span>
                         </div>
                     </div>
                     <p class="text-xs text-slate-600 mb-4 line-clamp-2">
@@ -464,7 +464,7 @@
                 <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Personalized Selection</span>
                 <h2 class="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">Recommended For You</h2>
             </div>
-            <a href="{{ route('home') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">
+            <a href="{{ route('search') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">
                 View More &rarr;
             </a>
         </div>

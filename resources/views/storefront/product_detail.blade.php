@@ -6,7 +6,7 @@
     $mediaList = $product->media;
 @endphp
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8"
+<div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8 pb-28 sm:pb-8"
      x-data="{
         activeVariantId: {{ $defaultVariant ? $defaultVariant->id : ($product->variants->first()?->id ?? 0) }},
         variants: {{ json_encode($variantsData) }},
@@ -70,7 +70,8 @@
             this.pincodeLoading = true;
             try {
                 const csrf = document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content');
-                const res = await fetch('/api/storefront/pincode/check', {
+                const targetUrl = window.apiUrl ? window.apiUrl('/api/storefront/pincode/check') : '/api/storefront/pincode/check';
+                const res = await fetch(targetUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -693,6 +694,42 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Mobile Sticky Bottom Buy Bar (sm:hidden) -->
+    <div class="sm:hidden fixed bottom-14 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2.5 shadow-2xl flex items-center justify-between gap-3">
+        <div class="min-w-0">
+            <div class="text-[10px] text-slate-400 font-medium">Price</div>
+            <div class="text-base font-black text-slate-900 tracking-tight" x-text="currentVariant.formatted_price || '{{ format_currency($product->effective_price) }}'">
+                {{ format_currency($product->effective_price) }}
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2 flex-shrink-0">
+            <template x-if="inCartQty === 0">
+                <button type="button"
+                        @click="addToCart()"
+                        :disabled="!currentVariant.in_stock"
+                        class="py-2 px-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-extrabold text-xs shadow-md active:scale-95 transition flex items-center space-x-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                    <span x-text="currentVariant.in_stock ? 'Add to Cart' : 'Out of Stock'">Add to Cart</span>
+                </button>
+            </template>
+
+            <template x-if="inCartQty > 0">
+                <div class="inline-flex items-center rounded-xl bg-indigo-50 border border-indigo-200 overflow-hidden text-indigo-700">
+                    <button type="button" @click="decrement()" class="px-2.5 py-1.5 hover:bg-indigo-200 font-black text-xs">-</button>
+                    <span class="px-2 text-xs font-extrabold" x-text="inCartQty"></span>
+                    <button type="button" @click="increment()" class="px-2.5 py-1.5 hover:bg-indigo-200 font-black text-xs">+</button>
+                </div>
+            </template>
+
+            <button type="button"
+                    @click="if (inCartQty === 0) addToCart(); $store.cart.open = true"
+                    class="py-2 px-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 text-white font-extrabold text-xs shadow-md active:scale-95 transition whitespace-nowrap">
+                Buy Now
+            </button>
         </div>
     </div>
 

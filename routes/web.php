@@ -47,7 +47,10 @@ Route::prefix('rider')->name('rider.')->group(function () {
 // Discovery Pages (Search, Categories, Brands, Stores, Product Details, CMS)
 Route::get('/search', [SearchController::class, 'index'])->name('search');
 Route::get('/c/{slug}', [CategoryController::class, 'show'])->name('category.show');
+Route::get('/categories/{slug}', fn (string $slug) => redirect()->route('category.show', $slug, 301));
 Route::get('/b/{slug}', [BrandController::class, 'show'])->name('brand.show');
+Route::get('/brands/{slug}', fn (string $slug) => redirect()->route('brand.show', $slug, 301));
+Route::get('/quick-commerce', fn () => redirect()->route('quick.index', [], 301));
 Route::get('/stores', [StoresPageController::class, 'index'])->name('stores.index');
 Route::get('/p/{slug}', [ProductDetailController::class, 'show'])->name('product.show');
 Route::post('/p/{slug}/review', [ProductDetailController::class, 'submitReview'])->name('product.review.submit');
@@ -128,6 +131,7 @@ Route::prefix('api/storefront')->name('storefront.')->group(function () {
     // Location
     Route::get('/location/current', [LocationController::class, 'current'])->name('location.current');
     Route::post('/location/set', [LocationController::class, 'set'])->name('location.set');
+    Route::post('/location/reverse', [LocationController::class, 'reverse'])->name('location.reverse');
     Route::get('/location/search', [LocationController::class, 'search'])->name('location.search');
 
     // Cart

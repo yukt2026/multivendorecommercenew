@@ -20,17 +20,17 @@
             </div>
 
             <!-- Tabs: Products / Stores / Brands -->
-            <div class="flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200 self-start sm:self-auto text-xs font-bold">
+            <div class="flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200 self-stretch sm:self-auto text-xs font-bold overflow-x-auto no-scrollbar">
                 <a href="{{ request()->fullUrlWithQuery(['tab' => 'products', 'page' => 1]) }}"
-                   class="px-4 py-2 rounded-xl transition {{ $tab === 'products' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
+                   class="flex-1 sm:flex-none text-center px-3 sm:px-4 py-2 rounded-xl transition whitespace-nowrap {{ $tab === 'products' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
                     Products ({{ $tab === 'products' ? $results->total() : '•' }})
                 </a>
                 <a href="{{ request()->fullUrlWithQuery(['tab' => 'stores', 'page' => 1]) }}"
-                   class="px-4 py-2 rounded-xl transition {{ $tab === 'stores' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
+                   class="flex-1 sm:flex-none text-center px-3 sm:px-4 py-2 rounded-xl transition whitespace-nowrap {{ $tab === 'stores' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
                     Stores ({{ $tab === 'stores' ? $results->total() : '•' }})
                 </a>
                 <a href="{{ request()->fullUrlWithQuery(['tab' => 'brands', 'page' => 1]) }}"
-                   class="px-4 py-2 rounded-xl transition {{ $tab === 'brands' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
+                   class="flex-1 sm:flex-none text-center px-3 sm:px-4 py-2 rounded-xl transition whitespace-nowrap {{ $tab === 'brands' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
                     Brands ({{ $tab === 'brands' ? $results->total() : '•' }})
                 </a>
             </div>

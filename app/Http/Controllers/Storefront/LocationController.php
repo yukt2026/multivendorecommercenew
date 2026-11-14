@@ -69,6 +69,28 @@ class LocationController extends Controller
     }
 
     /**
+     * Reverse geocode GPS coordinates to city, pincode and address label.
+     */
+    public function reverse(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'lat' => ['required', 'numeric', 'between:-90,90'],
+            'lng' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        $location = $this->locationService->reverseGeocode((float) $validated['lat'], (float) $validated['lng']);
+        $payload = $this->locationService->setLocation($request, $location);
+
+        $cookie = cookie('customer_location', json_encode($payload), 60 * 24 * 30);
+
+        return response()->json([
+            'status' => 'success',
+            'location' => $payload,
+            'message' => 'Delivery location detected: ' . $payload['address_label'],
+        ])->withCookie($cookie);
+    }
+
+    /**
      * Autocomplete search for pincode or city.
      */
     public function search(Request $request): JsonResponse

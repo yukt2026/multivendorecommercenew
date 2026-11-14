@@ -99,8 +99,8 @@ class LocationService
         }
 
         if ($cookie = $request->cookie('customer_location')) {
-            $decoded = json_decode($cookie, true);
-            if (is_array($decoded) && !empty($decoded['pincode'])) {
+            $decoded = is_array($cookie) ? $cookie : json_decode($cookie, true);
+            if (is_array($decoded) && (!empty($decoded['pincode']) || !empty($decoded['city']) || !empty($decoded['lat']))) {
                 if ($request->hasSession()) {
                     $request->session()->put('customer_location', $decoded);
                 }
@@ -133,6 +133,79 @@ class LocationService
         }
 
         return self::DEFAULT_LOCATION;
+    }
+
+    /**
+     * Reverse geocode coordinates to human-readable city, state and pincode.
+     * Uses BigDataCloud with nearest Indian city fallback.
+     *
+     * @param float $lat
+     * @param float $lng
+     * @return array
+     */
+    public function reverseGeocode(float $lat, float $lng): array
+    {
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(3.5)
+                ->withHeaders(['User-Agent' => 'OneStall/2.0 (Location Resolver)'])
+                ->get("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude={$lat}&longitude={$lng}&localityLanguage=en");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $city = $data['city'] ?? $data['locality'] ?? $data['principalSubdivision'] ?? 'Current Location';
+                $pincode = !empty($data['postcode']) ? $data['postcode'] : '';
+                $state = $data['principalSubdivision'] ?? 'India';
+
+                // If pincode was not in the reverse geocode, match against popular cities
+                if (empty($pincode)) {
+                    foreach (self::POPULAR_CITIES as $pc) {
+                        $cleanPc = str_replace(' ncr', '', strtolower($pc['city']));
+                        if (str_contains(strtolower($city), $cleanPc) || str_contains($cleanPc, strtolower($city))) {
+                            $pincode = $pc['pincode'];
+                            break;
+                        }
+                    }
+                    if (empty($pincode)) {
+                        $pincode = '110001';
+                    }
+                }
+
+                $label = !empty($data['postcode']) ? "{$city} {$data['postcode']}" : "{$city} {$pincode}";
+
+                return [
+                    'city' => $city,
+                    'pincode' => $pincode,
+                    'state' => $state,
+                    'lat' => $lat,
+                    'lng' => $lng,
+                    'address_label' => $label,
+                    'is_detected' => true,
+                ];
+            }
+        } catch (\Throwable $e) {
+            // Log fallback
+        }
+
+        // Fallback: match nearest curated city using euclidean distance
+        $nearest = self::DEFAULT_LOCATION;
+        $minDist = 999999.0;
+        foreach (self::POPULAR_CITIES as $c) {
+            $dist = hypot($c['lat'] - $lat, $c['lng'] - $lng);
+            if ($dist < $minDist) {
+                $minDist = $dist;
+                $nearest = $c;
+            }
+        }
+
+        return [
+            'city' => $nearest['city'],
+            'pincode' => $nearest['pincode'],
+            'state' => $nearest['state'],
+            'lat' => $lat,
+            'lng' => $lng,
+            'address_label' => "GPS: {$nearest['city']} ({$nearest['pincode']})",
+            'is_detected' => true,
+        ];
     }
 
     /**

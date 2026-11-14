@@ -19,13 +19,29 @@
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon.png') }}">
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
 
+    <!-- Base URL & Global App Config for Dynamic Subfolder & Domain Support -->
+    <meta name="base-url" content="{{ url('/') }}">
+    <script>
+        window.appConfig = {
+            baseUrl: @json(url('/')),
+            apiUrl: @json(url('/api/storefront')),
+            csrfToken: @json(csrf_token())
+        };
+        window.apiUrl = function(endpoint) {
+            var base = (window.appConfig && window.appConfig.baseUrl) ? window.appConfig.baseUrl : '';
+            if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) return endpoint;
+            if (!endpoint.startsWith('/')) endpoint = '/' + endpoint;
+            return base + endpoint;
+        };
+    </script>
+
     <!-- Preconnect Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap" rel="stylesheet" />
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-full flex flex-col font-sans antialiased text-slate-800 bg-slate-50 pb-16 sm:pb-0"
+<body class="min-h-full flex flex-col font-sans antialiased text-slate-800 bg-slate-50 pb-24 sm:pb-0"
       x-data="{
         mobileCategoryOpen: false,
         megaMenuOpen: false
@@ -34,9 +50,9 @@
     <!-- Top Announcement & Quick Delivery Ticker -->
     <div class="bg-slate-950 text-slate-200 px-4 py-2 text-xs font-semibold shadow-inner">
         <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <span class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                <span>
+            <div class="flex items-center space-x-2 min-w-0">
+                <span class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse flex-shrink-0"></span>
+                <span class="truncate text-[11px] sm:text-xs">
                     ⚡ <strong>Quick Commerce Live:</strong> 10-30 Min Delivery within {{ setting('default_delivery_radius_km', 8) }} km radius
                 </span>
             </div>
@@ -57,32 +73,40 @@
             }
             this.loading = true;
             try {
-                const res = await fetch(`/api/storefront/search/suggestions?q=${encodeURIComponent(this.query)}&type=${this.searchType}`);
+                const targetUrl = window.apiUrl ? window.apiUrl(`/api/storefront/search/suggestions?q=${encodeURIComponent(this.query)}&type=${this.searchType}`) : `/api/storefront/search/suggestions?q=${encodeURIComponent(this.query)}&type=${this.searchType}`;
+                const res = await fetch(targetUrl);
                 const data = await res.json();
                 this.suggestions = data.results || { products: [], stores: [], brands: [] };
             } catch (e) {
-                console.error(e);
+                console.error('Fetch suggestions error:', e);
             } finally {
                 this.loading = false;
             }
         }
     }">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-20 gap-4">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-4">
 
-                <!-- Logo & Location Group -->
-                <div class="flex items-center space-x-4 lg:space-x-6 flex-shrink-0">
-                    <a href="{{ route('home') }}" class="flex items-center space-x-2.5 group">
-                        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-700 via-indigo-600 to-amber-400 flex items-center justify-center text-white font-extrabold text-2xl shadow-md group-hover:scale-105 transition-transform">
+                <!-- Logo & Mobile Drawer Trigger -->
+                <div class="flex items-center space-x-2 sm:space-x-4 lg:space-x-6 flex-shrink-0">
+                    <button type="button"
+                            @click="mobileCategoryOpen = true"
+                            class="sm:hidden p-2 text-slate-700 hover:text-indigo-600 rounded-xl hover:bg-slate-100 active:scale-95 transition"
+                            aria-label="Open All Categories">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+
+                    <a href="{{ route('home') }}" class="flex items-center space-x-2 group">
+                        <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-indigo-700 via-indigo-600 to-amber-400 flex items-center justify-center text-white font-extrabold text-xl sm:text-2xl shadow-md group-hover:scale-105 transition-transform flex-shrink-0">
                             1S
                         </div>
                         <div>
-                            <span class="text-2xl font-black tracking-tight text-slate-900 group-hover:text-indigo-600 transition">OneStall<span class="text-amber-500">.in</span></span>
-                            <span class="block text-[10px] font-bold text-slate-400 tracking-wider uppercase -mt-1">Omnichannel Commerce</span>
+                            <span class="text-xl sm:text-2xl font-black tracking-tight text-slate-900 group-hover:text-indigo-600 transition">OneStall<span class="text-amber-500">.in</span></span>
+                            <span class="hidden sm:block text-[10px] font-bold text-slate-400 tracking-wider uppercase -mt-1">Omnichannel Commerce</span>
                         </div>
                     </a>
 
-                    <!-- Location Selector Button -->
+                    <!-- Location Selector Button (Desktop: md:flex) -->
                     <button type="button"
                             @click="$store.location.modalOpen = true"
                             class="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition text-left">
@@ -94,7 +118,7 @@
                         <div class="text-xs">
                             <span class="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Deliver to</span>
                             <span class="font-bold text-slate-900 flex items-center max-w-[140px] truncate" x-text="$store.location.current.address_label || 'Select Location'">
-                                Bengaluru 560001
+                                {{ $location['address_label'] ?? 'Bengaluru 560001' }}
                             </span>
                         </div>
                         <svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,12 +128,11 @@
                 </div>
 
                 <!-- Big Omnisearch Bar with Tabs -->
-                <div class="flex-1 max-w-2xl relative hidden sm:block" @click.outside="searchFocused = false">
+                <form action="{{ route('search') }}" method="GET" class="flex-1 max-w-2xl relative hidden sm:block" @click.outside="searchFocused = false">
                     <div class="relative flex items-center bg-slate-100 rounded-2xl border-2 border-transparent focus-within:border-indigo-600 focus-within:bg-white focus-within:shadow-lg transition-all duration-200">
                         <!-- Search Type Switcher Pill -->
                         <div class="pl-2">
-                            <select x-model="searchType" @change="fetchSuggestions()" class="bg-transparent text-xs font-bold text-slate-600 border-none rounded-lg focus:ring-0 py-1.5 pl-2 pr-6 cursor-pointer hover:text-indigo-600">
-                                <option value="all">All</option>
+                            <select name="tab" x-model="searchType" @change="fetchSuggestions()" class="bg-transparent text-xs font-bold text-slate-600 border-none rounded-lg focus:ring-0 py-1.5 pl-2 pr-6 cursor-pointer hover:text-indigo-600">
                                 <option value="products">Products</option>
                                 <option value="stores">Stores</option>
                                 <option value="brands">Brands</option>
@@ -119,6 +142,7 @@
                         <span class="h-6 w-px bg-slate-300 mx-1"></span>
 
                         <input type="text"
+                               name="q"
                                x-model="query"
                                @focus="searchFocused = true"
                                @input.debounce.300ms="fetchSuggestions()"
@@ -132,7 +156,7 @@
 
                         <!-- Search Submit Button -->
                         <div class="pr-1.5">
-                            <button type="button" class="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center transition shadow-sm">
+                            <button type="submit" class="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center transition shadow-sm">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
@@ -226,7 +250,7 @@
                             </div>
                         </template>
                     </div>
-                </div>
+                </form>
 
                 <!-- Right Action Bar: Wishlist, Cart Drawer, User Dropdown -->
                 <div class="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
@@ -314,6 +338,70 @@
                 </div>
 
             </div>
+
+            <!-- Mobile Location Bar (sm:hidden) -->
+            <div class="sm:hidden pb-1 px-1">
+                <button type="button"
+                        @click="$store.location.modalOpen = true"
+                        class="w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-left active:scale-[0.99] transition">
+                    <div class="flex items-center space-x-2 min-w-0">
+                        <span class="text-xs text-rose-600 flex-shrink-0">📍</span>
+                        <div class="flex items-center space-x-1.5 min-w-0 text-xs">
+                            <span class="text-[10px] font-semibold text-slate-500 uppercase flex-shrink-0">Deliver to:</span>
+                            <span class="font-extrabold text-slate-900 truncate" x-text="$store.location.current.address_label || 'Select Location'">
+                                {{ $location['address_label'] ?? 'Bengaluru 560001' }}
+                            </span>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-bold text-indigo-600 uppercase flex items-center space-x-0.5 flex-shrink-0 ml-1">
+                        <span>Change</span>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                    </span>
+                </button>
+            </div>
+
+            <!-- Mobile Omnisearch Row with Suggestions (sm:hidden) -->
+            <div class="pb-2.5 sm:hidden relative" @click.outside="searchFocused = false">
+                <form action="{{ route('search') }}" method="GET" class="relative">
+                    <div class="flex items-center bg-slate-100 rounded-xl border border-slate-200 focus-within:border-indigo-600 focus-within:bg-white focus-within:shadow-md transition">
+                        <div class="pl-2.5 text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        </div>
+                        <input type="text"
+                               name="q"
+                               x-model="query"
+                               @focus="searchFocused = true"
+                               @input.debounce.300ms="fetchSuggestions()"
+                               placeholder="Search fresh groceries, stores, brands..."
+                               class="w-full bg-transparent border-0 focus:ring-0 text-xs py-2 px-2 text-slate-800 placeholder-slate-400" />
+                        <button x-show="query.length > 0" @click="query = ''; suggestions = { products: [], stores: [], brands: [] }" type="button" class="text-slate-400 hover:text-slate-600 pr-2">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                        <div class="pr-1">
+                            <button type="submit" class="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-bold text-xs shadow-xs">
+                                Search
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Mobile Autocomplete Suggestions Box -->
+                <div x-show="searchFocused && (suggestions.products.length > 0 || suggestions.stores.length > 0 || suggestions.brands.length > 0 || loading)"
+                     x-cloak
+                     class="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50 max-h-[350px] overflow-y-auto divide-y divide-slate-100">
+                    <template x-if="suggestions.products.length > 0">
+                        <div class="p-2 space-y-1">
+                            <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 px-2 block">Products</span>
+                            <template x-for="item in suggestions.products.slice(0, 5)" :key="item.id">
+                                <a :href="item.url" class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 text-xs">
+                                    <span class="truncate text-slate-800 font-semibold" x-text="item.title"></span>
+                                    <span class="font-bold text-indigo-600 flex-shrink-0 ml-2" x-text="item.formatted_price"></span>
+                                </a>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </div>
         </div>
 
         <!-- Mega-Menu Categories Ribbon -->
@@ -334,13 +422,16 @@
                         </button>
 
                         <!-- Mega Menu Panel -->
+                        @php
+                            $categoriesList = $categories ?? $navCategories ?? collect();
+                        @endphp
                         <div x-show="megaMenuOpen"
                              x-transition
                              class="absolute left-0 top-full w-[850px] bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 z-50 grid grid-cols-3 gap-6">
-                            @if(isset($categories))
-                                @foreach($categories->take(6) as $cat)
+                            @if($categoriesList->isNotEmpty())
+                                @foreach($categoriesList->take(6) as $cat)
                                     <div class="space-y-2">
-                                        <a href="{{ route('home') }}?category={{ $cat->slug }}" class="font-bold text-slate-900 hover:text-indigo-600 flex items-center space-x-1.5 text-xs">
+                                        <a href="{{ route('category.show', $cat->slug) }}" class="font-bold text-slate-900 hover:text-indigo-600 flex items-center space-x-1.5 text-xs">
                                             <span>{{ $cat->name }}</span>
                                             @if($cat->is_quick_eligible)
                                                 <span class="text-[9px] font-extrabold text-amber-500">⚡</span>
@@ -350,7 +441,7 @@
                                             <ul class="space-y-1.5 pl-2 text-slate-500 text-[11px]">
                                                 @foreach($cat->children->take(4) as $sub)
                                                     <li>
-                                                        <a href="{{ route('home') }}?category={{ $sub->slug }}" class="hover:text-indigo-600 hover:underline">
+                                                        <a href="{{ route('category.show', $sub->slug) }}" class="hover:text-indigo-600 hover:underline">
                                                             {{ $sub->name }}
                                                         </a>
                                                     </li>
@@ -365,20 +456,26 @@
 
                     <!-- Quick Category Pills -->
                     <div class="flex items-center space-x-5 overflow-x-auto no-scrollbar font-semibold text-slate-600">
-                        <a href="{{ route('home') }}#quick-commerce" class="text-amber-600 hover:text-amber-700 flex items-center space-x-1 flex-shrink-0">
-                            <span>⚡ Quick Commerce (15m)</span>
+                        <a href="{{ route('quick.index') }}" class="text-amber-600 hover:text-amber-700 flex items-center space-x-1 flex-shrink-0">
+                            <span>⚡ Quick Commerce (10-30m)</span>
                         </a>
-                        <a href="{{ route('home') }}#nearby-stores" class="hover:text-indigo-600 flex-shrink-0">Nearby Stores</a>
-                        <a href="{{ route('home') }}#deals" class="hover:text-rose-600 flex-shrink-0">Top Deals</a>
-                        <a href="{{ route('home') }}#bestsellers" class="hover:text-indigo-600 flex-shrink-0">Best Sellers</a>
-                        <a href="{{ route('home') }}#brands" class="hover:text-indigo-600 flex-shrink-0">Brands</a>
-                        <a href="{{ route('home') }}#onestall-stores" class="hover:text-indigo-600 flex-shrink-0">OneStall Flagship</a>
+                        <a href="{{ route('stores.index') }}" class="hover:text-indigo-600 flex-shrink-0">Nearby Stores</a>
+                        <a href="{{ route('search', ['sort' => 'discount_desc']) }}" class="hover:text-rose-600 flex-shrink-0">Top Deals</a>
+                        <a href="{{ route('search', ['sort' => 'rating_desc']) }}" class="hover:text-indigo-600 flex-shrink-0">Best Sellers</a>
+                        <a href="{{ route('search', ['tab' => 'brands']) }}" class="hover:text-indigo-600 flex-shrink-0">Brands</a>
+                        @if($categoriesList->isNotEmpty())
+                            @foreach($categoriesList->take(5) as $topNavCat)
+                                <a href="{{ route('category.show', $topNavCat->slug) }}" class="hover:text-indigo-600 flex-shrink-0 whitespace-nowrap">
+                                    {{ $topNavCat->name }}
+                                </a>
+                            @endforeach
+                        @endif
                     </div>
 
                     <!-- Customer Support Hotline -->
                     <div class="hidden xl:flex items-center space-x-1 text-slate-400 font-medium">
                         <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-                        <span>Support: 1800-ONESTALL</span>
+                        <span>Support: {{ setting('support_phone', '1800-ONESTALL') }}</span>
                     </div>
                 </div>
             </div>
@@ -652,6 +749,64 @@
         </div>
     </div>
 
+    <!-- Mobile Categories Offcanvas Drawer -->
+    <div x-show="mobileCategoryOpen"
+         x-cloak
+         class="fixed inset-0 z-50 overflow-hidden sm:hidden"
+         role="dialog" aria-modal="true">
+        <div x-show="mobileCategoryOpen"
+             x-transition:enter="ease-in-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in-out duration-300"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @click="mobileCategoryOpen = false"
+             class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm"></div>
+
+        <div class="fixed inset-y-0 left-0 max-w-full flex pr-10">
+            <div x-show="mobileCategoryOpen"
+                 x-transition:enter="transform transition ease-in-out duration-300"
+                 x-transition:enter-start="-translate-x-full"
+                 x-transition:enter-end="translate-x-0"
+                 x-transition:leave="transform transition ease-in-out duration-300"
+                 x-transition:leave-start="translate-x-0"
+                 x-transition:leave-end="-translate-x-full"
+                 class="w-screen max-w-xs bg-white shadow-2xl flex flex-col">
+                <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-base">🛍️</span>
+                        <h3 class="font-extrabold text-sm text-slate-900">All Categories</h3>
+                    </div>
+                    <button type="button" @click="mobileCategoryOpen = false" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 space-y-4 divide-y divide-slate-100">
+                    @foreach($categoriesList as $cat)
+                        <div class="pt-3 first:pt-0 space-y-1.5">
+                            <a href="{{ route('category.show', $cat->slug) }}" class="flex items-center justify-between font-bold text-xs text-slate-900 hover:text-indigo-600">
+                                <span>{{ $cat->name }}</span>
+                                @if($cat->is_quick_eligible)
+                                    <span class="text-[9px] font-extrabold text-amber-500">⚡ 15m</span>
+                                @endif
+                            </a>
+                            @if($cat->children && $cat->children->isNotEmpty())
+                                <div class="grid grid-cols-2 gap-1.5 pl-2 text-[11px] text-slate-500">
+                                    @foreach($cat->children as $sub)
+                                        <a href="{{ route('category.show', $sub->slug) }}" class="hover:text-indigo-600 py-0.5 truncate">
+                                            {{ $sub->name }}
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Mobile Bottom Navigation Bar (sm:hidden) -->
     <nav class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 py-1.5 px-3 shadow-lg">
         <div class="grid grid-cols-5 gap-1 text-center">
@@ -662,13 +817,13 @@
             </a>
 
             <!-- Categories -->
-            <a href="{{ route('home') }}#categories" class="flex flex-col items-center py-1 text-slate-600 hover:text-indigo-600">
+            <button type="button" @click="mobileCategoryOpen = true" class="flex flex-col items-center py-1 text-slate-600 hover:text-indigo-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
                 <span class="text-[10px] mt-0.5">Categories</span>
-            </a>
+            </button>
 
             <!-- Stores -->
-            <a href="{{ route('home') }}#nearby-stores" class="flex flex-col items-center py-1 text-slate-600 hover:text-indigo-600">
+            <a href="{{ route('stores.index') }}" class="flex flex-col items-center py-1 text-slate-600 hover:text-indigo-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                 <span class="text-[10px] mt-0.5">Stores</span>
             </a>
@@ -687,7 +842,7 @@
 
             <!-- Account -->
             @auth
-                <a href="{{ route('home') }}" class="flex flex-col items-center py-1 text-slate-600 hover:text-indigo-600">
+                <a href="{{ route('orders.index') }}" class="flex flex-col items-center py-1 text-slate-600 hover:text-indigo-600">
                     <div class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center">
                         {{ substr(auth()->user()->name, 0, 1) }}
                     </div>
@@ -775,11 +930,11 @@
                 <div>
                     <h5 class="text-xs font-bold uppercase tracking-wider text-white mb-4">Platform Modes</h5>
                     <ul class="space-y-2 text-xs">
-                        <li><a href="{{ route('home') }}#quick-commerce" class="hover:text-white transition">Quick Commerce (10-30m)</a></li>
-                        <li><a href="{{ route('home') }}#nearby-stores" class="hover:text-white transition">Physical Stores Connect</a></li>
-                        <li><a href="{{ route('home') }}#deals" class="hover:text-white transition">Marketplace Deals</a></li>
-                        <li><a href="{{ route('home') }}#brands" class="hover:text-white transition">OneStall Verified Brands</a></li>
-                        <li><a href="{{ route('seller.dashboard') }}" class="hover:text-white transition">Cargo Freight Logistics</a></li>
+                        <li><a href="{{ route('quick.index') }}" class="hover:text-white transition">⚡ Quick Commerce (10-30m)</a></li>
+                        <li><a href="{{ route('stores.index') }}" class="hover:text-white transition">🏪 Physical Stores Directory</a></li>
+                        <li><a href="{{ route('search', ['sort' => 'discount_desc']) }}" class="hover:text-white transition">🔥 Marketplace Deals</a></li>
+                        <li><a href="{{ route('search', ['tab' => 'brands']) }}" class="hover:text-white transition">✓ Verified Brand Stores</a></li>
+                        <li><a href="{{ route('seller.dashboard') }}" class="hover:text-white transition">📦 Cargo Freight Logistics</a></li>
                     </ul>
                 </div>
 
@@ -790,7 +945,7 @@
                         <li><a href="{{ route('seller.dashboard') }}" class="hover:text-white transition">Seller Hub & Portal</a></li>
                         <li><a href="{{ route('seller.store.edit') }}" class="hover:text-white transition">Launch Digital Storefront</a></li>
                         <li><a href="{{ route('seller.inventory.index') }}" class="hover:text-white transition">Omnichannel Inventory</a></li>
-                        <li><a href="{{ route('seller.dashboard') }}" class="hover:text-white transition">Fulfilment Priority Network</a></li>
+                        <li><a href="{{ route('rider.dashboard') }}" class="hover:text-white transition">Rider Delivery Partner Hub</a></li>
                         <li><a href="{{ route('admin.dashboard') }}" class="hover:text-white transition">Platform Governance</a></li>
                     </ul>
                 </div>
@@ -799,11 +954,14 @@
                 <div>
                     <h5 class="text-xs font-bold uppercase tracking-wider text-white mb-4">Customer Care</h5>
                     <ul class="space-y-2 text-xs">
-                        <li><a href="{{ route('home') }}" class="hover:text-white transition">Help & Support Desk</a></li>
-                        <li><a href="{{ route('home') }}" class="hover:text-white transition">Track Your Order</a></li>
-                        <li><a href="{{ route('home') }}" class="hover:text-white transition">Returns & Cancellation</a></li>
-                        <li><a href="{{ route('home') }}" class="hover:text-white transition">Privacy Policy & Terms</a></li>
-                        <li><a href="{{ route('home') }}" class="hover:text-white transition">Security & Trust Center</a></li>
+                        <li><a href="{{ route('pages.show', 'help-support') }}" class="hover:text-white transition">Help & Support Desk</a></li>
+                        <li><a href="{{ route('orders.index') }}" class="hover:text-white transition">Track Your Order</a></li>
+                        <li><a href="{{ route('pages.show', 'returns-and-cancellation') }}" class="hover:text-white transition">Returns & Cancellation</a></li>
+                        <li><a href="{{ route('pages.show', 'shipping-policy') }}" class="hover:text-white transition">Shipping Policy</a></li>
+                        <li><a href="{{ route('pages.show', 'privacy-policy') }}" class="hover:text-white transition">Privacy Policy</a></li>
+                        <li><a href="{{ route('pages.show', 'terms-of-service') }}" class="hover:text-white transition">Terms of Service</a></li>
+                        <li><a href="{{ route('pages.show', 'security') }}" class="hover:text-white transition">Security & Trust Center</a></li>
+                        <li><a href="{{ route('pages.show', 'contact-us') }}" class="hover:text-white transition">Contact Us</a></li>
                     </ul>
                 </div>
             </div>
@@ -811,7 +969,7 @@
             <!-- Bottom Copyright & Payment Badges -->
             <div class="border-t border-slate-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
                 <div>
-                    &copy; {{ date('Y') }} OneStall Technologies Pvt. Ltd. All rights reserved.
+                    &copy; {{ date('Y') }} {{ setting('company_name', 'OneStall Technologies Pvt. Ltd.') }}. All rights reserved. &bull; Support: <span class="text-slate-300 font-semibold">{{ setting('support_phone', '1800-ONESTALL') }}</span>
                 </div>
                 <div class="flex items-center space-x-3 text-slate-400">
                     <span class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono">UPI</span>

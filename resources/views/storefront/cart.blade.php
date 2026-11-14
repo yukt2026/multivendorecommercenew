@@ -3,7 +3,7 @@
 @section('title', 'Shopping Cart - OneStall.in')
 
 @section('content')
-<div class="min-h-screen bg-slate-50 py-6 sm:py-8"
+<div class="min-h-screen bg-slate-50 py-4 sm:py-8 pb-28 sm:pb-12"
      x-data="{
         couponInput: '{{ $summary['coupon_code'] ?? '' }}',
         couponLoading: false,
@@ -492,5 +492,22 @@
         @endif
 
     </div>
+
+    @if ($summary['item_count'] > 0)
+        <!-- Mobile Sticky Checkout Bar (sm:hidden) -->
+        <div class="sm:hidden fixed bottom-14 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2.5 shadow-2xl flex items-center justify-between gap-3">
+            <div>
+                <div class="text-[10px] text-slate-400 font-bold uppercase">Total Payable</div>
+                <div class="text-base font-black text-slate-900" x-text="$store.cart.formattedTotalPayable || '{{ $summary['formatted_total_payable'] }}'">
+                    {{ $summary['formatted_total_payable'] }}
+                </div>
+            </div>
+            <a href="{{ route('checkout.index') }}"
+               class="py-2.5 px-5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 text-white font-extrabold text-xs shadow-md active:scale-95 transition flex items-center space-x-1.5">
+                <span>Proceed to Checkout</span>
+                <span>&rarr;</span>
+            </a>
+        </div>
+    @endif
 </div>
 @endsection

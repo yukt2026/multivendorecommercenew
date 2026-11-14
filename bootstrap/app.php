@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/webhook/payment/*',
             'api/v1/cargo/webhook',
             'api/v1/integrations/*',
+            'api/storefront/location/*',
         ]);
 
         $middleware->redirectGuestsTo(function ($request) {

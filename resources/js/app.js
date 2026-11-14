@@ -6,6 +6,18 @@ import Chart from 'chart.js/auto';
 window.Alpine = Alpine;
 window.Chart = Chart;
 
+// Global API URL resolver supporting subdirectory and root deployments
+export const apiUrl = (endpoint) => {
+    if (typeof window !== 'undefined' && typeof window.apiUrl === 'function' && window.apiUrl !== apiUrl) {
+        return window.apiUrl(endpoint);
+    }
+    const base = window.appConfig?.baseUrl || document.querySelector('meta[name="base-url"]')?.getAttribute('content') || '';
+    if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) return endpoint;
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    return `${base}${cleanEndpoint}`;
+};
+window.apiUrl = apiUrl;
+
 // Global Storefront Cart Store
 Alpine.store('cart', {
     open: false,
@@ -48,7 +60,7 @@ Alpine.store('cart', {
 
     async fetchSummary() {
         try {
-            const res = await fetch('/api/storefront/cart/summary', {
+            const res = await fetch(apiUrl('/api/storefront/cart/summary'), {
                 headers: { 'Accept': 'application/json' }
             });
             const data = await res.json();
@@ -106,7 +118,7 @@ Alpine.store('cart', {
         this.loading = true;
         try {
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const res = await fetch('/api/storefront/cart/add', {
+            const res = await fetch(apiUrl('/api/storefront/cart/add'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -130,7 +142,7 @@ Alpine.store('cart', {
         this.loading = true;
         try {
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const res = await fetch(`/api/storefront/cart/update/${itemId}`, {
+            const res = await fetch(apiUrl(`/api/storefront/cart/update/${itemId}`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -154,7 +166,7 @@ Alpine.store('cart', {
         this.loading = true;
         try {
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const res = await fetch(`/api/storefront/cart/remove/${itemId}`, {
+            const res = await fetch(apiUrl(`/api/storefront/cart/remove/${itemId}`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -177,7 +189,7 @@ Alpine.store('cart', {
         this.loading = true;
         try {
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const res = await fetch(`/api/storefront/cart/save-for-later/${itemId}`, {
+            const res = await fetch(apiUrl(`/api/storefront/cart/save-for-later/${itemId}`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -200,7 +212,7 @@ Alpine.store('cart', {
         this.loading = true;
         try {
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const res = await fetch(`/api/storefront/cart/move-to-cart/${itemId}`, {
+            const res = await fetch(apiUrl(`/api/storefront/cart/move-to-cart/${itemId}`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -223,7 +235,7 @@ Alpine.store('cart', {
         this.loading = true;
         try {
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const res = await fetch('/api/storefront/cart/coupon/apply', {
+            const res = await fetch(apiUrl('/api/storefront/cart/coupon/apply'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -249,7 +261,7 @@ Alpine.store('cart', {
         this.loading = true;
         try {
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const res = await fetch('/api/storefront/cart/coupon/remove', {
+            const res = await fetch(apiUrl('/api/storefront/cart/coupon/remove'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -272,7 +284,7 @@ Alpine.store('cart', {
         this.loading = true;
         try {
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const res = await fetch('/api/storefront/cart/accept-price-changes', {
+            const res = await fetch(apiUrl('/api/storefront/cart/accept-price-changes'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -303,7 +315,7 @@ Alpine.store('wishlist', {
 
     async fetchStatus() {
         try {
-            const res = await fetch('/api/storefront/wishlist/status', {
+            const res = await fetch(apiUrl('/api/storefront/wishlist/status'), {
                 headers: { 'Accept': 'application/json' }
             });
             const data = await res.json();
@@ -323,7 +335,7 @@ Alpine.store('wishlist', {
     async toggle(productId) {
         try {
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const res = await fetch('/api/storefront/wishlist/toggle', {
+            const res = await fetch(apiUrl('/api/storefront/wishlist/toggle'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -349,7 +361,7 @@ Alpine.store('wishlist', {
     async moveToCart(productId) {
         try {
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const res = await fetch(`/api/storefront/wishlist/move-to-cart/${productId}`, {
+            const res = await fetch(apiUrl(`/api/storefront/wishlist/move-to-cart/${productId}`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -375,7 +387,7 @@ Alpine.store('wishlist', {
     async remove(productId) {
         try {
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const res = await fetch(`/api/storefront/wishlist/remove/${productId}`, {
+            const res = await fetch(apiUrl(`/api/storefront/wishlist/remove/${productId}`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -413,17 +425,30 @@ Alpine.store('location', {
     errorMessage: '',
 
     init() {
+        const cached = localStorage.getItem('onestall_location');
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                if (parsed && (parsed.address_label || parsed.city)) {
+                    this.current = parsed;
+                }
+            } catch (e) {}
+        }
         this.loadCurrent();
     },
 
     async loadCurrent() {
         try {
-            const res = await fetch('/api/storefront/location/current', {
+            const res = await fetch(apiUrl('/api/storefront/location/current'), {
+                credentials: 'same-origin',
                 headers: { 'Accept': 'application/json' }
             });
             const data = await res.json();
             if (data) {
-                if (data.current) this.current = data.current;
+                if (data.current) {
+                    this.current = data.current;
+                    localStorage.setItem('onestall_location', JSON.stringify(data.current));
+                }
                 if (data.popular) this.popular = data.popular;
                 if (data.saved) this.saved = data.saved;
                 this.searchResults = this.popular;
@@ -435,7 +460,8 @@ Alpine.store('location', {
 
     async search() {
         try {
-            const res = await fetch(`/api/storefront/location/search?q=${encodeURIComponent(this.searchQuery)}`, {
+            const res = await fetch(apiUrl(`/api/storefront/location/search?q=${encodeURIComponent(this.searchQuery)}`), {
+                credentials: 'same-origin',
                 headers: { 'Accept': 'application/json' }
             });
             const data = await res.json();
@@ -447,9 +473,13 @@ Alpine.store('location', {
 
     async setLocation(loc) {
         try {
+            this.current = { ...this.current, ...loc };
+            localStorage.setItem('onestall_location', JSON.stringify(this.current));
+
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const res = await fetch('/api/storefront/location/set', {
+            const res = await fetch(apiUrl('/api/storefront/location/set'), {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
@@ -460,12 +490,14 @@ Alpine.store('location', {
             const data = await res.json();
             if (data && data.location) {
                 this.current = data.location;
-                this.modalOpen = false;
-                // Reload page to refresh nearby store feeds & delivery zones
-                window.location.reload();
+                localStorage.setItem('onestall_location', JSON.stringify(data.location));
             }
+            this.modalOpen = false;
+            window.location.reload();
         } catch (e) {
             console.error('Set location error', e);
+            this.modalOpen = false;
+            window.location.reload();
         }
     },
 
@@ -482,23 +514,59 @@ Alpine.store('location', {
             async (position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
+
+                try {
+                    // Call backend reverse geocoder with zero CORS issues
+                    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    const res = await fetch(apiUrl('/api/storefront/location/reverse'), {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrf,
+                        },
+                        body: JSON.stringify({ lat: lat, lng: lng })
+                    });
+                    const data = await res.json();
+                    if (data && data.location) {
+                        this.current = data.location;
+                        localStorage.setItem('onestall_location', JSON.stringify(data.location));
+                        this.detecting = false;
+                        this.modalOpen = false;
+                        window.location.reload();
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('Backend reverse geocoding error, falling back:', e);
+                }
+
+                // Fallback to direct set with coordinates
                 await this.setLocation({
                     lat: lat,
                     lng: lng,
-                    city: 'Current Location',
-                    pincode: 'Live GPS',
+                    city: 'GPS Location',
+                    pincode: '560001',
                     state: 'India',
-                    address_label: `Near My GPS (${lat.toFixed(2)}, ${lng.toFixed(2)})`,
+                    address_label: `My GPS (${lat.toFixed(2)}, ${lng.toFixed(2)})`,
                     is_detected: true
                 });
                 this.detecting = false;
             },
             (err) => {
                 this.detecting = false;
-                this.errorMessage = 'Location access denied or timed out. Please choose a city below.';
-                console.warn('Geolocation error:', err.message);
+                if (err.code === 1) {
+                    this.errorMessage = 'Location permission was denied. Please allow location access in your browser or choose a city below.';
+                } else if (err.code === 2) {
+                    this.errorMessage = 'Location unavailable. Please select your city below.';
+                } else if (err.code === 3) {
+                    this.errorMessage = 'Location request timed out. Please choose a city below.';
+                } else {
+                    this.errorMessage = 'Unable to detect location. Please choose a city below.';
+                }
+                console.warn('Geolocation error:', err);
             },
-            { timeout: 10000, enableHighAccuracy: true }
+            { timeout: 8000, enableHighAccuracy: true }
         );
     }
 });

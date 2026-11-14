@@ -80,8 +80,8 @@ class AppServiceProvider extends ServiceProvider
             \App\Services\AI\Support\SupportAiReplyService::class
         );
 
-        // Graceful Redis fallback: check Redis reachability if queue or session is set to redis
-        if (config('session.driver') === 'redis' || config('queue.default') === 'redis') {
+        // Graceful Redis fallback: check Redis reachability if queue, session or cache is set to redis/failover
+        if (config('session.driver') === 'redis' || config('queue.default') === 'redis' || config('cache.default') === 'redis' || config('cache.default') === 'failover') {
             try {
                 $redisHost = config('database.redis.default.host', '127.0.0.1');
                 $redisPort = (int) config('database.redis.default.port', 6379);
@@ -93,6 +93,9 @@ class AppServiceProvider extends ServiceProvider
                     if (config('queue.default') === 'redis') {
                         config(['queue.default' => 'database']);
                     }
+                    if (config('cache.default') === 'redis' || config('cache.default') === 'failover') {
+                        config(['cache.default' => 'database']);
+                    }
                 } else {
                     fclose($socket);
                 }
@@ -102,6 +105,9 @@ class AppServiceProvider extends ServiceProvider
                 }
                 if (config('queue.default') === 'redis') {
                     config(['queue.default' => 'database']);
+                }
+                if (config('cache.default') === 'redis' || config('cache.default') === 'failover') {
+                    config(['cache.default' => 'database']);
                 }
             }
         }
@@ -114,6 +120,13 @@ class AppServiceProvider extends ServiceProvider
     {
         // Performance: Enforce strict eager loading in development & testing to prevent N+1 queries
         Model::preventLazyLoading(! $this->app->isProduction());
+
+        // View Composer: Share dynamic categories and CMS pages across all storefront views
+        \Illuminate\Support\Facades\View::composer(['layouts.storefront', 'storefront.*'], function ($view) {
+            $storefrontService = app(\App\Services\Storefront\StorefrontService::class);
+            $view->with('navCategories', $storefrontService->getCategories());
+            $view->with('footerCmsPages', \App\Models\CmsPage::active()->get());
+        });
 
         // Horizon authorization gate (when enabled via config)
         if (config('onestall.enable_horizon', false) && class_exists(\Laravel\Horizon\Horizon::class)) {

@@ -42,6 +42,7 @@ class QuickCommerceController extends Controller
         $categories = Category::query()
             ->where('is_active', true)
             ->whereNull('parent_id')
+            ->with(['children' => fn ($q) => $q->where('is_active', true)])
             ->take(8)
             ->get();
 
