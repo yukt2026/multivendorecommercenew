@@ -13,6 +13,8 @@ class OrderItem extends Model
 {
     use HasFactory;
 
+    protected $with = ['variant.product'];
+
     protected $fillable = [
         'fulfilment_order_id',
         'product_id',

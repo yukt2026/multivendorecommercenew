@@ -5,7 +5,7 @@
 
     <!-- Page Header -->
     <x-page-header 
-        title="Business Intelligence &amp; Reports" 
+        title="Business Intelligence & Reports" 
         subtitle="Analyze platform sales velocity, seller GMV, tax liabilities, commissions, and category turnover."
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Reports' => '#']"
     >

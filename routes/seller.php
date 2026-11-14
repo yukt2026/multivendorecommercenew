@@ -49,6 +49,7 @@ Route::middleware(['auth', 'seller.status'])->group(function () {
     Route::post('/orders/{fulfilmentOrder}/ready', [\App\Http\Controllers\Seller\QuickOrderController::class, 'ready'])->name('orders.ready');
     Route::post('/orders/{fulfilmentOrder}/reject', [\App\Http\Controllers\Seller\QuickOrderController::class, 'reject'])->name('orders.reject');
     Route::post('/orders/{fulfilmentOrder}/assign-rider', [\App\Http\Controllers\Seller\QuickOrderController::class, 'assignRider'])->name('orders.assign_rider');
+    Route::post('/orders/{fulfilmentOrder}/handover', [\App\Http\Controllers\Seller\QuickOrderController::class, 'handover'])->name('orders.handover');
     Route::get('/quick-orders', [\App\Http\Controllers\Seller\QuickOrderController::class, 'liveConsole'])->name('quick.live');
     Route::get('/quick-orders/api/pending', [\App\Http\Controllers\Seller\QuickOrderController::class, 'pendingOrdersApi'])->name('quick.orders_api');
     Route::post('/inventory/{inventory}/quick-restock', [DashboardController::class, 'quickRestock'])->name('inventory.quick_restock');
@@ -77,6 +78,7 @@ Route::middleware(['auth', 'seller.status'])->group(function () {
         Route::get('/create', [\App\Http\Controllers\Seller\StoreOutletController::class, 'create'])->name('create');
         Route::post('/', [\App\Http\Controllers\Seller\StoreOutletController::class, 'store'])->name('store');
         Route::get('/reports', [\App\Http\Controllers\Seller\StoreOutletController::class, 'reports'])->name('reports');
+        Route::get('/reports/export', [\App\Http\Controllers\Seller\StoreOutletController::class, 'export'])->name('reports.export');
     });
 
     // Staff & Permissions (Blueprint Section 20)
@@ -133,6 +135,7 @@ Route::middleware(['auth', 'seller.status'])->group(function () {
 
     // Inventory & Stock Balances (Blueprint Section 9)
     Route::get('/inventory', [\App\Http\Controllers\Seller\InventoryController::class, 'index'])->name('inventory.index');
+    Route::get('/inventory-export', [\App\Http\Controllers\Seller\InventoryController::class, 'export'])->name('inventory.export');
     Route::put('/inventory/{inventory}', [\App\Http\Controllers\Seller\InventoryController::class, 'update'])->name('inventory.update');
     Route::get('/inventory/{inventory}/movements', [\App\Http\Controllers\Seller\InventoryController::class, 'movements'])->name('inventory.movements');
     Route::post('/inventory/transfer', [\App\Http\Controllers\Seller\InventoryController::class, 'transfer'])->name('inventory.transfer');
@@ -141,7 +144,9 @@ Route::middleware(['auth', 'seller.status'])->group(function () {
 
     // Financials, Earnings Ledger & Settlements (Blueprint Section 18)
     Route::get('/payments', [\App\Http\Controllers\Seller\PaymentController::class, 'payments'])->name('payments.index');
+    Route::get('/payments/export', [\App\Http\Controllers\Seller\PaymentController::class, 'exportPayments'])->name('payments.export');
     Route::get('/settlements', [\App\Http\Controllers\Seller\PaymentController::class, 'settlements'])->name('settlements.index');
+    Route::get('/settlements/export', [\App\Http\Controllers\Seller\PaymentController::class, 'exportSettlements'])->name('settlements.export');
     Route::get('/settlements/{settlement}', [\App\Http\Controllers\Seller\PaymentController::class, 'showSettlement'])->name('settlements.show');
     Route::get('/settlements/{settlement}/pdf', [\App\Http\Controllers\Seller\PaymentController::class, 'downloadPdf'])->name('settlements.pdf');
     Route::get('/settlements/{settlement}/csv', [\App\Http\Controllers\Seller\PaymentController::class, 'downloadCsv'])->name('settlements.csv');

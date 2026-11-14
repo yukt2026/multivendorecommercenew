@@ -5,7 +5,7 @@
 
     <!-- Page Header -->
     <x-page-header 
-        title="Seller Settlements &amp; Disbursements" 
+        title="Seller Settlements & Disbursements" 
         subtitle="Weekly automated settlement batches, COD reconciliation, commission ledger auditing, and bank payout processing."
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Settlements' => '#']"
     >

@@ -5,7 +5,7 @@
 
     <!-- Page Header -->
     <x-page-header 
-        title="Security &amp; Operational Audit Trail" 
+        title="Security & Operational Audit Trail" 
         subtitle="Immutable ledger recording administrator actions, system mutations, state transitions, and security events."
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Audit Logs' => '#']"
     >

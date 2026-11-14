@@ -19,7 +19,7 @@ class OrderPdfService
         $order->loadMissing([
             'customer.user',
             'payments',
-            'fulfilmentOrders.items.variant',
+            'fulfilmentOrders.items.variant.product',
             'fulfilmentOrders.store',
             'fulfilmentOrders.seller',
         ]);
@@ -38,7 +38,7 @@ class OrderPdfService
     {
         $fo->loadMissing([
             'order.customer.user',
-            'items.variant',
+            'items.variant.product',
             'store',
             'seller',
             'inventoryLocation',

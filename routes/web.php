@@ -155,9 +155,13 @@ Route::prefix('api/storefront')->name('storefront.')->group(function () {
     Route::post('/wishlist/move-to-cart/{id}', [WishlistController::class, 'moveToCart'])->name('wishlist.move-to-cart');
     Route::post('/wishlist/remove/{id}', [WishlistController::class, 'remove'])->name('wishlist.remove');
 
-    // Pincode fulfillment check
+    // Pincode fulfillment check & auto-detect lookup
     Route::post('/pincode/check', [ProductDetailController::class, 'checkPincode'])->name('pincode.check');
+    Route::get('/pincode/lookup/{pincode}', [CheckoutController::class, 'lookupPincode'])->name('pincode.lookup');
 });
+
+// Direct Pincode Lookup Fallback Route
+Route::get('/pincode/lookup/{pincode}', [CheckoutController::class, 'lookupPincode'])->name('pincode.lookup.direct');
 
 // Public Seller Storefront (SEO Friendly / Blueprint Section 7)
 Route::get('/store/{slug}', [PublicStoreController::class, 'show'])->name('store.show');

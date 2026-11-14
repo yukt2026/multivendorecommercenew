@@ -30,6 +30,11 @@ class Brand extends Model
         'is_verified' => 'boolean',
     ];
 
+    public function getLogoUrlAttribute(): ?string
+    {
+        return image_url($this->logo);
+    }
+
     public function seller(): BelongsTo
     {
         return $this->belongsTo(Seller::class);

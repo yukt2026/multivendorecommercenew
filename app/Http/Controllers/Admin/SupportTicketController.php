@@ -53,7 +53,9 @@ class SupportTicketController extends Controller
             'resolved' => SupportTicket::where('status', TicketStatus::RESOLVED)->count(),
         ];
 
-        $staff = User::role(['super_admin', 'admin', 'support_admin'])->get();
+        $adminRoles = ['super_admin', 'admin', 'support_admin'];
+        $existingAdminRoles = \Spatie\Permission\Models\Role::whereIn('name', $adminRoles)->pluck('name')->toArray();
+        $staff = !empty($existingAdminRoles) ? User::role($existingAdminRoles)->get() : collect();
 
         return view('admin.support.index', compact('tickets', 'metrics', 'staff'));
     }

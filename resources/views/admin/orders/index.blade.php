@@ -5,7 +5,7 @@
 
     <!-- Page Header -->
     <x-page-header 
-        title="Orders &amp; Fulfilment Central" 
+        title="Orders & Fulfilment Central" 
         subtitle="Global command registry monitoring parent orders, split packages, logistics SLAs, and payment states."
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Orders' => '#']"
     >

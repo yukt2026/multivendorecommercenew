@@ -5,7 +5,7 @@
 
     <!-- Page Header -->
     <x-page-header 
-        title="Customer &amp; Seller Support Tickets" 
+        title="Customer & Seller Support Tickets" 
         subtitle="Manage customer escalations, seller disputes, delivery claims, and resolution threads."
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Support' => '#']"
     >
@@ -170,7 +170,7 @@
                                 href="{{ route('admin.support.show', $t) }}" 
                                 class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 dark:text-indigo-400 rounded-lg font-semibold text-xs transition"
                             >
-                                Open Thread &rarr;
+                                Open Thread →
                             </a>
                         </td>
                     </tr>

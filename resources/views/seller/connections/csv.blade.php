@@ -39,13 +39,13 @@
 
             <div class="flex items-center justify-between pt-2">
                 <p class="text-xs text-slate-500">Supports standard CSV formatting. Maximum file size: 10MB.</p>
-                <x-button variant="primary" size="sm" type="submit">Upload &amp; Configure Mapping &rarr;</x-button>
+                <x-button variant="primary" size="sm" type="submit">Upload & Configure Mapping &rarr;</x-button>
             </div>
         </form>
     </x-card>
 
     <!-- Import History Table -->
-    <x-card title="Import History &amp; Queue Status" :padded="false">
+    <x-card title="Import History & Queue Status" :padded="false">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
                 <thead>

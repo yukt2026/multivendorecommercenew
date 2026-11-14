@@ -5,7 +5,7 @@
 
     <!-- Page Header -->
     <x-page-header 
-        title="Refunds Audit &amp; Reconciliations" 
+        title="Refunds Audit & Reconciliations" 
         subtitle="Gateway reversed transactions, customer refund history, and ledger reversals."
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Payments' => route('admin.payments.index'), 'Refunds' => '#']"
     >

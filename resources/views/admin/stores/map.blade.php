@@ -5,7 +5,7 @@
 
     <!-- Page Header -->
     <x-page-header 
-        title="Interactive Store Map &amp; Geo-Coverage" 
+        title="Interactive Store Map & Geo-Coverage" 
         subtitle="Visual geospatial overview of active retail stores, dark store pick-up hubs, and delivery radius circles."
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Stores' => route('admin.stores.index'), 'Map View' => '#']"
     >
@@ -17,7 +17,7 @@
 
         <x-slot name="actions">
             <a href="{{ route('admin.stores.index') }}" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition">
-                <span>&larr; Back to Directory List</span>
+                <span>← Back to Directory List</span>
             </a>
         </x-slot>
     </x-page-header>
@@ -109,7 +109,7 @@ function storeMapViewer() {
                         <strong>${store.name}</strong><br>
                         <span style="color: #64748b;">${store.seller}</span><br>
                         Radius: <strong>${store.radius} km</strong><br>
-                        <a href="${store.url}" style="color: #4f46e5; text-decoration: underline; font-weight: bold; margin-top: 4px; display: inline-block;">Open Store Console &rarr;</a>
+                        <a href="${store.url}" style="color: #4f46e5; text-decoration: underline; font-weight: bold; margin-top: 4px; display: inline-block;">Open Store Console →</a>
                     </div>
                 `);
 

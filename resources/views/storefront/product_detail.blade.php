@@ -1,12 +1,14 @@
 @extends('layouts.storefront')
 
+@section('hideBottomNav', 'true')
+
 @section('content')
 @php
     $primaryMedia = $product->media->first();
     $mediaList = $product->media;
 @endphp
 
-<div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8 pb-28 sm:pb-8"
+<div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-6 space-y-4 sm:space-y-8 pb-24 sm:pb-12 w-full max-w-full overflow-x-hidden min-w-0"
      x-data="{
         activeVariantId: {{ $defaultVariant ? $defaultVariant->id : ($product->variants->first()?->id ?? 0) }},
         variants: {{ json_encode($variantsData) }},
@@ -157,7 +159,8 @@
      }">
 
     <!-- Breadcrumb Navigation -->
-    <nav class="flex items-center space-x-2 text-xs text-slate-500 overflow-x-auto no-scrollbar">
+    <nav class="flex items-center space-x-2 text-xs text-slate-500 overflow-x-auto no-scrollbar scrollbar-none [&::-webkit-scrollbar]:hidden py-1"
+         style="-ms-overflow-style: none; scrollbar-width: none;">
         @foreach($breadcrumbs as $crumb)
             @if(!$loop->last)
                 <a href="{{ $crumb['url'] }}" class="hover:text-indigo-600 font-medium whitespace-nowrap">{{ $crumb['name'] }}</a>
@@ -169,25 +172,25 @@
     </nav>
 
     <!-- Main Product Showcase Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 items-start">
 
         <!-- Left Column: Image / Video Gallery (5 Cols) -->
-        <div class="lg:col-span-5 space-y-4 sticky top-24">
-            <div class="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-sm relative group overflow-hidden">
+        <div class="lg:col-span-5 space-y-3 sm:space-y-4 lg:sticky lg:top-24">
+            <div class="p-2.5 sm:p-4 bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs sm:shadow-sm relative group overflow-hidden">
                 <!-- Main Zoom Viewport -->
-                <div class="aspect-square rounded-2xl bg-slate-50 flex items-center justify-center overflow-hidden relative">
+                <div class="aspect-square rounded-xl sm:rounded-2xl bg-slate-50/80 flex items-center justify-center overflow-hidden relative">
                     <template x-if="selectedMediaType === 'video'">
                         <video :src="selectedMediaUrl" controls class="w-full h-full object-contain"></video>
                     </template>
                     <template x-if="selectedMediaType !== 'video'">
                         <img :src="selectedMediaUrl"
                              alt="{{ $product->title }}"
-                             class="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-300">
+                             class="w-full h-full object-contain p-2 sm:p-4 group-hover:scale-105 transition-transform duration-300">
                     </template>
 
                     <!-- Quick Commerce Badge -->
                     @if($product->is_quick_capable)
-                        <span class="absolute top-3 left-3 inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-black bg-amber-400 text-slate-950 shadow-md border border-amber-300">
+                        <span class="absolute top-2.5 left-2.5 inline-flex items-center space-x-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-black bg-amber-400 text-slate-950 shadow-xs border border-amber-300">
                             <span>⚡ 15 MIN DELIVERY</span>
                         </span>
                     @endif
@@ -195,8 +198,9 @@
                     <!-- Wishlist Floating Toggle Button -->
                     <button type="button"
                             @click="$store.wishlist.toggle({{ $product->id }})"
-                            class="absolute top-3 right-3 w-10 h-10 rounded-full bg-white shadow-md border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:scale-110 transition">
-                        <svg class="w-5 h-5"
+                            class="absolute top-2.5 right-2.5 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-md shadow-xs border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:scale-110 active:scale-95 transition cursor-pointer"
+                            aria-label="Toggle wishlist">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 transition-colors"
                              :class="$store.wishlist.has({{ $product->id }}) ? 'text-rose-500 fill-rose-500' : 'text-slate-400 fill-none'"
                              stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -206,7 +210,8 @@
 
                 <!-- Thumbnails Row -->
                 @if($mediaList->count() > 1)
-                    <div class="flex items-center space-x-3 mt-4 overflow-x-auto pb-1 no-scrollbar">
+                    <div class="flex items-center space-x-2 sm:space-x-3 mt-2.5 sm:mt-4 overflow-x-auto pb-1 no-scrollbar scrollbar-none [&::-webkit-scrollbar]:hidden"
+                         style="-ms-overflow-style: none; scrollbar-width: none;">
                         @foreach($mediaList as $m)
                             @php
                                 $mUrl = (str_starts_with($m->path, 'http://') || str_starts_with($m->path, 'https://')) ? $m->path : asset('storage/' . $m->path);
@@ -214,10 +219,10 @@
                             @endphp
                             <button type="button"
                                     @click="selectedMediaUrl = '{{ $mUrl }}'; selectedMediaType = '{{ $isVideo ? 'video' : 'image' }}'"
-                                    :class="selectedMediaUrl === '{{ $mUrl }}' ? 'ring-2 ring-indigo-600' : 'opacity-70 hover:opacity-100'"
-                                    class="w-16 h-16 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden flex-shrink-0 transition">
+                                    :class="selectedMediaUrl === '{{ $mUrl }}' ? 'ring-2 ring-indigo-600 border-indigo-600' : 'opacity-70 hover:opacity-100 border-slate-200'"
+                                    class="w-13 h-13 sm:w-16 sm:h-16 rounded-xl border bg-slate-50 flex items-center justify-center overflow-hidden shrink-0 transition cursor-pointer">
                                 @if($isVideo)
-                                    <span class="text-xs font-bold text-indigo-600">▶ Video</span>
+                                    <span class="text-[10px] sm:text-xs font-bold text-indigo-600">▶ Video</span>
                                 @else
                                     <img src="{{ $mUrl }}" alt="{{ $product->title }} preview" loading="lazy" decoding="async" class="w-full h-full object-contain p-1">
                                 @endif
@@ -227,28 +232,28 @@
                 @endif
             </div>
 
-            <!-- Trust Highlights -->
-            <div class="grid grid-cols-3 gap-2 text-center text-slate-600 text-xs font-medium">
-                <div class="p-2.5 rounded-2xl bg-white border border-slate-200/80">
-                    <span class="text-lg block">🛡️</span>
-                    <span class="text-[11px] font-bold text-slate-800">100% Genuine</span>
+            <!-- Trust Highlights (Desktop View: below Gallery) -->
+            <div class="hidden lg:grid grid-cols-3 gap-2 text-center text-slate-600 text-xs font-medium">
+                <div class="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
+                    <span class="text-base sm:text-lg block">🛡️</span>
+                    <span class="text-[10px] sm:text-[11px] font-bold text-slate-800">100% Genuine</span>
                 </div>
-                <div class="p-2.5 rounded-2xl bg-white border border-slate-200/80">
-                    <span class="text-lg block">🔄</span>
-                    <span class="text-[11px] font-bold text-slate-800">{{ $product->return_window_days }}-Day Return</span>
+                <div class="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
+                    <span class="text-base sm:text-lg block">🔄</span>
+                    <span class="text-[10px] sm:text-[11px] font-bold text-slate-800">{{ $product->return_window_days }}-Day Return</span>
                 </div>
-                <div class="p-2.5 rounded-2xl bg-white border border-slate-200/80">
-                    <span class="text-lg block">💵</span>
-                    <span class="text-[11px] font-bold text-slate-800">{{ $product->is_cod_allowed ? 'COD Available' : 'Prepaid Only' }}</span>
+                <div class="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
+                    <span class="text-base sm:text-lg block">💵</span>
+                    <span class="text-[10px] sm:text-[11px] font-bold text-slate-800">{{ $product->is_cod_allowed ? 'COD Available' : 'Prepaid Only' }}</span>
                 </div>
             </div>
         </div>
 
         <!-- Right Column: Product Info, Variants, Pincode & Buy Box (7 Cols) -->
-        <div class="lg:col-span-7 space-y-6">
+        <div class="lg:col-span-7 space-y-4 sm:space-y-6">
 
             <!-- Title & Rating Header -->
-            <div class="space-y-2">
+            <div class="space-y-1.5 sm:space-y-2">
                 @if($product->brand)
                     <div class="flex items-center space-x-1.5">
                         <a href="{{ route('brand.show', $product->brand->slug) }}" class="text-xs font-bold text-indigo-600 hover:underline uppercase tracking-wider">
@@ -260,98 +265,107 @@
                     </div>
                 @endif
 
-                <h1 class="text-xl sm:text-3xl font-black text-slate-900 tracking-tight leading-snug">
+                <h1 class="text-lg sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-snug">
                     {{ $product->title }}
                 </h1>
 
                 <!-- Rating & Reviews Badge -->
-                <div class="flex items-center space-x-3 text-xs">
-                    <div class="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-lg bg-emerald-600 text-white font-bold">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
+                    <div class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md sm:rounded-lg bg-emerald-600 text-white font-bold text-[11px] sm:text-xs">
                         <span>★ {{ number_format($avgRating, 1) }}</span>
                     </div>
-                    <a href="#reviews" class="text-slate-500 hover:text-indigo-600 font-medium">
+                    <a href="#reviews" class="text-slate-500 hover:text-indigo-600 font-medium text-[11px] sm:text-xs">
                         {{ $totalReviews }} Ratings &amp; Reviews
                     </a>
-                    <span class="text-slate-300">&bull;</span>
-                    <span class="text-slate-500">HSN: {{ $product->hsn_code ?? '330499' }}</span>
+                    <span class="text-slate-300 hidden sm:inline">&bull;</span>
+                    <span class="text-slate-400 text-[10px] sm:text-xs">HSN: {{ $product->hsn_code ?? '330499' }}</span>
                 </div>
             </div>
 
             <!-- Price Display (Reactive to Variant Selection) -->
-            <div class="p-5 rounded-3xl bg-slate-900 text-white shadow-lg space-y-1">
-                <div class="flex items-baseline space-x-3">
-                    <span class="text-3xl sm:text-4xl font-black tracking-tight text-white" x-text="currentVariant.formatted_selling_price || '{{ format_currency($product->effective_price) }}'"></span>
-                    <span class="text-sm text-slate-400 line-through" x-show="currentVariant.mrp > currentVariant.selling_price" x-text="currentVariant.formatted_mrp"></span>
-                    <span class="px-2 py-0.5 rounded-md text-xs font-black bg-amber-400 text-slate-950" x-show="currentVariant.discount_percent > 0" x-text="currentVariant.discount_percent + '% OFF'"></span>
+            <div class="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-slate-900 text-white shadow-md space-y-1 sm:space-y-1.5">
+                <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
+                    <span class="text-2xl sm:text-4xl font-black tracking-tight text-white" x-text="currentVariant.formatted_selling_price || '{{ format_currency($product->effective_price) }}'"></span>
+                    <template x-if="currentVariant.mrp && Number(currentVariant.mrp) > Number(currentVariant.selling_price)">
+                        <span class="text-xs sm:text-sm text-slate-400 line-through font-medium" x-text="currentVariant.formatted_mrp"></span>
+                    </template>
+                    <template x-if="currentVariant.discount_percent > 0">
+                        <span class="px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black bg-amber-400 text-slate-950 shadow-2xs" x-text="currentVariant.discount_percent + '% OFF'"></span>
+                    </template>
                 </div>
-                <p class="text-[11px] text-slate-400">Inclusive of all taxes &bull; GST {{ (int) $product->tax_percent }}% included</p>
+                <p class="text-[10px] sm:text-[11px] text-slate-400">Inclusive of all taxes &bull; GST {{ (int) $product->tax_percent }}% included</p>
             </div>
 
             <!-- Variant Selector -->
             @if($product->variants->count() > 1)
-                <div class="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-3">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900">
-                        Select Option / Variant: <span class="text-indigo-600" x-text="currentVariant.name"></span>
-                    </h3>
+                <div class="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-2.5 sm:space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900">
+                            Select Option: <span class="text-indigo-600 font-extrabold" x-text="currentVariant.name"></span>
+                        </h3>
+                        <span class="text-[10px] font-semibold text-slate-400">{{ $product->variants->count() }} options</span>
+                    </div>
 
-                    <div class="flex flex-wrap gap-2.5">
+                    <div class="flex flex-wrap gap-2">
                         <template x-for="v in variants" :key="v.id">
                             <button type="button"
                                     @click="selectVariant(v.id)"
-                                    :class="Number(activeVariantId) === Number(v.id) ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-600' : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'"
-                                    class="px-4 py-2 rounded-2xl border text-xs font-bold transition flex items-center space-x-2">
+                                    :class="Number(activeVariantId) === Number(v.id) ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-600/30' : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'"
+                                    class="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl border text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer">
                                 <span x-text="v.name"></span>
-                                <span class="text-[11px] text-slate-400 font-normal" x-text="v.formatted_selling_price"></span>
+                                <span class="text-[10px] sm:text-[11px] font-medium text-slate-400" x-text="v.formatted_selling_price"></span>
                             </button>
                         </template>
                     </div>
 
-                    <div class="text-[11px] text-slate-500 pt-1 flex items-center space-x-2">
-                        <span>SKU: <strong class="text-slate-800" x-text="currentVariant.sku"></strong></span>
-                        <span>&bull;</span>
+                    <div class="text-[10px] sm:text-[11px] text-slate-500 pt-1 flex items-center justify-between border-t border-slate-100">
+                        <span>SKU: <strong class="text-slate-800 font-mono" x-text="currentVariant.sku"></strong></span>
                         <span :class="currentVariant.in_stock ? 'text-emerald-600 font-bold' : 'text-rose-500 font-bold'"
-                              x-text="currentVariant.in_stock ? '✓ In Stock (' + currentVariant.stock + ' units ready)' : 'Out of Stock'"></span>
+                              x-text="currentVariant.in_stock ? '✓ In Stock (' + currentVariant.stock + ' ready)' : 'Out of Stock'"></span>
                     </div>
                 </div>
             @endif
 
             <!-- Add to Cart & Primary Action Stepper -->
-            <div class="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center gap-4">
-                <template x-if="inCartQty === 0">
-                    <button type="button"
-                            @click="addToCart()"
-                            :disabled="!currentVariant.in_stock"
-                            class="w-full sm:flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-50 text-white font-extrabold text-sm shadow-md active:scale-95 transition flex items-center justify-center space-x-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-                        <span x-text="currentVariant.in_stock ? 'ADD TO CART' : 'OUT OF STOCK'">ADD TO CART</span>
-                    </button>
-                </template>
+            <div class="p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-slate-200/80 shadow-xs flex items-center gap-2.5 sm:gap-4">
+                <div class="flex-1 min-w-0">
+                    <template x-if="inCartQty === 0">
+                        <button type="button"
+                                @click="addToCart()"
+                                :disabled="!currentVariant.in_stock"
+                                class="w-full py-3 px-3 sm:py-3.5 sm:px-6 rounded-xl sm:rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-extrabold text-xs sm:text-sm shadow-md active:scale-95 transition flex items-center justify-center space-x-1.5 cursor-pointer">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                            <span x-text="currentVariant.in_stock ? 'ADD TO CART' : 'OUT OF STOCK'">ADD TO CART</span>
+                        </button>
+                    </template>
 
-                <template x-if="inCartQty > 0">
-                    <div class="w-full sm:flex-1 flex items-center justify-between p-2 rounded-2xl bg-indigo-50 border border-indigo-200">
-                        <span class="text-xs font-bold text-indigo-700 pl-3">Item in Cart:</span>
-                        <div class="inline-flex items-center rounded-xl bg-indigo-600 text-white font-bold text-sm shadow-sm overflow-hidden">
-                            <button type="button" @click="decrement()" class="px-4 py-2 hover:bg-indigo-700 active:bg-indigo-800 font-black text-base">-</button>
-                            <span class="px-4 py-2 font-black min-w-[32px] text-center" x-text="inCartQty"></span>
-                            <button type="button" @click="increment()" class="px-4 py-2 hover:bg-indigo-700 active:bg-indigo-800 font-black text-base">+</button>
+                    <template x-if="inCartQty > 0">
+                        <div class="flex items-center justify-between p-1.5 sm:p-2 rounded-xl sm:rounded-2xl bg-indigo-50 border border-indigo-200">
+                            <span class="text-[11px] sm:text-xs font-bold text-indigo-700 pl-2">In Cart:</span>
+                            <div class="inline-flex items-center rounded-lg sm:rounded-xl bg-indigo-600 text-white font-bold text-xs sm:text-sm shadow-2xs overflow-hidden">
+                                <button type="button" @click="decrement()" class="px-3 py-1.5 sm:px-4 sm:py-2 hover:bg-indigo-700 active:bg-indigo-800 font-black">-</button>
+                                <span class="px-2.5 py-1.5 sm:px-4 sm:py-2 font-black min-w-[24px] sm:min-w-[32px] text-center" x-text="inCartQty"></span>
+                                <button type="button" @click="increment()" class="px-3 py-1.5 sm:px-4 sm:py-2 hover:bg-indigo-700 active:bg-indigo-800 font-black">+</button>
+                            </div>
                         </div>
-                    </div>
-                </template>
+                    </template>
+                </div>
 
                 <button type="button"
                         @click="if (inCartQty === 0) addToCart(); $store.cart.open = true"
-                        class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-sm shadow-md active:scale-95 transition whitespace-nowrap">
+                        :disabled="!currentVariant.in_stock"
+                        class="flex-1 sm:flex-initial py-3 px-3 sm:py-3.5 sm:px-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 text-white font-extrabold text-xs sm:text-sm shadow-md active:scale-95 transition whitespace-nowrap cursor-pointer text-center">
                     BUY NOW
                 </button>
             </div>
 
             <!-- Delivery & Pincode Checker (Quick Commerce vs Standard Fulfilment) -->
-            <div class="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-3">
+            <div class="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-2.5 sm:space-y-3">
                 <div class="flex items-center justify-between">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center space-x-1.5">
                         <span>🚚 Delivery & Availability Check</span>
                     </h3>
-                    <span class="text-[11px] text-indigo-600 font-semibold" x-text="$store.location.current.city || 'Bengaluru'"></span>
+                    <span class="text-[11px] text-indigo-600 font-semibold" x-text="$store.location.current.city || 'Select City'"></span>
                 </div>
 
                 <div class="flex items-center space-x-2">
@@ -359,19 +373,35 @@
                            x-model="pincode"
                            maxlength="6"
                            placeholder="Enter 6-digit Pincode"
-                           class="w-full max-w-[200px] text-xs py-2 px-3 rounded-xl border border-slate-200 focus:ring-indigo-500">
+                           class="flex-1 min-w-0 text-xs py-2.5 px-3 rounded-xl border border-slate-200 focus:ring-indigo-500 font-medium">
                     <button type="button"
                             @click="checkPincode()"
                             :disabled="pincodeLoading"
-                            class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition">
+                            class="px-4 sm:px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition shrink-0 cursor-pointer">
                         <span x-text="pincodeLoading ? 'Checking...' : 'Check'">Check</span>
                     </button>
                 </div>
 
                 <!-- Result Notice -->
-                <div x-show="pincodeResult" class="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+                <div x-show="pincodeResult" class="p-3 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1">
                     <div class="font-extrabold text-slate-900 flex items-center space-x-1.5" x-text="pincodeResult ? pincodeResult.estimated_delivery : ''"></div>
                     <div class="text-[11px] text-slate-500" x-text="pincodeResult ? pincodeResult.message : ''"></div>
+                </div>
+            </div>
+
+            <!-- Trust Highlights (Mobile View: after Delivery Box) -->
+            <div class="lg:hidden grid grid-cols-3 gap-1.5 text-center text-slate-600 text-xs font-medium">
+                <div class="p-2 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
+                    <span class="text-base block">🛡️</span>
+                    <span class="text-[10px] font-bold text-slate-800">100% Genuine</span>
+                </div>
+                <div class="p-2 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
+                    <span class="text-base block">🔄</span>
+                    <span class="text-[10px] font-bold text-slate-800">{{ $product->return_window_days }}-Day Return</span>
+                </div>
+                <div class="p-2 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
+                    <span class="text-base block">💵</span>
+                    <span class="text-[10px] font-bold text-slate-800">{{ $product->is_cod_allowed ? 'COD Available' : 'Prepaid Only' }}</span>
                 </div>
             </div>
 
@@ -380,27 +410,27 @@
                 @php
                     $sellerStore = $product->seller->stores->first();
                 @endphp
-                <div class="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between gap-4">
-                    <div class="flex items-center space-x-3 min-w-0">
-                        <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-lg flex-shrink-0">
+                <div class="p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between gap-3">
+                    <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-base sm:text-lg shrink-0">
                             🏪
                         </div>
                         <div class="min-w-0">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Sold & Fulfilled By</span>
-                            <h4 class="text-sm font-extrabold text-slate-900 truncate">
+                            <span class="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Sold & Fulfilled By</span>
+                            <h4 class="text-xs sm:text-sm font-extrabold text-slate-900 truncate">
                                 {{ $sellerStore?->name ?? $product->seller->business_name }}
                             </h4>
-                            <div class="flex items-center space-x-2 text-[11px] text-slate-500">
-                                <span>★ {{ number_format($sellerStore?->rating_avg ?? 4.8, 1) }} Seller Rating</span>
+                            <div class="flex items-center space-x-1.5 text-[10px] sm:text-[11px] text-slate-500 truncate">
+                                <span class="text-amber-600 font-bold">★ {{ number_format($sellerStore?->rating_avg ?? 4.8, 1) }}</span>
                                 <span>&bull;</span>
-                                <span>{{ $sellerStore?->location?->city ?? 'Bengaluru' }}</span>
+                                <span class="truncate">{{ $sellerStore?->location?->city ?? 'Verified Merchant' }}</span>
                             </div>
                         </div>
                     </div>
 
                     @if($sellerStore)
-                        <a href="{{ route('store.show', $sellerStore->slug) }}" class="px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white font-bold text-xs transition flex-shrink-0">
-                            Visit Storefront &rarr;
+                        <a href="{{ route('store.show', $sellerStore->slug) }}" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white font-bold text-[11px] sm:text-xs transition shrink-0 whitespace-nowrap">
+                            Visit Store &rarr;
                         </a>
                     @endif
                 </div>
@@ -408,7 +438,7 @@
 
             <!-- Multivendor / Other Sellers Buy-Box -->
             @if($otherSellers->isNotEmpty())
-                <div class="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-3">
+                <div class="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-3">
                     <div class="flex items-center justify-between">
                         <h4 class="text-xs font-bold uppercase tracking-wider text-slate-900">
                             Other Sellers Offering This Product
@@ -440,27 +470,27 @@
     </div>
 
     <!-- Product Description & Specifications Section -->
-    <div class="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-6">
+    <div class="p-4 sm:p-8 rounded-2xl sm:rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4 sm:space-y-6">
         <div>
-            <h2 class="text-lg font-black text-slate-900">Product Overview</h2>
-            <div class="mt-3 text-xs sm:text-sm text-slate-600 leading-relaxed prose max-w-none">
+            <h2 class="text-base sm:text-lg font-black text-slate-900">Product Overview</h2>
+            <div class="mt-2.5 text-xs sm:text-sm text-slate-600 leading-relaxed prose max-w-none">
                 {!! nl2br(e($product->description ?: $product->short_desc)) !!}
             </div>
         </div>
 
         <!-- Specifications Table -->
         @if($specGroups->isNotEmpty())
-            <div class="pt-6 border-t border-slate-100 space-y-4">
-                <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider">Specifications</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="pt-4 sm:pt-6 border-t border-slate-100 space-y-3 sm:space-y-4">
+                <h3 class="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">Specifications</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     @foreach($specGroups as $group => $specs)
-                        <div class="rounded-2xl border border-slate-200/80 overflow-hidden text-xs">
-                            <div class="bg-slate-50 px-4 py-2 font-bold text-slate-800 border-b border-slate-200/80">
+                        <div class="rounded-xl sm:rounded-2xl border border-slate-200/80 overflow-hidden text-xs">
+                            <div class="bg-slate-50 px-3.5 py-2 font-bold text-slate-800 border-b border-slate-200/80 text-[11px] sm:text-xs">
                                 {{ $group ?: 'General' }}
                             </div>
-                            <div class="p-4 divide-y divide-slate-100">
+                            <div class="p-3 sm:p-4 divide-y divide-slate-100">
                                 @foreach($specs as $spec)
-                                    <div class="py-1.5 flex justify-between gap-4">
+                                    <div class="py-1.5 flex justify-between gap-3 text-[11px] sm:text-xs">
                                         <span class="text-slate-500 font-medium">{{ $spec->key }}</span>
                                         <span class="text-slate-900 font-semibold text-right">{{ $spec->value }}</span>
                                     </div>
@@ -474,33 +504,35 @@
     </div>
 
     <!-- Ratings & Customer Reviews Section -->
-    <section id="reviews" class="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-6">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+    <section id="reviews" class="p-4 sm:p-8 rounded-2xl sm:rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4 sm:space-y-6">
+        <div class="flex items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-slate-100">
             <div>
-                <h2 class="text-lg font-black text-slate-900">Ratings &amp; Customer Reviews</h2>
-                <p class="text-xs text-slate-500">Verified purchase reviews from genuine buyers</p>
+                <h2 class="text-base sm:text-lg font-black text-slate-900">Ratings &amp; Reviews</h2>
+                <p class="text-[11px] sm:text-xs text-slate-500">Verified purchase reviews from genuine buyers</p>
             </div>
 
             <button type="button"
                     @click="reviewModalOpen = true"
-                    class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition self-start sm:self-auto">
-                Write a Review
+                    class="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition shrink-0 cursor-pointer">
+                Write Review
             </button>
         </div>
 
         <!-- Ratings Scorecard & Breakdown Progress Bars -->
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-            <div class="md:col-span-4 text-center sm:text-left space-y-2">
-                <div class="flex items-baseline space-x-2">
-                    <span class="text-5xl font-black text-slate-900">{{ number_format($avgRating, 1) }}</span>
-                    <span class="text-slate-400 text-lg">/ 5</span>
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 items-center">
+            <div class="md:col-span-4 flex items-center sm:block space-x-4 sm:space-x-0 space-y-0 sm:space-y-2">
+                <div class="flex items-baseline space-x-1.5">
+                    <span class="text-4xl sm:text-5xl font-black text-slate-900">{{ number_format($avgRating, 1) }}</span>
+                    <span class="text-slate-400 text-base sm:text-lg font-bold">/ 5</span>
                 </div>
-                <div class="flex items-center space-x-1 text-amber-400 text-base">
-                    @for($i = 1; $i <= 5; $i++)
-                        <span>{{ $i <= round($avgRating) ? '★' : '☆' }}</span>
-                    @endfor
+                <div>
+                    <div class="flex items-center space-x-0.5 text-amber-400 text-sm sm:text-base">
+                        @for($i = 1; $i <= 5; $i++)
+                            <span>{{ $i <= round($avgRating) ? '★' : '☆' }}</span>
+                        @endfor
+                    </div>
+                    <p class="text-[10px] sm:text-xs text-slate-500 mt-0.5">{{ $totalReviews }} total ratings across India</p>
                 </div>
-                <p class="text-xs text-slate-500">{{ $totalReviews }} total ratings across India</p>
             </div>
 
             <!-- Breakdown Bars -->
@@ -510,21 +542,21 @@
                         $count = $ratingBreakdown[$star] ?? 0;
                         $percent = $totalReviews > 0 ? (int) round(($count / $totalReviews) * 100) : 0;
                     @endphp
-                    <div class="flex items-center space-x-3">
-                        <span class="w-8 text-right font-bold text-slate-700">{{ $star }} ★</span>
+                    <div class="flex items-center space-x-2.5 sm:space-x-3 text-[11px] sm:text-xs">
+                        <span class="w-7 sm:w-8 text-right font-bold text-slate-700">{{ $star }} ★</span>
                         <div class="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
                             <div class="bg-amber-400 h-2 rounded-full" style="width: {{ $percent }}%"></div>
                         </div>
-                        <span class="w-8 text-slate-400 text-[11px]">{{ $count }}</span>
+                        <span class="w-7 sm:w-8 text-slate-400 text-[10px] sm:text-[11px]">{{ $count }}</span>
                     </div>
                 @endfor
             </div>
         </div>
 
         <!-- Reviews List -->
-        <div class="space-y-4 pt-4 divide-y divide-slate-100">
+        <div class="space-y-3 sm:space-y-4 pt-3 sm:pt-4 divide-y divide-slate-100">
             @forelse($product->reviews as $review)
-                <div class="pt-4 space-y-1.5">
+                <div class="pt-3 sm:pt-4 space-y-1 sm:space-y-1.5">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
                             <span class="px-2 py-0.5 rounded-md bg-emerald-600 text-white text-[10px] font-black">
@@ -532,12 +564,12 @@
                             </span>
                             <h4 class="text-xs font-bold text-slate-900">{{ $review->title }}</h4>
                         </div>
-                        <span class="text-[11px] text-slate-400">{{ $review->created_at->format('M d, Y') }}</span>
+                        <span class="text-[10px] sm:text-[11px] text-slate-400">{{ $review->created_at->format('M d, Y') }}</span>
                     </div>
 
-                    <p class="text-xs text-slate-600 leading-relaxed">{{ $review->body }}</p>
+                    <p class="text-[11px] sm:text-xs text-slate-600 leading-relaxed">{{ $review->body }}</p>
 
-                    <div class="flex items-center space-x-2 text-[11px] text-slate-500 pt-1">
+                    <div class="flex items-center space-x-2 text-[10px] sm:text-[11px] text-slate-500 pt-0.5">
                         <span>{{ $review->user?->name ?? 'Verified Customer' }}</span>
                         @if($review->is_verified_purchase)
                             <span class="text-emerald-600 font-bold flex items-center space-x-0.5">
@@ -554,25 +586,23 @@
     </section>
 
     <!-- Q&A Section -->
-    <section class="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-6">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-            <div>
-                <h2 class="text-lg font-black text-slate-900">Customer Questions &amp; Answers</h2>
-                <p class="text-xs text-slate-500">Have questions about this item? Ask our seller and verified buyers</p>
-            </div>
+    <section class="p-4 sm:p-8 rounded-2xl sm:rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4 sm:space-y-6">
+        <div class="pb-3 sm:pb-4 border-b border-slate-100">
+            <h2 class="text-base sm:text-lg font-black text-slate-900">Customer Questions &amp; Answers</h2>
+            <p class="text-[11px] sm:text-xs text-slate-500">Have questions about this item? Ask our seller and verified buyers</p>
         </div>
 
         <!-- Ask a Question Input -->
-        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-            <div class="flex gap-2">
+        <div class="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+            <div class="flex flex-col sm:flex-row gap-2">
                 <input type="text"
                        x-model="questionText"
                        placeholder="Have a question? Ask it here..."
-                       class="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:ring-indigo-500">
+                       class="flex-1 min-w-0 text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:ring-indigo-500">
                 <button type="button"
                         @click="submitQuestion()"
                         :disabled="questionSubmitting || !questionText"
-                        class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition whitespace-nowrap">
+                        class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs shadow-sm transition whitespace-nowrap cursor-pointer">
                     <span x-text="questionSubmitting ? 'Posting...' : 'Ask Question'">Ask Question</span>
                 </button>
             </div>
@@ -580,9 +610,9 @@
         </div>
 
         <!-- Questions List -->
-        <div class="space-y-4 divide-y divide-slate-100">
+        <div class="space-y-3 sm:space-y-4 divide-y divide-slate-100">
             @forelse($product->questions as $q)
-                <div class="pt-4 space-y-2 text-xs">
+                <div class="pt-3 sm:pt-4 space-y-2 text-xs">
                     <div class="font-bold text-slate-900 flex items-start space-x-2">
                         <span class="text-indigo-600 font-black">Q:</span>
                         <span>{{ $q->question }}</span>
@@ -590,7 +620,7 @@
 
                     @if($q->answers && $q->answers->isNotEmpty())
                         @foreach($q->answers as $ans)
-                            <div class="pl-5 space-y-1 border-l-2 border-indigo-200 text-slate-700">
+                            <div class="pl-4 sm:pl-5 space-y-1 border-l-2 border-indigo-200 text-slate-700">
                                 <div class="flex items-center space-x-2">
                                     <span class="text-emerald-600 font-bold">A:</span>
                                     <span>{{ $ans->answer }}</span>
@@ -601,7 +631,7 @@
                             </div>
                         @endforeach
                     @else
-                        <div class="pl-5 text-slate-400 text-[11px] italic">No answers yet. The seller will answer shortly.</div>
+                        <div class="pl-4 sm:pl-5 text-slate-400 text-[11px] italic">No answers yet. The seller will answer shortly.</div>
                     @endif
                 </div>
             @empty
@@ -612,9 +642,9 @@
 
     <!-- Related Products -->
     @if($relatedProducts->isNotEmpty())
-        <section class="space-y-4">
-            <h2 class="text-lg font-black text-slate-900">Related Products in this Category</h2>
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <section class="space-y-3 sm:space-y-4">
+            <h2 class="text-base sm:text-lg font-black text-slate-900">Related Products in this Category</h2>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4">
                 @foreach($relatedProducts as $rel)
                     <x-product-card :product="$rel" />
                 @endforeach
@@ -622,114 +652,131 @@
         </section>
     @endif
 
-    <!-- Mobile Sticky Add-to-Cart Bar (sm:hidden) -->
-    <div class="sm:hidden fixed bottom-14 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 shadow-2xl flex items-center justify-between gap-3">
-        <div class="min-w-0 flex-1">
-            <div class="text-xs font-black text-slate-900 truncate" x-text="currentVariant.name"></div>
-            <div class="text-sm font-extrabold text-indigo-600" x-text="currentVariant.formatted_selling_price"></div>
-        </div>
-
-        <template x-if="inCartQty === 0">
-            <button type="button"
-                    @click="addToCart()"
-                    class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-xs uppercase shadow-md active:scale-95">
-                ADD
-            </button>
-        </template>
-
-        <template x-if="inCartQty > 0">
-            <div class="inline-flex items-center rounded-xl bg-indigo-600 text-white font-bold text-xs shadow-md overflow-hidden">
-                <button type="button" @click="decrement()" class="px-3 py-2 hover:bg-indigo-700">-</button>
-                <span class="px-2.5 py-2 min-w-[24px] text-center" x-text="inCartQty"></span>
-                <button type="button" @click="increment()" class="px-3 py-2 hover:bg-indigo-700">+</button>
-            </div>
-        </template>
-    </div>
-
     <!-- Review Submission Modal -->
     <div x-show="reviewModalOpen"
          x-cloak
-         class="fixed inset-0 z-50 overflow-y-auto"
+         class="fixed inset-0 z-50 overflow-y-auto flex items-end sm:items-center justify-center p-0 sm:p-4"
          role="dialog" aria-modal="true">
-        <div class="flex items-center justify-center min-h-screen p-4 text-center">
-            <div x-show="reviewModalOpen"
-                 @click="reviewModalOpen = false"
-                 class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"></div>
+        <!-- Backdrop with Blur -->
+        <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity"
+             @click="reviewModalOpen = false"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"></div>
 
-            <div class="inline-block w-full max-w-md p-6 my-8 text-left bg-white rounded-3xl shadow-2xl border border-slate-200 transform transition-all relative z-10 space-y-4">
-                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <h3 class="text-sm font-extrabold text-slate-900">Write a Product Review</h3>
-                    <button type="button" @click="reviewModalOpen = false" class="text-slate-400 hover:text-slate-600">&times;</button>
+        <div class="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-200/90 transform transition-all relative z-10 space-y-4 max-h-[92vh] overflow-y-auto"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-12 sm:scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave-end="opacity-0 translate-y-12 sm:scale-95">
+
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div class="flex items-center space-x-2.5">
+                    <span class="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center text-sm font-black shadow-xs">★</span>
+                    <div>
+                        <h3 class="text-sm font-black text-slate-900 leading-tight">Write a Review</h3>
+                        <p class="text-[10px] text-slate-500">Share your verified shopping experience</p>
+                    </div>
+                </div>
+                <button type="button" @click="reviewModalOpen = false" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition active:scale-95 cursor-pointer">&times;</button>
+            </div>
+
+            <div class="space-y-3.5 text-xs">
+                <!-- Interactive Star Selector -->
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">Your Rating <span class="text-rose-500">*</span></label>
+                    <div class="flex items-center space-x-2">
+                        <template x-for="star in [1, 2, 3, 4, 5]" :key="star">
+                            <button type="button"
+                                    @click="reviewRating = star"
+                                    class="text-2xl transition-transform hover:scale-125 focus:outline-hidden cursor-pointer"
+                                    :class="star <= reviewRating ? 'text-amber-400' : 'text-slate-200'">
+                                ★
+                            </button>
+                        </template>
+                        <span class="text-xs font-bold text-slate-700 ml-2" x-text="reviewRating === 5 ? 'Excellent (5/5)' : (reviewRating === 4 ? 'Very Good (4/5)' : (reviewRating === 3 ? 'Average (3/5)' : (reviewRating === 2 ? 'Poor (2/5)' : 'Terrible (1/5)')))"></span>
+                    </div>
                 </div>
 
-                <div class="space-y-3 text-xs">
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Your Rating</label>
-                        <select x-model="reviewRating" class="w-full text-xs p-2 rounded-xl border border-slate-200">
-                            <option value="5">★★★★★ - Excellent (5/5)</option>
-                            <option value="4">★★★★☆ - Very Good (4/5)</option>
-                            <option value="3">★★★☆☆ - Average (3/5)</option>
-                            <option value="2">★★☆☆☆ - Poor (2/5)</option>
-                            <option value="1">★☆☆☆☆ - Terrible (1/5)</option>
-                        </select>
-                    </div>
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">Review Headline <span class="text-rose-500">*</span></label>
+                    <input type="text" x-model="reviewTitle" placeholder="e.g. Fresh quality, fast delivery!"
+                           class="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 font-semibold text-slate-800 transition">
+                </div>
 
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Review Headline</label>
-                        <input type="text" x-model="reviewTitle" placeholder="e.g. Great quality, fast delivery!" class="w-full text-xs p-2 rounded-xl border border-slate-200">
-                    </div>
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">Detailed Review <span class="text-rose-500">*</span></label>
+                    <textarea x-model="reviewBody" rows="4" placeholder="What did you like or dislike about this product? Packaging, quality, taste, freshness..."
+                              class="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 font-medium text-slate-800 transition"></textarea>
+                </div>
 
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Detailed Review</label>
-                        <textarea x-model="reviewBody" rows="4" placeholder="What did you like or dislike about this product?" class="w-full text-xs p-2 rounded-xl border border-slate-200"></textarea>
-                    </div>
+                <div x-show="reviewMessage" x-text="reviewMessage" class="font-bold text-indigo-600 text-xs"></div>
 
-                    <div x-show="reviewMessage" x-text="reviewMessage" class="font-bold text-indigo-600 text-xs"></div>
-
-                    <div class="pt-2 flex justify-end space-x-2">
-                        <button type="button" @click="reviewModalOpen = false" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold">Cancel</button>
-                        <button type="button" @click="submitReview()" :disabled="reviewSubmitting" class="px-5 py-2 rounded-xl bg-indigo-600 text-white font-bold">
-                            <span x-text="reviewSubmitting ? 'Submitting...' : 'Submit Review'">Submit Review</span>
-                        </button>
-                    </div>
+                <div class="pt-2 flex justify-end space-x-2 border-t border-slate-100">
+                    <button type="button" @click="reviewModalOpen = false" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition cursor-pointer">Cancel</button>
+                    <button type="button" @click="submitReview()" :disabled="reviewSubmitting || !reviewTitle || !reviewBody"
+                            class="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-600/25 active:scale-95 transition disabled:opacity-50 cursor-pointer">
+                        <span x-text="reviewSubmitting ? 'Submitting...' : 'Submit Review'">Submit Review</span>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Mobile Sticky Bottom Buy Bar (sm:hidden) -->
-    <div class="sm:hidden fixed bottom-14 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2.5 shadow-2xl flex items-center justify-between gap-3">
-        <div class="min-w-0">
-            <div class="text-[10px] text-slate-400 font-medium">Price</div>
-            <div class="text-base font-black text-slate-900 tracking-tight" x-text="currentVariant.formatted_price || '{{ format_currency($product->effective_price) }}'">
-                {{ format_currency($product->effective_price) }}
+    <div class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-4 py-2.5 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <!-- Price & Variant Meta -->
+        <div class="min-w-0 flex flex-col justify-center">
+            <div class="flex items-baseline space-x-1.5 whitespace-nowrap">
+                <span class="text-base font-black text-slate-900 tracking-tight whitespace-nowrap" x-text="currentVariant.formatted_selling_price || '{{ format_currency($product->effective_price) }}'">
+                    {{ format_currency($product->effective_price) }}
+                </span>
+                <template x-if="currentVariant.mrp && Number(currentVariant.mrp) > Number(currentVariant.selling_price)">
+                    <span class="text-xs text-slate-400 line-through font-medium whitespace-nowrap" x-text="currentVariant.formatted_mrp"></span>
+                </template>
+                <template x-if="currentVariant.discount_percent > 0">
+                    <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md whitespace-nowrap" x-text="currentVariant.discount_percent + '% OFF'"></span>
+                </template>
+            </div>
+            <div class="text-[10px] text-slate-500 font-medium truncate max-w-[170px]" x-text="currentVariant.name || 'Inclusive of all taxes'">
+                Inclusive of all taxes
             </div>
         </div>
 
-        <div class="flex items-center space-x-2 flex-shrink-0">
+        <!-- Action Stepper / Buy Buttons -->
+        <div class="flex items-center space-x-2 shrink-0">
             <template x-if="inCartQty === 0">
                 <button type="button"
                         @click="addToCart()"
                         :disabled="!currentVariant.in_stock"
-                        class="py-2 px-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-extrabold text-xs shadow-md active:scale-95 transition flex items-center space-x-1">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                        class="py-2.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-extrabold text-xs shadow-md shadow-indigo-600/20 active:scale-95 transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
                     <span x-text="currentVariant.in_stock ? 'Add to Cart' : 'Out of Stock'">Add to Cart</span>
                 </button>
             </template>
 
             <template x-if="inCartQty > 0">
-                <div class="inline-flex items-center rounded-xl bg-indigo-50 border border-indigo-200 overflow-hidden text-indigo-700">
-                    <button type="button" @click="decrement()" class="px-2.5 py-1.5 hover:bg-indigo-200 font-black text-xs">-</button>
-                    <span class="px-2 text-xs font-extrabold" x-text="inCartQty"></span>
-                    <button type="button" @click="increment()" class="px-2.5 py-1.5 hover:bg-indigo-200 font-black text-xs">+</button>
+                <div class="flex items-center space-x-2">
+                    <div class="inline-flex items-center rounded-xl bg-indigo-50 border border-indigo-200/90 text-indigo-700 shadow-2xs">
+                        <button type="button" @click="decrement()" class="w-8 h-8 flex items-center justify-center hover:bg-indigo-100 font-black text-sm active:scale-90 transition cursor-pointer" aria-label="Decrease quantity">-</button>
+                        <span class="w-7 text-center text-xs font-black text-indigo-950" x-text="inCartQty"></span>
+                        <button type="button" @click="increment()" class="w-8 h-8 flex items-center justify-center hover:bg-indigo-100 font-black text-sm active:scale-90 transition cursor-pointer" aria-label="Increase quantity">+</button>
+                    </div>
+
+                    <button type="button"
+                            @click="$store.cart.open = true"
+                            class="py-2 px-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 active:scale-95 transition flex items-center space-x-1 whitespace-nowrap cursor-pointer">
+                        <span>View Cart</span>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </button>
                 </div>
             </template>
-
-            <button type="button"
-                    @click="if (inCartQty === 0) addToCart(); $store.cart.open = true"
-                    class="py-2 px-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 text-white font-extrabold text-xs shadow-md active:scale-95 transition whitespace-nowrap">
-                Buy Now
-            </button>
         </div>
     </div>
 

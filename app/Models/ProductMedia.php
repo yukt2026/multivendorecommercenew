@@ -26,6 +26,11 @@ class ProductMedia extends Model
         'sort_order' => 'integer',
     ];
 
+    public function getUrlAttribute(): ?string
+    {
+        return image_url($this->path);
+    }
+
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);

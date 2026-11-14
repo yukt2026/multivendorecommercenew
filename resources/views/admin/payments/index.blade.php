@@ -5,7 +5,7 @@
 
     <!-- Page Header -->
     <x-page-header 
-        title="Payments &amp; Transactions Ledger" 
+        title="Payments & Transactions Ledger" 
         subtitle="Gateway transaction records, captured orders, doorstep COD remittances, and refund tracking."
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Payments' => '#']"
     >

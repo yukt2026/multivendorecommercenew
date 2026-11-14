@@ -15,6 +15,33 @@
         </x-slot>
     </x-page-header>
 
+    @if(isset($stores) && $stores->count() > 1)
+        <div class="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-2xs">
+            <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Target Store Hub:</span>
+                <span class="text-xs font-extrabold text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 shadow-2xs">
+                    {{ $activeStore ? $activeStore->name : 'All Outlets' }}
+                </span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <form method="POST" action="{{ route('seller.switch_store') }}" class="flex items-center space-x-2">
+                    @csrf
+                    <label for="connections_store_switcher" class="text-xs text-slate-500 font-medium">Switch Target Store:</label>
+                    <select id="connections_store_switcher" name="store_id" onchange="this.form.submit()" class="text-xs rounded-xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 py-1.5 px-3 font-semibold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500">
+                        @foreach($stores as $st)
+                            <option value="{{ $st->id }}" {{ $activeStore && $activeStore->id === $st->id ? 'selected' : '' }}>
+                                {{ $st->name }} ({{ $st->location?->city ?? 'Hub' }})
+                            </option>
+                        @endforeach
+                    </select>
+                </form>
+                <a href="{{ route('seller.stores.index') }}" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline px-1.5 whitespace-nowrap">
+                    Manage Outlets →
+                </a>
+            </div>
+        </div>
+    @endif
+
     <!-- Channels Grid (6 Cards) -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- 1. Physical Retail Store -->
@@ -55,8 +82,8 @@
             </div>
 
             <div class="pt-6">
-                <a href="{{ route('seller.stores.create') }}" class="w-full inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 transition">
-                    {{ $activeStore ? 'Manage Physical Outlets &rarr;' : 'Add Physical Store &rarr;' }}
+                <a href="{{ $activeStore ? route('seller.stores.index') : route('seller.stores.create') }}" class="w-full inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 transition">
+                    {{ $activeStore ? 'Manage Physical Outlets →' : 'Add Physical Store →' }}
                 </a>
             </div>
         </div>
@@ -96,7 +123,7 @@
 
             <div class="pt-6">
                 <a href="{{ route('seller.connections.csv') }}" class="w-full inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 transition">
-                    Open CSV Feed Wizard &rarr;
+                    Open CSV Feed Wizard →
                 </a>
             </div>
         </div>
@@ -140,7 +167,7 @@
 
             <div class="pt-6">
                 <a href="{{ route('seller.connections.woocommerce') }}" class="w-full inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900 text-purple-700 dark:text-purple-300 transition">
-                    {{ !empty($connections['woocommerce']) ? 'Manage WooCommerce &rarr;' : 'Connect WooCommerce &rarr;' }}
+                    {{ !empty($connections['woocommerce']) ? 'Manage WooCommerce →' : 'Connect WooCommerce →' }}
                 </a>
             </div>
         </div>
@@ -184,7 +211,7 @@
 
             <div class="pt-6">
                 <a href="{{ route('seller.connections.shopify') }}" class="w-full inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 transition">
-                    {{ !empty($connections['shopify']) ? 'Manage Shopify &rarr;' : 'Connect Shopify &rarr;' }}
+                    {{ !empty($connections['shopify']) ? 'Manage Shopify →' : 'Connect Shopify →' }}
                 </a>
             </div>
         </div>
@@ -228,7 +255,7 @@
 
             <div class="pt-6">
                 <a href="{{ route('seller.connections.custom_api') }}" class="w-full inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900 text-amber-700 dark:text-amber-300 transition">
-                    {{ !empty($connections['custom_api']) ? 'API Keys & Docs &rarr;' : 'Generate API Key &rarr;' }}
+                    {{ !empty($connections['custom_api']) ? 'API Keys & Docs →' : 'Generate API Key →' }}
                 </a>
             </div>
         </div>
@@ -268,7 +295,7 @@
 
             <div class="pt-6">
                 <a href="{{ route('seller.products.create') }}" class="w-full inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition">
-                    Add Product Manually &rarr;
+                    Add Product Manually →
                 </a>
             </div>
         </div>

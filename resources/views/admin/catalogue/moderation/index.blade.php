@@ -142,8 +142,14 @@
                             </td>
                             <td class="py-3.5 px-4">
                                 <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-slate-400 shrink-0">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
+                                        <img 
+                                            src="{{ $product->primaryImageUrl() }}" 
+                                            alt="{{ $product->title }}" 
+                                            loading="lazy" 
+                                            class="w-full h-full object-cover" 
+                                            onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\' width=\'100\' height=\'100\'><rect width=\'100\' height=\'100\' rx=\'16\' fill=\'%23f1f5f9\'/><text x=\'50\' y=\'58\' font-size=\'32\' text-anchor=\'middle\'>🛍️</text></svg>';"
+                                        />
                                     </div>
                                     <div>
                                         <a href="{{ route('admin.catalogue.moderation.show', $product) }}" class="font-bold text-slate-900 dark:text-white hover:text-indigo-600 transition">

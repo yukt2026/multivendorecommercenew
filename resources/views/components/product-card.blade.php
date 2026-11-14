@@ -12,8 +12,10 @@
     $mrp = $product->effective_mrp;
     $discount = $product->discount_percent;
     $imgUrl = $product->primaryImageUrl();
-    $rating = 4.5;
-    $reviewCount = $product->reviews_count ?? ($product->relationLoaded('reviews') ? $product->reviews->count() : 18);
+    $productReviews = $product->relationLoaded('reviews') ? $product->reviews : null;
+    $hasReviews = $productReviews && $productReviews->isNotEmpty();
+    $rating = $hasReviews ? (float) $productReviews->avg('rating') : ($product->reviews_avg_rating ? (float) $product->reviews_avg_rating : null);
+    $reviewCount = $hasReviews ? $productReviews->count() : ($product->reviews_count ?? 0);
 @endphp
 
 <div class="group relative flex flex-col justify-between bg-white rounded-3xl border border-slate-200/90 hover:border-indigo-300 hover:shadow-xl transition-all duration-300 overflow-hidden p-3 sm:p-4 shadow-xs"
@@ -85,7 +87,7 @@
                  decoding="async"
                  width="240"
                  height="240"
-                 onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 300 300\' width=\'300\' height=\'300\'><rect width=\'300\' height=\'300\' rx=\'24\' fill=\'%23f8fafc\'/><circle cx=\'150\' cy=\'135\' r=\'54\' fill=\'%23e2e8f0\'/><text x=\'150\' y=\'152\' font-size=\'38\' text-anchor=\'middle\'>🛍️</text><text x=\'150\' y=\'235\' font-family=\'sans-serif\' font-size=\'11\' font-weight=\'800\' fill=\'%2394a3b8\' letter-spacing=\'1.5\' text-anchor=\'middle\'>ONESTALL</text></svg>';"
+                 onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 300 300\' width=\'300\' height=\'300\'><rect width=\'300\' height=\'300\' rx=\'28\' fill=\'%23f8fafc\'/><circle cx=\'150\' cy=\'135\' r=\'52\' fill=\'%23eef2f6\'/><path d=\'M132 118 h36 l6 38 h-48 z\' fill=\'%236366f1\' fill-opacity=\'0.15\' stroke=\'%236366f1\' stroke-width=\'3\' stroke-linejoin=\'round\'/><path d=\'M141 118 v-7 a9 9 0 0 1 18 0 v7\' fill=\'none\' stroke=\'%236366f1\' stroke-width=\'3\' stroke-linecap=\'round\'/><circle cx=\'150\' cy=\'137\' r=\'3\' fill=\'%236366f1\'/><text x=\'150\' y=\'232\' font-family=\'sans-serif\' font-size=\'12\' font-weight=\'800\' fill=\'%2394a3b8\' letter-spacing=\'2\' text-anchor=\'middle\'>ONESTALL</text></svg>';"
                  class="w-full h-full object-contain p-2 sm:p-3 group-hover:scale-105 transition-transform duration-300">
         </a>
 
@@ -94,12 +96,16 @@
             <a href="{{ $product->brand ? route('brand.show', $product->brand->slug) : '#' }}" class="truncate font-bold text-indigo-600 hover:underline max-w-[85px] sm:max-w-[120px]">
                 {{ $product->brand?->name ?? $product->seller?->business_name ?? 'OneStall Direct' }}
             </a>
-            <div class="flex items-center text-amber-500 font-bold space-x-0.5">
-                <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                <span>{{ number_format($rating, 1) }}</span>
-            </div>
+            @if($rating)
+                <div class="flex items-center text-amber-500 font-bold space-x-0.5">
+                    <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    <span>{{ number_format($rating, 1) }}</span>
+                </div>
+            @else
+                <span class="text-[10px] text-slate-400 font-medium">★ New</span>
+            @endif
         </div>
 
         <!-- Product Title -->

@@ -19,6 +19,11 @@
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon.png') }}">
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
 
+    <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- Base URL & Global App Config for Dynamic Subfolder & Domain Support -->
     <meta name="base-url" content="{{ url('/') }}">
     <script>
@@ -60,7 +65,6 @@
             <div class="hidden sm:flex items-center space-x-6 text-xs font-medium text-slate-300">
                 <span>Free delivery on orders over <strong class="text-amber-400">{{ format_currency(setting('free_delivery_threshold', 499)) }}</strong></span>
                 <a href="{{ route('seller.dashboard') }}" class="hover:text-amber-300 transition">Sell on {{ setting('name', 'OneStall') }}</a>
-                <a href="{{ route('admin.dashboard') }}" class="hover:text-amber-300 transition">Admin Portal</a>
             </div>
         </div>
     </div>
@@ -430,7 +434,7 @@
                         @endphp
                         <div x-show="megaMenuOpen"
                              x-transition
-                             class="absolute left-0 top-full w-[850px] bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 z-50 grid grid-cols-3 gap-6">
+                             class="absolute left-0 top-full w-[min(850px,calc(100vw-2rem))] max-w-[850px] bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 z-50 grid grid-cols-3 gap-6">
                             @if($categoriesList->isNotEmpty())
                                 @foreach($categoriesList->take(6) as $cat)
                                     <div class="space-y-2">
@@ -486,7 +490,7 @@
     </header>
 
     <!-- Main Content Slot -->
-    <main class="flex-1">
+    <main class="flex-1 w-full max-w-full min-w-0">
         {{ $slot ?? '' }}
         @yield('content')
     </main>
@@ -998,6 +1002,7 @@
     </div>
 
     <!-- Mobile Bottom Navigation Bar (sm:hidden) -->
+    @sectionMissing('hideBottomNav')
     <nav class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 py-1.5 px-3 shadow-lg">
         <div class="grid grid-cols-5 gap-1 text-center">
             <!-- Home -->
@@ -1046,6 +1051,7 @@
             @endauth
         </div>
     </nav>
+    @endif
 
     <!-- Footer -->
     <footer class="bg-slate-900 text-slate-400 py-16 border-t border-slate-800 mt-16 text-xs">
@@ -1136,7 +1142,6 @@
                         <li><a href="{{ route('seller.store.edit') }}" class="hover:text-white transition">Launch Digital Storefront</a></li>
                         <li><a href="{{ route('seller.inventory.index') }}" class="hover:text-white transition">Omnichannel Inventory</a></li>
                         <li><a href="{{ route('rider.dashboard') }}" class="hover:text-white transition">Rider Delivery Partner Hub</a></li>
-                        <li><a href="{{ route('admin.dashboard') }}" class="hover:text-white transition">Platform Governance</a></li>
                     </ul>
                 </div>
 

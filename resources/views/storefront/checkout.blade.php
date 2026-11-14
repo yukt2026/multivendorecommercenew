@@ -1,5 +1,7 @@
 @extends('layouts.storefront')
 
+@section('hideBottomNav', 'true')
+
 @section('title', 'Secure Checkout - OneStall.in')
 
 @section('content')
@@ -12,7 +14,7 @@
         idempotencyKey: '{{ (string) \Illuminate\Support\Str::uuid() }}',
         newAddress: {
             name: '{{ Auth::user()->name ?? '' }}',
-            phone: '{{ Auth::user()->phone ?? '' }}',
+            phone: '{{ preg_replace('/^\+?91/', '', Auth::user()->phone ?? '') }}',
             type: 'home',
             line1: '',
             line2: '',
@@ -24,13 +26,71 @@
             lng: 77.5946,
             is_default: true
         },
+        detectingGps: false,
+        gpsSuccess: false,
+        gpsMessage: '',
+        pincodeStatus: '', // '', 'loading', 'success', 'error'
+        pincodeMessage: '',
+        pincodeDebounceTimer: null,
         useCurrentGeo() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    this.newAddress.lat = pos.coords.latitude;
-                    this.newAddress.lng = pos.coords.longitude;
-                });
+                this.detectingGps = true;
+                this.gpsMessage = 'Detecting accurate doorstep GPS location...';
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        this.newAddress.lat = parseFloat(pos.coords.latitude.toFixed(6));
+                        this.newAddress.lng = parseFloat(pos.coords.longitude.toFixed(6));
+                        this.detectingGps = false;
+                        this.gpsSuccess = true;
+                        this.gpsMessage = '✓ Precise GPS Pin locked (' + this.newAddress.lat + ', ' + this.newAddress.lng + ')';
+                    },
+                    (err) => {
+                        this.detectingGps = false;
+                        this.gpsSuccess = false;
+                        this.gpsMessage = 'GPS access unavailable. You can enter or adjust coordinates manually.';
+                    },
+                    { enableHighAccuracy: true, timeout: 8000 }
+                );
             }
+        },
+        autoFetchPincode() {
+            clearTimeout(this.pincodeDebounceTimer);
+            const pin = (this.newAddress.pincode || '').trim();
+            if (pin.length < 6) {
+                this.pincodeStatus = '';
+                this.pincodeMessage = '';
+                return;
+            }
+            if (pin.length > 6 || !/^[1-9][0-9]{5}$/.test(pin)) {
+                this.pincodeStatus = 'error';
+                this.pincodeMessage = 'Enter valid 6-digit PIN';
+                return;
+            }
+
+            this.pincodeStatus = 'loading';
+            this.pincodeMessage = 'Detecting city & state...';
+
+            this.pincodeDebounceTimer = setTimeout(async () => {
+                try {
+                    const urlPattern = '{{ route('pincode.lookup.direct', ['pincode' => ':pin']) }}';
+                    const res = await fetch(urlPattern.replace(':pin', encodeURIComponent(pin)), {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    const data = await res.json();
+                    if (data && data.success && data.city && data.state) {
+                        this.newAddress.city = data.city;
+                        this.newAddress.state = data.state;
+                        this.pincodeStatus = 'success';
+                        this.pincodeMessage = `✓ ${data.city}, ${data.state}`;
+                    } else {
+                        this.pincodeStatus = 'error';
+                        this.pincodeMessage = data.message || 'Pincode not found. Enter city manually.';
+                    }
+                } catch(e) {
+                    this.pincodeStatus = 'error';
+                    this.pincodeMessage = 'Enter city & state manually.';
+                }
+            }, 250);
         }
      }">
 
@@ -392,122 +452,228 @@
 
     </div>
 
-    <!-- Add New Address Modal -->
+    <!-- Add New Address Modal (Fully Centered, Auto-Sized, Never Clipped) -->
     <div x-show="showAddressModal" x-cloak
-         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
-        <!-- Backdrop -->
-        <div class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
-             @click="showAddressModal = false"></div>
+         class="fixed inset-0 z-50 overflow-y-auto"
+         role="dialog" aria-modal="true">
+        <!-- Backdrop with Blur -->
+        <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity"
+             @click="showAddressModal = false"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"></div>
 
-        <!-- Dialog -->
-        <div class="relative bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 z-10 space-y-5">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 class="text-base sm:text-lg font-black text-slate-900">Add Delivery Address</h3>
-                <button type="button" @click="showAddressModal = false" class="p-1 rounded-lg text-slate-400 hover:text-slate-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        <!-- Centering Frame (Prevents Negative Scroll Overflow) -->
+        <div class="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <!-- Dialog Container -->
+            <div class="relative bg-white rounded-3xl max-w-lg w-full max-h-[calc(100dvh-2.5rem)] sm:max-h-[calc(100vh-3.5rem)] flex flex-col shadow-2xl border border-slate-200/90 z-10 overflow-hidden transform transition-all"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:scale-95">
+
+            <!-- 1. Header (Always Fixed at Top) -->
+            <div class="px-6 py-4 bg-gradient-to-r from-slate-50 via-white to-indigo-50/30 border-b border-slate-100 flex items-center justify-between shrink-0">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center text-lg shrink-0 shadow-2xs">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 tracking-tight leading-snug">Add Delivery Address</h3>
+                        <p class="text-xs text-slate-500 font-normal">Accurate address ensures faster 10-30 min doorstep arrival</p>
+                    </div>
+                </div>
+                <button type="button" @click="showAddressModal = false" class="w-8 h-8 rounded-full bg-slate-100/80 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition active:scale-95 cursor-pointer" aria-label="Close">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
 
-            <form action="{{ route('checkout.address.add') }}" method="POST" class="space-y-4">
+            <!-- 2. Form Container (flex-1 min-h-0 flex flex-col) -->
+            <form action="{{ route('checkout.address.add') }}" method="POST" class="flex-1 min-h-0 flex flex-col">
                 @csrf
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
-                        <input type="text" name="name" x-model="newAddress.name" required
-                               class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Phone Number</label>
-                        <input type="text" name="phone" x-model="newAddress.phone" required
-                               class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                </div>
 
-                <div class="flex items-center space-x-4 text-xs">
-                    <span class="font-bold text-slate-700">Address Type:</span>
-                    <label class="flex items-center space-x-1 cursor-pointer">
-                        <input type="radio" name="type" value="home" x-model="newAddress.type" class="text-indigo-600">
-                        <span>Home</span>
+                <!-- 2a. Scrollable Fields Body -->
+                <div class="flex-1 min-h-0 overflow-y-auto px-5 sm:px-6 py-4 sm:py-5 space-y-4 text-xs">
+
+                    <!-- Contact Details -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-semibold text-slate-700">Full Name <span class="text-rose-500">*</span></label>
+                            <input type="text" name="name" x-model="newAddress.name" required placeholder="Enter full name"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 bg-slate-50/40 hover:bg-slate-50/70 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 transition outline-none">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-semibold text-slate-700">Phone Number <span class="text-rose-500">*</span></label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-bold text-xs">+91</div>
+                                <input type="tel" name="phone" x-model="newAddress.phone" required maxlength="10" placeholder="10-digit mobile"
+                                       class="w-full pl-11 pr-3.5 py-2.5 rounded-xl border border-slate-200/90 bg-slate-50/40 hover:bg-slate-50/70 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 transition outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Address Type Selector (Clickable Pill Buttons - Clean Icons & Typography) -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-semibold text-slate-700">Address Type</label>
+                        <div class="grid grid-cols-3 gap-2.5">
+                            <button type="button"
+                                    @click="newAddress.type = 'home'"
+                                    :class="newAddress.type === 'home' ? 'bg-indigo-50/90 border-indigo-600 text-indigo-900 ring-2 ring-indigo-600/20 shadow-xs' : 'bg-slate-50/60 hover:bg-slate-100/80 border-slate-200/80 text-slate-600'"
+                                    class="py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center space-x-1.5 transition cursor-pointer select-none">
+                                <span class="text-sm">🏠</span>
+                                <span>Home</span>
+                            </button>
+                            <button type="button"
+                                    @click="newAddress.type = 'work'"
+                                    :class="newAddress.type === 'work' ? 'bg-indigo-50/90 border-indigo-600 text-indigo-900 ring-2 ring-indigo-600/20 shadow-xs' : 'bg-slate-50/60 hover:bg-slate-100/80 border-slate-200/80 text-slate-600'"
+                                    class="py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center space-x-1.5 transition cursor-pointer select-none">
+                                <span class="text-sm">🏢</span>
+                                <span>Work</span>
+                            </button>
+                            <button type="button"
+                                    @click="newAddress.type = 'other'"
+                                    :class="newAddress.type === 'other' ? 'bg-indigo-50/90 border-indigo-600 text-indigo-900 ring-2 ring-indigo-600/20 shadow-xs' : 'bg-slate-50/60 hover:bg-slate-100/80 border-slate-200/80 text-slate-600'"
+                                    class="py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center space-x-1.5 transition cursor-pointer select-none">
+                                <span class="text-sm">📍</span>
+                                <span>Other</span>
+                            </button>
+                        </div>
+                        <input type="hidden" name="type" :value="newAddress.type">
+                    </div>
+
+                    <!-- House & Street Info -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-semibold text-slate-700">Flat, House no., Building, Apartment <span class="text-rose-500">*</span></label>
+                        <input type="text" name="line1" x-model="newAddress.line1" required placeholder="e.g. Flat 402, Sunshine Heights, Tower B"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 bg-slate-50/40 hover:bg-slate-50/70 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 transition outline-none">
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-semibold text-slate-700">Area, Street, Sector, Village (Line 2)</label>
+                        <input type="text" name="line2" x-model="newAddress.line2" placeholder="e.g. 5th Main, 4th Cross, Koramangala"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 bg-slate-50/40 hover:bg-slate-50/70 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 transition outline-none">
+                    </div>
+
+                    <!-- Landmark & Pincode with Auto-detection -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-semibold text-slate-700">Landmark (Optional)</label>
+                            <input type="text" name="landmark" x-model="newAddress.landmark" placeholder="e.g. Opposite Metro Pillar 140"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 bg-slate-50/40 hover:bg-slate-50/70 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 transition outline-none">
+                        </div>
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-xs font-semibold text-slate-700">Pincode <span class="text-rose-500">*</span></label>
+                                <!-- Live Auto-detect Feedback -->
+                                <div class="flex items-center">
+                                    <template x-if="pincodeStatus === 'loading'">
+                                        <span class="inline-flex items-center space-x-1 text-[11px] font-semibold text-indigo-600 animate-pulse">
+                                            <svg class="animate-spin h-3 w-3 text-indigo-600" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                                            <span>Detecting city...</span>
+                                        </span>
+                                    </template>
+                                    <template x-if="pincodeStatus === 'success'">
+                                        <span class="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200" x-text="pincodeMessage"></span>
+                                    </template>
+                                    <template x-if="pincodeStatus === 'error'">
+                                        <span class="text-[10px] font-medium text-amber-600" x-text="pincodeMessage"></span>
+                                    </template>
+                                    <template x-if="!pincodeStatus">
+                                        <span class="text-[10px] text-slate-400 font-medium">Auto-detects city</span>
+                                    </template>
+                                </div>
+                            </div>
+                            <input type="text" name="pincode" x-model="newAddress.pincode" @input="autoFetchPincode()" required pattern="^[1-9][0-9]{5}$" maxlength="6" placeholder="e.g. 560001"
+                                   :class="pincodeStatus === 'success' ? 'border-emerald-300 bg-emerald-50/20' : (pincodeStatus === 'error' ? 'border-amber-300' : 'border-slate-200/90 bg-slate-50/40')"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border hover:bg-slate-50/70 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 text-xs sm:text-sm font-semibold tracking-wider text-slate-900 placeholder:text-slate-400 transition outline-none">
+                        </div>
+                    </div>
+
+                    <!-- City & State -->
+                    <div class="grid grid-cols-2 gap-3.5">
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-semibold text-slate-700">City <span class="text-rose-500">*</span></label>
+                            <input type="text" name="city" x-model="newAddress.city" required placeholder="City name"
+                                   :class="pincodeStatus === 'success' ? 'border-emerald-200/90 bg-emerald-50/15 font-semibold text-emerald-950' : 'border-slate-200/90 bg-slate-50/40 text-slate-900'"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border hover:bg-slate-50/70 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 text-xs sm:text-sm font-medium placeholder:text-slate-400 transition outline-none">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-semibold text-slate-700">State <span class="text-rose-500">*</span></label>
+                            <input type="text" name="state" x-model="newAddress.state" required placeholder="State name"
+                                   :class="pincodeStatus === 'success' ? 'border-emerald-200/90 bg-emerald-50/15 font-semibold text-emerald-950' : 'border-slate-200/90 bg-slate-50/40 text-slate-900'"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border hover:bg-slate-50/70 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10 text-xs sm:text-sm font-medium placeholder:text-slate-400 transition outline-none">
+                        </div>
+                    </div>
+
+                    <!-- GPS Map Pin Location Card -->
+                    <div class="p-3.5 bg-gradient-to-br from-indigo-50/50 via-slate-50/80 to-indigo-50/20 rounded-2xl border border-indigo-100/70 space-y-2.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center space-x-2.5">
+                                <div class="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs shadow-2xs shrink-0">
+                                    📍
+                                </div>
+                                <div>
+                                    <span class="font-bold text-slate-900 text-xs block leading-tight">GPS Doorstep Pin</span>
+                                    <span class="text-[10px] text-slate-500 font-normal">Guides rider accurately to your building gate</span>
+                                </div>
+                            </div>
+                            <button type="button" @click="useCurrentGeo()" :disabled="detectingGps"
+                                    class="px-3 py-1.5 rounded-lg bg-white hover:bg-indigo-50/80 text-indigo-700 border border-indigo-200/90 font-bold text-[11px] shadow-2xs active:scale-95 transition flex items-center space-x-1.5 shrink-0 cursor-pointer disabled:opacity-50">
+                                <span x-show="!detectingGps" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <svg x-show="detectingGps" class="animate-spin h-3 w-3 text-indigo-600" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                                <span x-text="detectingGps ? 'Locating...' : 'Locate via GPS'">Locate via GPS</span>
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div class="bg-white/90 rounded-xl px-2.5 py-1.5 border border-slate-200/70">
+                                <span class="text-[10px] font-semibold text-slate-400 block leading-tight">Latitude</span>
+                                <input type="number" step="any" name="lat" x-model="newAddress.lat"
+                                       class="w-full bg-transparent font-mono text-xs font-bold text-slate-800 focus:outline-hidden p-0 border-0 mt-0.5">
+                            </div>
+                            <div class="bg-white/90 rounded-xl px-2.5 py-1.5 border border-slate-200/70">
+                                <span class="text-[10px] font-semibold text-slate-400 block leading-tight">Longitude</span>
+                                <input type="number" step="any" name="lng" x-model="newAddress.lng"
+                                       class="w-full bg-transparent font-mono text-xs font-bold text-slate-800 focus:outline-hidden p-0 border-0 mt-0.5">
+                            </div>
+                        </div>
+
+                        <div x-show="gpsMessage" x-text="gpsMessage"
+                             :class="gpsSuccess ? 'text-emerald-700 font-semibold' : 'text-slate-500'"
+                             class="text-[11px] pt-0.5"></div>
+                    </div>
+
+                    <!-- Primary Delivery Address Checkbox -->
+                    <label class="flex items-center space-x-3 p-3 rounded-2xl bg-slate-50/60 border border-slate-200/80 cursor-pointer hover:bg-slate-100/70 transition select-none">
+                        <input type="checkbox" name="is_default" value="1" x-model="newAddress.is_default" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                        <div>
+                            <span class="text-xs font-bold text-slate-900 block leading-tight">Make this my primary delivery address</span>
+                            <span class="text-[10px] text-slate-500">Auto-selected for all future quick and standard orders</span>
+                        </div>
                     </label>
-                    <label class="flex items-center space-x-1 cursor-pointer">
-                        <input type="radio" name="type" value="work" x-model="newAddress.type" class="text-indigo-600">
-                        <span>Work</span>
-                    </label>
-                    <label class="flex items-center space-x-1 cursor-pointer">
-                        <input type="radio" name="type" value="other" x-model="newAddress.type" class="text-indigo-600">
-                        <span>Other</span>
-                    </label>
+
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Flat, House no., Building, Apartment</label>
-                    <input type="text" name="line1" x-model="newAddress.line1" required
-                           class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Area, Street, Sector, Village (Line 2)</label>
-                    <input type="text" name="line2" x-model="newAddress.line2"
-                           class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500">
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Landmark</label>
-                        <input type="text" name="landmark" x-model="newAddress.landmark"
-                               class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Pincode</label>
-                        <input type="text" name="pincode" x-model="newAddress.pincode" required pattern="^[1-9][0-9]{5}$"
-                               class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">City</label>
-                        <input type="text" name="city" x-model="newAddress.city" required
-                               class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">State</label>
-                        <input type="text" name="state" x-model="newAddress.state" required
-                               class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                </div>
-
-                <!-- GPS Map Pin coordinates -->
-                <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 text-xs">
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-slate-800">📍 Map Pin Location</span>
-                        <button type="button" @click="useCurrentGeo()" class="text-indigo-600 font-extrabold hover:underline">
-                            Detect GPS Pin
-                        </button>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-500">
-                        <div>Lat: <input type="number" step="any" name="lat" x-model="newAddress.lat" class="w-full px-2 py-1 rounded border border-slate-200"></div>
-                        <div>Lng: <input type="number" step="any" name="lng" x-model="newAddress.lng" class="w-full px-2 py-1 rounded border border-slate-200"></div>
-                    </div>
-                </div>
-
-                <label class="flex items-center space-x-2 text-xs cursor-pointer">
-                    <input type="checkbox" name="is_default" value="1" x-model="newAddress.is_default" class="rounded text-indigo-600">
-                    <span class="text-slate-700 font-semibold">Make this my default delivery address</span>
-                </label>
-
-                <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-100">
+                <!-- 2b. Fixed Action Footer (ALWAYS VISIBLE AT BOTTOM) -->
+                <div class="px-6 py-4 bg-slate-50/90 border-t border-slate-200/80 flex items-center justify-end space-x-3 shrink-0">
                     <button type="button" @click="showAddressModal = false"
-                            class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50">
+                            class="px-5 py-2.5 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition cursor-pointer">
                         Cancel
                     </button>
                     <button type="submit"
-                            class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md">
-                        Save Address
+                            class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold text-xs shadow-md shadow-indigo-600/25 active:scale-95 transition flex items-center space-x-1.5 cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        <span>Save Address</span>
                     </button>
                 </div>
             </form>
         </div>
+    </div>
     </div>
 
 </div>

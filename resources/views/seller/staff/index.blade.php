@@ -13,7 +13,7 @@
 }">
     <!-- Header -->
     <x-page-header 
-        title="Store Staff &amp; Team Permissions" 
+        title="Store Staff & Team Permissions" 
         subtitle="Manage store managers, inventory pickers, packing operators, and delivery staff with granular access controls (Blueprint Section 20)."
         :breadcrumbs="['Seller Studio' => route('seller.dashboard'), 'Staff & Roles' => route('seller.staff.index')]"
     >

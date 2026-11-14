@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Seller;
 
 use App\Enums\DeliveryZoneType;
+use App\Enums\FulfilmentType;
 use App\Enums\InventoryLocationType;
 use App\Enums\ProductStatus;
 use App\Enums\ReviewStatus;
@@ -27,6 +28,7 @@ use App\Models\StoreLocation;
 use App\Models\StoreStaff;
 use App\Models\StoreTiming;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -107,14 +109,14 @@ class StoreService
                 $logoExt = $logo->getClientOriginalExtension() ?: 'png';
                 $logoName = 'logo-' . $store->id . '-' . time() . '.' . $logoExt;
                 $logoPath = $logo->storeAs('stores/logos', $logoName, 'public');
-                $data['logo'] = Storage::url($logoPath);
+                $data['logo'] = 'stores/logos/' . $logoName;
             }
 
             if ($banner) {
                 $bannerExt = $banner->getClientOriginalExtension() ?: 'jpg';
                 $bannerName = 'banner-' . $store->id . '-' . time() . '.' . $bannerExt;
                 $bannerPath = $banner->storeAs('stores/banners', $bannerName, 'public');
-                $data['banner'] = Storage::url($bannerPath);
+                $data['banner'] = 'stores/banners/' . $bannerName;
             }
 
             // 2. Status determination
@@ -306,12 +308,15 @@ class StoreService
                 'latitude' => $store->location?->lat ?? 12.9716,
                 'longitude' => $store->location?->lng ?? 77.5946,
             ],
-            'aggregateRating' => [
-                '@type' => 'AggregateRating',
-                'ratingValue' => $store->rating_avg ?: 5.0,
-                'reviewCount' => max($store->rating_count, 1),
-            ],
         ];
+
+        if ($store->rating_count > 0) {
+            $schemaJson['aggregateRating'] = [
+                '@type' => 'AggregateRating',
+                'ratingValue' => (float) $store->rating_avg,
+                'reviewCount' => (int) $store->rating_count,
+            ];
+        }
 
         return [
             'store' => $store,
@@ -380,8 +385,9 @@ class StoreService
                 'seller_id' => $seller->id,
                 'store_id' => $store->id,
                 'name' => "{$store->name} Shelf & Storage",
-                'code' => 'LOC-' . strtoupper(Str::random(6)),
                 'type' => InventoryLocationType::STORE,
+                'lat' => (float) ($data['lat'] ?? 12.9716),
+                'lng' => (float) ($data['lng'] ?? 77.5946),
                 'is_active' => true,
             ]);
 
@@ -443,67 +449,164 @@ class StoreService
 
     /**
      * Store-level performance reports and analytics.
+     *
+     * @return array<string, mixed>
      */
-    public function getStoreReports(Seller $seller, ?int $storeId = null, string $range = '30d'): array
+    public function getStoreReports(Seller $seller, ?int $storeId = null, string $range = '30d', ?string $from = null, ?string $to = null): array
     {
-        $startDate = match ($range) {
-            '7d' => now()->subDays(7),
-            '90d' => now()->subDays(90),
-            'year' => now()->subYear(),
-            default => now()->subDays(30),
-        };
+        $endDate = now()->endOfDay();
 
-        $foQuery = FulfilmentOrder::query()
-            ->where('seller_id', $seller->id)
-            ->where('created_at', '>=', $startDate);
+        if ($range === 'custom' && $from) {
+            $startDate = Carbon::parse($from)->startOfDay();
+            if ($to) {
+                $endDate = Carbon::parse($to)->endOfDay();
+            }
+        } else {
+            $startDate = match ($range) {
+                'today' => now()->startOfDay(),
+                'yesterday' => now()->subDay()->startOfDay(),
+                '7d' => now()->subDays(6)->startOfDay(),
+                '90d' => now()->subDays(89)->startOfDay(),
+                'year' => now()->subDays(364)->startOfDay(),
+                default => now()->subDays(29)->startOfDay(),
+            };
 
-        if ($storeId) {
-            $foQuery->where('store_id', $storeId);
+            if ($range === 'yesterday') {
+                $endDate = now()->subDay()->endOfDay();
+            }
         }
 
-        $allOrders = (clone $foQuery)->get();
-        $deliveredOrders = $allOrders->where('status', 'delivered');
-        $cancelledOrders = $allOrders->where('status', 'cancelled');
-        $quickOrders = $deliveredOrders->where('fulfilment_type', \App\Enums\FulfilmentType::QUICK);
-        $standardOrders = $deliveredOrders->where('fulfilment_type', \App\Enums\FulfilmentType::STANDARD);
-
-        $grossSales = (float) $deliveredOrders->sum('subtotal');
-        $totalOrdersCount = $allOrders->count();
-        $deliveredCount = $deliveredOrders->count();
-        $cancelledCount = $cancelledOrders->count();
-        $aov = $deliveredCount > 0 ? round($grossSales / $deliveredCount, 2) : 0.00;
-
-        // Top products sold for this store
-        $topItems = OrderItem::query()
-            ->select('product_id', 'title', DB::raw('SUM(qty) as total_qty'), DB::raw('SUM(total) as total_sales'))
-            ->whereIn('fulfilment_order_id', $deliveredOrders->pluck('id'))
-            ->groupBy('product_id', 'title')
-            ->orderByDesc('total_sales')
-            ->limit(5)
+        // Fetch all seller's fulfillment orders within the active date range
+        $allSellerOrders = FulfilmentOrder::query()
+            ->where('seller_id', $seller->id)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->get();
 
-        // Daily breakdown
-        $dailySales = $deliveredOrders
-            ->groupBy(fn ($fo) => $fo->created_at->format('Y-m-d'))
-            ->map(fn ($group) => [
-                'count' => $group->count(),
-                'sales' => (float) $group->sum('subtotal'),
-            ]);
+        // Scope to selected store if specified
+        $filteredOrders = $storeId 
+            ? $allSellerOrders->where('store_id', $storeId) 
+            : $allSellerOrders;
+
+        $deliveredOrders = $filteredOrders->where('status', 'delivered');
+        $cancelledOrders = $filteredOrders->where('status', 'cancelled');
+        $inFlightOrders = $filteredOrders->filter(fn ($o) => !in_array($o->status, ['delivered', 'cancelled'], true));
+
+        $quickOrders = $deliveredOrders->where('fulfilment_type', FulfilmentType::QUICK);
+        $standardOrders = $deliveredOrders->where('fulfilment_type', FulfilmentType::STANDARD);
+        $pickupOrders = $deliveredOrders->where('fulfilment_type', FulfilmentType::PICKUP);
+
+        $grossSales = (float) $deliveredOrders->sum('subtotal');
+        $totalOrdersCount = $filteredOrders->count();
+        $deliveredCount = $deliveredOrders->count();
+        $cancelledCount = $cancelledOrders->count();
+        $inFlightCount = $inFlightOrders->count();
+        $aov = $deliveredCount > 0 ? round($grossSales / $deliveredCount, 2) : 0.00;
+
+        // Top products sold for this store/seller
+        $topItems = OrderItem::query()
+            ->select('product_id', 'title', 'sku', DB::raw('SUM(qty) as total_qty'), DB::raw('SUM(total) as total_sales'))
+            ->whereIn('fulfilment_order_id', $deliveredOrders->pluck('id'))
+            ->groupBy('product_id', 'title', 'sku')
+            ->orderByDesc('total_sales')
+            ->limit(10)
+            ->get();
+
+        // Daily breakdown map
+        $dailyGrouped = $deliveredOrders
+            ->groupBy(fn ($fo) => $fo->created_at->format('Y-m-d'));
+
+        // Generate consecutive days timeline for Chart.js
+        $diffDays = $startDate->diffInDays($endDate);
+        $labels = [];
+        $salesTrend = [];
+        $ordersTrend = [];
+
+        if ($diffDays <= 31) {
+            $period = CarbonPeriod::create($startDate, '1 day', $endDate);
+            foreach ($period as $date) {
+                $dKey = $date->format('Y-m-d');
+                $dOrders = $dailyGrouped->get($dKey, collect());
+                $labels[] = $date->format('d M');
+                $salesTrend[] = (float) $dOrders->sum('subtotal');
+                $ordersTrend[] = $dOrders->count();
+            }
+        } elseif ($diffDays <= 92) {
+            $period = CarbonPeriod::create($startDate, '1 day', $endDate);
+            foreach ($period as $date) {
+                $dKey = $date->format('Y-m-d');
+                $dOrders = $dailyGrouped->get($dKey, collect());
+                $labels[] = $date->format('d M');
+                $salesTrend[] = (float) $dOrders->sum('subtotal');
+                $ordersTrend[] = $dOrders->count();
+            }
+        } else {
+            $period = CarbonPeriod::create($startDate, '1 month', $endDate);
+            foreach ($period as $date) {
+                $mKey = $date->format('Y-m');
+                $mOrders = $deliveredOrders->filter(fn ($fo) => $fo->created_at->format('Y-m') === $mKey);
+                $labels[] = $date->format('M Y');
+                $salesTrend[] = (float) $mOrders->sum('subtotal');
+                $ordersTrend[] = $mOrders->count();
+            }
+        }
+
+        // Outlet level breakdown
+        $outletBreakdown = $seller->stores()->with(['location', 'timings'])->get()->map(function ($s) use ($allSellerOrders) {
+            $sOrders = $allSellerOrders->where('store_id', $s->id);
+            $sDeliv = $sOrders->where('status', 'delivered');
+            $sCanc = $sOrders->where('status', 'cancelled');
+            $sGross = (float) $sDeliv->sum('subtotal');
+            $sCount = $sOrders->count();
+            $sQuick = $sOrders->where('fulfilment_type', FulfilmentType::QUICK)->count();
+            $sStd = $sOrders->where('fulfilment_type', FulfilmentType::STANDARD)->count();
+            $sAov = $sDeliv->count() > 0 ? round($sGross / $sDeliv->count(), 2) : 0.00;
+
+            return [
+                'id' => $s->id,
+                'name' => $s->name,
+                'slug' => $s->slug,
+                'city' => $s->location?->city ?? 'N/A',
+                'address' => $s->location?->address ?? '',
+                'status' => $s->status,
+                'is_open' => $s->isOpenNow(),
+                'accepts_quick_commerce' => (bool) $s->accepts_quick_commerce,
+                'total_orders' => $sCount,
+                'delivered_orders' => $sDeliv->count(),
+                'cancelled_orders' => $sCanc->count(),
+                'gross_sales' => $sGross,
+                'aov' => $sAov,
+                'quick_orders' => $sQuick,
+                'standard_orders' => $sStd,
+                'cancellation_rate' => $sCount > 0 ? round(($sCanc->count() / $sCount) * 100, 1) : 0.0,
+            ];
+        });
 
         return [
             'range' => $range,
+            'from' => $startDate->format('Y-m-d'),
+            'to' => $endDate->format('Y-m-d'),
             'store_id' => $storeId,
             'gross_sales' => $grossSales,
             'total_orders' => $totalOrdersCount,
             'delivered_orders' => $deliveredCount,
             'cancelled_orders' => $cancelledCount,
+            'in_flight_orders' => $inFlightCount,
             'quick_orders_count' => $quickOrders->count(),
             'quick_orders_sales' => (float) $quickOrders->sum('subtotal'),
             'standard_orders_count' => $standardOrders->count(),
             'standard_orders_sales' => (float) $standardOrders->sum('subtotal'),
+            'pickup_orders_count' => $pickupOrders->count(),
+            'pickup_orders_sales' => (float) $pickupOrders->sum('subtotal'),
             'aov' => $aov,
+            'cancellation_rate' => $totalOrdersCount > 0 ? round(($cancelledCount / $totalOrdersCount) * 100, 1) : 0.0,
+            'fulfillment_rate' => $totalOrdersCount > 0 ? round(($deliveredCount / $totalOrdersCount) * 100, 1) : 0.0,
             'top_items' => $topItems,
-            'daily_sales' => $dailySales,
+            'chart' => [
+                'labels' => $labels,
+                'sales' => $salesTrend,
+                'orders' => $ordersTrend,
+            ],
+            'outlet_breakdown' => $outletBreakdown,
         ];
     }
 }

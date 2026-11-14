@@ -4,7 +4,7 @@
 <div class="space-y-6">
     <!-- Page Header -->
     <x-page-header 
-        title="Returns &amp; RMA Oversight" 
+        title="Returns & RMA Oversight" 
         subtitle="Global surveillance of customer returns, merchant quality control checks, disputes, and refund disbursements."
         :breadcrumbs="['Command Console' => route('admin.dashboard'), 'Returns & RMA' => '#']"
     >

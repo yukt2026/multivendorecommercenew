@@ -5,7 +5,7 @@
 
     <!-- Page Header -->
     <x-page-header 
-        title="Marketing Campaigns &amp; Featured Placements" 
+        title="Marketing Campaigns & Featured Placements" 
         subtitle="Manage seasonal mega sales, flash deal collections, festival events, and featured store promotions."
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Campaigns' => '#']"
     >

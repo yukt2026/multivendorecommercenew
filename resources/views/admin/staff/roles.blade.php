@@ -5,7 +5,7 @@
 
     <!-- Page Header -->
     <x-page-header 
-        title="Role &amp; Permission Access Matrix" 
+        title="Role & Permission Access Matrix" 
         subtitle="Configure granular platform capabilities and access authorizations across staff security roles."
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Staff' => route('admin.staff.index'), 'Permissions Matrix' => '#']"
     >

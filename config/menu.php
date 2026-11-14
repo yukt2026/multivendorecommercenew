@@ -30,14 +30,6 @@ return [
                     'icon' => 'chart-bar',
                     'badge' => null,
                 ],
-                [
-                    'title' => 'UI Kit & Design System',
-                    'route' => 'admin.uikit',
-                    'active' => 'admin.uikit*',
-                    'icon' => 'puzzle',
-                    'badge' => 'New',
-                    'badge_color' => 'indigo',
-                ],
             ],
         ],
         [
@@ -282,7 +274,55 @@ return [
 
     'seller' => [
         [
-            'section' => 'Catalogue & Products',
+            'section' => 'Overview & Insights',
+            'items' => [
+                [
+                    'title' => 'Overview',
+                    'route' => 'seller.dashboard',
+                    'active' => 'seller.dashboard*',
+                    'icon' => 'home',
+                    'badge' => null,
+                ],
+                [
+                    'title' => 'Store Analytics',
+                    'route' => 'seller.stores.reports',
+                    'active' => 'seller.stores.reports*',
+                    'icon' => 'chart-bar',
+                    'badge' => null,
+                    'store_permission' => 'reports.view',
+                ],
+            ],
+        ],
+        [
+            'section' => 'Orders & Fulfillment',
+            'items' => [
+                [
+                    'title' => 'Orders Console',
+                    'route' => 'seller.orders.index',
+                    'active' => 'seller.orders*',
+                    'icon' => 'truck',
+                    'badge' => 'New',
+                    'badge_color' => 'amber',
+                ],
+                [
+                    'title' => 'Quick 15m Dispatch',
+                    'route' => 'seller.quick.live',
+                    'active' => 'seller.quick*',
+                    'icon' => 'bolt',
+                    'badge' => '⚡ Live',
+                    'badge_color' => 'amber',
+                ],
+                [
+                    'title' => 'Returns & RMA',
+                    'route' => 'seller.returns.index',
+                    'active' => 'seller.returns*',
+                    'icon' => 'refresh',
+                    'badge' => null,
+                ],
+            ],
+        ],
+        [
+            'section' => 'Catalogue & Inventory',
             'items' => [
                 [
                     'title' => 'All Products',
@@ -298,41 +338,6 @@ return [
                     'icon' => 'plus',
                     'badge' => null,
                 ],
-            ],
-        ],
-        [
-            'section' => 'Store Operations',
-            'items' => [
-                [
-                    'title' => 'Overview',
-                    'route' => 'seller.dashboard',
-                    'active' => 'seller.dashboard*',
-                    'icon' => 'home',
-                    'badge' => null,
-                ],
-                [
-                    'title' => 'Orders Console',
-                    'route' => 'seller.orders.index',
-                    'active' => 'seller.orders*',
-                    'icon' => 'truck',
-                    'badge' => 'New',
-                    'badge_color' => 'amber',
-                ],
-                [
-                    'title' => 'Returns & RMA',
-                    'route' => 'seller.returns.index',
-                    'active' => 'seller.returns*',
-                    'icon' => 'refresh',
-                    'badge' => null,
-                ],
-                [
-                    'title' => 'Quick Live Dispatch',
-                    'route' => 'seller.quick.live',
-                    'active' => 'seller.quick*',
-                    'icon' => 'bolt',
-                    'badge' => '⚡ Live',
-                    'badge_color' => 'amber',
-                ],
                 [
                     'title' => 'Store Inventory',
                     'route' => 'seller.inventory.index',
@@ -340,6 +345,11 @@ return [
                     'icon' => 'cube',
                     'badge' => null,
                 ],
+            ],
+        ],
+        [
+            'section' => 'Storefront & Outlets',
+            'items' => [
                 [
                     'title' => 'My Storefront',
                     'route' => 'seller.store.edit',
@@ -364,14 +374,6 @@ return [
                     'store_permission' => 'staff.manage',
                 ],
                 [
-                    'title' => 'Store Analytics',
-                    'route' => 'seller.stores.reports',
-                    'active' => 'seller.stores.reports*',
-                    'icon' => 'chart-bar',
-                    'badge' => null,
-                    'store_permission' => 'reports.view',
-                ],
-                [
                     'title' => 'Connect My Shop',
                     'route' => 'seller.connections.index',
                     'active' => 'seller.connections*',
@@ -379,13 +381,6 @@ return [
                     'badge' => 'Sync',
                     'badge_color' => 'sky',
                     'store_permission' => 'connections.manage',
-                ],
-                [
-                    'title' => 'Cargo Shipments & AWBs',
-                    'route' => 'seller.shipments.index',
-                    'active' => 'seller.shipments*',
-                    'icon' => 'truck',
-                    'badge' => null,
                 ],
             ],
         ],

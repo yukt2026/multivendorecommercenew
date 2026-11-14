@@ -63,11 +63,11 @@ class OrderStateMachine
      * @var array<string, array<string>>
      */
     protected const PARENT_ALLOWED_TRANSITIONS = [
-        'pending' => ['placed', 'cancelled'],
-        'placed' => ['processing', 'cancelled'],
-        'confirmed' => ['processing', 'cancelled'],
+        'pending' => ['placed', 'processing', 'cancelled'],
+        'placed' => ['processing', 'out_for_delivery', 'delivered', 'cancelled'],
+        'confirmed' => ['processing', 'out_for_delivery', 'delivered', 'cancelled'],
         'processing' => ['ready_for_pickup', 'out_for_delivery', 'delivered', 'cancelled'],
-        'ready_for_pickup' => ['delivered', 'cancelled'],
+        'ready_for_pickup' => ['out_for_delivery', 'delivered', 'cancelled'],
         'out_for_delivery' => ['delivered', 'cancelled'],
         'delivered' => ['refunded'],
         'cancelled' => [],

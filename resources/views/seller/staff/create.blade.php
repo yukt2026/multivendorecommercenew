@@ -58,7 +58,7 @@
             </div>
         </x-card>
 
-        <x-card title="Role Assignment &amp; Granular Permission Matrix">
+        <x-card title="Role Assignment & Granular Permission Matrix">
             <div class="space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div class="flex-1">

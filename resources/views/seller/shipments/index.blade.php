@@ -14,7 +14,7 @@
 }">
     <!-- Header -->
     <x-page-header 
-        title="Shipments &amp; Consignments" 
+        title="Shipments & Consignments" 
         subtitle="Manage parcel dispatch, Air Waybills (AWBs), carrier pickups, and Non-Delivery Report (NDR) exceptions."
         :breadcrumbs="['Seller Studio' => route('seller.dashboard'), 'Shipments' => '#']"
     >

@@ -846,16 +846,148 @@ class CommissionAndSettlementTest extends TestCase
         $fo = $this->createOrderWithPackage($this->seller, 1000.00, 'delivered');
         $this->commissionService->recordForDeliveredFulfilmentOrder($fo);
 
-        $this->actingAs($this->sellerUser)
-            ->get(route('seller.payments.index'))
-            ->assertOk()
-            ->assertViewIs('seller.payments.index')
-            ->assertViewHas('entries');
+        $response = $this->actingAs($this->sellerUser)
+            ->get(route('seller.payments.index'));
 
+        $response->assertOk()
+            ->assertViewIs('seller.payments.index')
+            ->assertViewHas('entries')
+            ->assertDontSee('&amp;amp;', false)
+            ->assertDontSee('&amp;rarr;', false)
+            ->assertSee('Earnings & Financial Ledger');
+
+        // Test filtering by search and entry type
         $this->actingAs($this->sellerUser)
-            ->get(route('seller.settlements.index'))
+            ->get(route('seller.payments.index', ['search' => $fo->fulfilment_order_number, 'entry_type' => 'standard']))
             ->assertOk()
+            ->assertSee($fo->fulfilment_order_number);
+
+        // Test payments CSV export
+        $exportResponse = $this->actingAs($this->sellerUser)
+            ->get(route('seller.payments.export'));
+
+        $exportResponse->assertOk();
+        $this->assertTrue(str_contains((string) $exportResponse->headers->get('content-disposition'), 'Payments-Ledger-'));
+
+        // Test settled batch link in payments view
+        $batch = $this->settlementService->generateWeeklyBatch(now()->addDays(10), $this->seller->id)->first();
+        if ($batch) {
+            $settledPaymentsResponse = $this->actingAs($this->sellerUser)
+                ->get(route('seller.payments.index'));
+            $settledPaymentsResponse->assertOk()
+                ->assertSee('Batch #' . $batch->settlement_number);
+        }
+
+        // Test settlements index
+        $settlementsResponse = $this->actingAs($this->sellerUser)
+            ->get(route('seller.settlements.index'));
+
+        $settlementsResponse->assertOk()
             ->assertViewIs('seller.settlements.index')
-            ->assertViewHas('settlements');
+            ->assertViewHas('settlements')
+            ->assertDontSee('&amp;amp;', false)
+            ->assertDontSee('&amp;rarr;', false)
+            ->assertSee('Disbursements & Payout Batches');
+
+        // Test settlements CSV export
+        $settlementsExportResponse = $this->actingAs($this->sellerUser)
+            ->get(route('seller.settlements.export'));
+
+        $settlementsExportResponse->assertOk();
+        $this->assertTrue(str_contains((string) $settlementsExportResponse->headers->get('content-disposition'), 'Settlements-Summary-'));
+    }
+
+    /**
+     * Test 20: End-to-end order placement, progression through delivery, and automatic ledger entry in /seller/payments.
+     */
+    public function test_end_to_end_order_placement_progression_to_delivery_and_payments_ledger_appearance(): void
+    {
+        $stateMachine = app(\App\Services\Order\OrderStateMachine::class);
+
+        // 1. Create Order and Fulfilment Package
+        $fo = $this->createOrderWithPackage($this->seller, 1200.00, 'placed');
+        $order = $fo->order;
+
+        $product = Product::create([
+            'seller_id' => $this->seller->id,
+            'category_id' => $this->category->id,
+            'title' => 'Test Flow Earphones',
+            'slug' => 'test-flow-earphones-' . uniqid(),
+            'sku' => 'EAR-' . uniqid(),
+            'price' => 1200.00,
+            'status' => 'active',
+            'is_published' => true,
+        ]);
+
+        $variant = ProductVariant::create([
+            'product_id' => $product->id,
+            'name' => 'Standard Black',
+            'sku' => 'EAR-BLK-' . uniqid(),
+            'mrp' => 1499.00,
+            'selling_price' => 1200.00,
+            'cost_price' => 900.00,
+            'is_default' => true,
+            'is_active' => true,
+        ]);
+
+        \App\Models\OrderItem::create([
+            'fulfilment_order_id' => $fo->id,
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'title' => $product->title,
+            'sku' => $variant->sku,
+            'qty' => 1,
+            'price' => 1200.00,
+            'tax' => 0.00,
+            'discount' => 0.00,
+            'total' => 1200.00,
+        ]);
+
+        // Before delivery: no commission entry
+        $this->assertDatabaseMissing('commission_entries', [
+            'fulfilment_order_id' => $fo->id,
+        ]);
+
+        // 2. Progression through fulfillment stages for Standard cargo
+        // 'placed' => ['confirmed', 'cancelled'],
+        // 'confirmed' => ['packed', 'cancelled'],
+        // 'packed' => ['ready_to_ship', 'cancelled'],
+        // 'ready_to_ship' => ['picked_up', 'cancelled'],
+        // 'picked_up' => ['in_transit'],
+        // 'in_transit' => ['out_for_delivery'],
+        // 'out_for_delivery' => ['delivered', 'cancelled'],
+        $stateMachine->transitionFulfilmentOrder($fo, 'confirmed', 'Order confirmed by seller');
+        $stateMachine->transitionFulfilmentOrder($fo, 'packed', 'Package packed and sealed');
+        $stateMachine->transitionFulfilmentOrder($fo, 'ready_to_ship', 'Handed over for logistics pickup');
+        $stateMachine->transitionFulfilmentOrder($fo, 'picked_up', 'Logistics hub scan');
+        $stateMachine->transitionFulfilmentOrder($fo, 'in_transit', 'In transit to hub');
+        $stateMachine->transitionFulfilmentOrder($fo, 'out_for_delivery', 'Out for customer delivery');
+        $stateMachine->transitionFulfilmentOrder($fo, 'delivered', 'Delivered to customer doorstep');
+
+        $this->assertEquals('delivered', $fo->fresh()->status);
+
+        // 3. Verify automatic commission ledger record
+        $this->assertDatabaseHas('commission_entries', [
+            'fulfilment_order_id' => $fo->id,
+            'entry_type' => 'standard',
+        ]);
+
+        $entry = \App\Models\CommissionEntry::where('fulfilment_order_id', $fo->id)->first();
+        $this->assertNotNull($entry);
+        $this->assertEquals(1200.00, (float) $entry->base_amount);
+        $this->assertGreaterThan(0, (float) $entry->commission);
+        $this->assertGreaterThan(0, (float) $entry->tax_on_commission);
+        $this->assertGreaterThan(0, (float) $entry->net_payable);
+
+        // 4. Verify Payment Module (/seller/payments) renders this exact transaction
+        $response = $this->actingAs($this->sellerUser)
+            ->get(route('seller.payments.index', ['search' => $fo->fulfilment_order_number]));
+
+        $response->assertOk()
+            ->assertSee($fo->fulfilment_order_number)
+            ->assertSee($order->order_number)
+            ->assertSee('standard')
+            ->assertSee(number_format((float) $entry->base_amount, 2))
+            ->assertSee('Pending Payout');
     }
 }

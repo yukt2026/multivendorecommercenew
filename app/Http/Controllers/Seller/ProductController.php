@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -36,19 +37,24 @@ class ProductController extends Controller
         $filters = $request->only(['search', 'category_id', 'brand_id', 'status', 'stock', 'quick_capable']);
         $products = $this->productService->listProducts($seller, $filters, 15);
 
-        // Load categories and brands for filter dropdowns
-        $categories = Category::orderBy('name')->get(['id', 'name']);
-        $brands = Brand::where(function ($q) use ($seller) {
+        // Load categories and brands for filter dropdowns (cached)
+        $categories = Cache::remember('seller_products_filter_categories', 600, fn () => Category::orderBy('name')->get(['id', 'name']));
+        $brands = Cache::remember("seller_products_filter_brands_{$seller->id}", 600, fn () => Brand::where(function ($q) use ($seller) {
             $q->whereNull('seller_id')->orWhere('seller_id', $seller->id);
-        })->orderBy('name')->get(['id', 'name']);
+        })->orderBy('name')->get(['id', 'name']));
 
-        // Count chips
+        // Efficient single-query status counts
+        $statusCounts = Product::where('seller_id', $seller->id)
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status');
+
         $counts = [
-            'all' => Product::where('seller_id', $seller->id)->count(),
-            'active' => Product::where('seller_id', $seller->id)->where('status', ProductStatus::ACTIVE)->count(),
-            'pending' => Product::where('seller_id', $seller->id)->where('status', ProductStatus::PENDING_REVIEW)->count(),
-            'draft' => Product::where('seller_id', $seller->id)->where('status', ProductStatus::DRAFT)->count(),
-            'rejected' => Product::where('seller_id', $seller->id)->where('status', ProductStatus::REJECTED)->count(),
+            'all' => (int) $statusCounts->sum(),
+            'active' => (int) ($statusCounts[ProductStatus::ACTIVE->value] ?? 0),
+            'pending' => (int) ($statusCounts[ProductStatus::PENDING_REVIEW->value] ?? 0),
+            'draft' => (int) ($statusCounts[ProductStatus::DRAFT->value] ?? 0),
+            'rejected' => (int) ($statusCounts[ProductStatus::REJECTED->value] ?? 0),
         ];
 
         return view('seller.products.index', [
@@ -69,9 +75,11 @@ class ProductController extends Controller
         abort_if(!$seller, 403);
 
         $categories = $this->getNestedCategories();
-        $brands = Brand::where(function ($q) use ($seller) {
-            $q->whereNull('seller_id')->orWhere('seller_id', $seller->id);
-        })->orderBy('name')->get(['id', 'name', 'is_verified']);
+        $brands = Cache::remember("seller_brands_{$seller->id}", 600, function () use ($seller) {
+            return Brand::where(function ($q) use ($seller) {
+                $q->whereNull('seller_id')->orWhere('seller_id', $seller->id);
+            })->orderBy('name')->get(['id', 'name', 'is_verified']);
+        });
 
         return view('seller.products.create', [
             'seller' => $seller,
@@ -115,9 +123,11 @@ class ProductController extends Controller
 
         $seller = Auth::user()->seller;
         $categories = $this->getNestedCategories();
-        $brands = Brand::where(function ($q) use ($seller) {
-            $q->whereNull('seller_id')->orWhere('seller_id', $seller->id);
-        })->orderBy('name')->get(['id', 'name', 'is_verified']);
+        $brands = Cache::remember("seller_brands_{$seller->id}", 600, function () use ($seller) {
+            return Brand::where(function ($q) use ($seller) {
+                $q->whereNull('seller_id')->orWhere('seller_id', $seller->id);
+            })->orderBy('name')->get(['id', 'name', 'is_verified']);
+        });
 
         return view('seller.products.edit', [
             'product' => $product,
@@ -251,37 +261,39 @@ class ProductController extends Controller
      */
     protected function getNestedCategories(): array
     {
-        $rootCategories = Category::with('children.children')
-            ->whereNull('parent_id')
-            ->orderBy('sort_order')
-            ->get();
+        return Cache::remember('seller_nested_categories_flattened', 3600, function () {
+            $rootCategories = Category::with('children.children')
+                ->whereNull('parent_id')
+                ->orderBy('sort_order')
+                ->get();
 
-        $flattened = [];
+            $flattened = [];
 
-        foreach ($rootCategories as $root) {
-            $flattened[] = [
-                'id' => $root->id,
-                'name' => $root->name,
-                'path' => $root->name,
-            ];
-
-            foreach ($root->children as $child) {
+            foreach ($rootCategories as $root) {
                 $flattened[] = [
-                    'id' => $child->id,
-                    'name' => $child->name,
-                    'path' => "{$root->name} &rarr; {$child->name}",
+                    'id' => $root->id,
+                    'name' => $root->name,
+                    'path' => $root->name,
                 ];
 
-                foreach ($child->children as $subChild) {
+                foreach ($root->children as $child) {
                     $flattened[] = [
-                        'id' => $subChild->id,
-                        'name' => $subChild->name,
-                        'path' => "{$root->name} &rarr; {$child->name} &rarr; {$subChild->name}",
+                        'id' => $child->id,
+                        'name' => $child->name,
+                        'path' => "{$root->name} &rarr; {$child->name}",
                     ];
+
+                    foreach ($child->children as $subChild) {
+                        $flattened[] = [
+                            'id' => $subChild->id,
+                            'name' => $subChild->name,
+                            'path' => "{$root->name} &rarr; {$child->name} &rarr; {$subChild->name}",
+                        ];
+                    }
                 }
             }
-        }
 
-        return $flattened;
+            return $flattened;
+        });
     }
 }

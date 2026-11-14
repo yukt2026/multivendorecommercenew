@@ -29,7 +29,7 @@ class ReturnController extends Controller
     {
         $query = OrderReturn::query()
             ->with([
-                'orderItem.variant',
+                'orderItem.variant.product',
                 'orderItem.fulfilmentOrder.seller',
                 'orderItem.fulfilmentOrder.order.user',
             ])

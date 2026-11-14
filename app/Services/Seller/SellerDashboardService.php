@@ -344,7 +344,7 @@ class SellerDashboardService
     public function getOrdersNeedingAction(Seller $seller, ?int $storeId = null, int $limit = 6): Collection
     {
         $query = FulfilmentOrder::query()
-            ->with(['order', 'items', 'store.location'])
+            ->with(['order', 'items.variant.product', 'store.location'])
             ->where('seller_id', $seller->id)
             ->whereIn('status', ['placed', 'store_accepted', 'packing', 'confirmed'])
             ->orderBy('created_at', 'asc')
@@ -449,6 +449,8 @@ class SellerDashboardService
         if ($todayTiming) {
             if ($todayTiming->is_closed) {
                 $timingLabel = 'Closed Today (Holiday / Off)';
+            } elseif ($todayTiming->is24Hours()) {
+                $timingLabel = 'Open 24 Hours (Live 24x7)';
             } elseif ($todayTiming->opens_at && $todayTiming->closes_at) {
                 $timingLabel = Carbon::parse($todayTiming->opens_at)->format('h:i A') . ' - ' . Carbon::parse($todayTiming->closes_at)->format('h:i A');
             }

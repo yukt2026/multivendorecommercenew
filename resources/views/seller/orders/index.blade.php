@@ -40,7 +40,7 @@
 
     <!-- Page Header & New Order Audio Chime Controls -->
     <x-page-header 
-        title="Orders &amp; Dispatch Console" 
+        title="Orders & Dispatch Console" 
         subtitle="Manage 10-30m instant store pickups, standard parcel dispatch, and order fulfillment SLAs."
         :breadcrumbs="['Seller Studio' => route('seller.dashboard'), 'Orders' => '#']"
     >

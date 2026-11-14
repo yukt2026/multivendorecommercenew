@@ -4,7 +4,7 @@
 <div class="space-y-6" x-data="{ payloadModal: false, activePayload: '' }">
     <!-- Header -->
     <x-page-header 
-        title="Bi-Directional POS &amp; Integration Sync Logs" 
+        title="Bi-Directional POS & Integration Sync Logs" 
         subtitle="Audit external WooCommerce, Shopify, physical store POS, and CSV catalogue synchronization events."
         :breadcrumbs="['Governance' => route('admin.dashboard'), 'Global Inventory' => route('admin.inventory.index'), 'Sync Logs' => '#']"
     >

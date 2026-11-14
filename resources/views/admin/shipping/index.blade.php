@@ -5,7 +5,7 @@
 
     <!-- Page Header -->
     <x-page-header 
-        title="Logistics &amp; OneStall Cargo Oversight" 
+        title="Logistics & OneStall Cargo Oversight" 
         subtitle="Manage courier fallback priority chain, OneStall Cargo integration credentials, live consignments, and NDR/RTO exceptions."
         :breadcrumbs="['Command Console' => route('admin.dashboard'), 'Shipping & Logistics' => '#']"
     >

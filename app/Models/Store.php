@@ -177,6 +177,16 @@ class Store extends Model
         ];
     }
 
+    public function getLogoUrlAttribute(): ?string
+    {
+        return image_url($this->logo);
+    }
+
+    public function getBannerUrlAttribute(): ?string
+    {
+        return image_url($this->banner);
+    }
+
     /**
      * Check if the store is currently open based on status and store_timings.
      */
@@ -193,16 +203,7 @@ class Store extends Model
             return true; // Default to open if no specific day schedule restriction
         }
 
-        if ($timing->is_closed) {
-            return false;
-        }
-
-        if ($timing->opens_at && $timing->closes_at) {
-            $currentTime = $now->format('H:i:s');
-            return $currentTime >= $timing->opens_at && $currentTime <= $timing->closes_at;
-        }
-
-        return true;
+        return $timing->isOpenAt($now->format('H:i:s'));
     }
 
     /**
@@ -276,6 +277,14 @@ class Store extends Model
     public function seller(): BelongsTo
     {
         return $this->belongsTo(Seller::class);
+    }
+
+    /**
+     * Products belonging to this store's seller.
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class, 'seller_id', 'seller_id');
     }
 
     /**

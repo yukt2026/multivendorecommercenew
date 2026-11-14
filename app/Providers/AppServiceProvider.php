@@ -118,8 +118,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Performance: Enforce strict eager loading in development & testing to prevent N+1 queries
+        // Performance: Enforce strict eager loading in development & testing, with graceful logging
         Model::preventLazyLoading(! $this->app->isProduction());
+        Model::handleLazyLoadingViolationUsing(function ($model, $relation) {
+            \Illuminate\Support\Facades\Log::warning(sprintf(
+                'N+1 Lazy Loading detected on [%s] for relation [%s]. Eager load this relation to optimize performance.',
+                get_class($model),
+                $relation
+            ));
+        });
 
         // View Composer: Share dynamic categories across storefront layout (memoized per-request)
         \Illuminate\Support\Facades\View::composer('layouts.storefront', function ($view) {

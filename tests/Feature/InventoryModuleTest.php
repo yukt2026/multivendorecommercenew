@@ -375,6 +375,77 @@ class InventoryModuleTest extends TestCase
         $this->assertEquals(15, $this->inventory->low_stock_threshold);
     }
 
+    public function test_seller_can_filter_inventory_by_store_outlet(): void
+    {
+        $response = $this->actingAs($this->sellerUser)
+            ->get(route('seller.inventory.index', ['store_id' => $this->store->id]));
+
+        $response->assertStatus(200);
+        $response->assertSee('BUTTER-500G');
+    }
+
+    public function test_seller_can_export_inventory_to_csv(): void
+    {
+        $response = $this->actingAs($this->sellerUser)
+            ->get(route('seller.inventory.export'));
+
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+        $this->assertTrue(str_contains($response->headers->get('Content-Disposition'), 'inventory-balances-'));
+    }
+
+    public function test_seller_can_quick_restock_inventory_via_api(): void
+    {
+        $initialQty = $this->inventory->quantity_on_hand;
+
+        $response = $this->actingAs($this->sellerUser)
+            ->postJson(route('seller.inventory.quick_restock', $this->inventory), [
+                'added_quantity' => 25,
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ]);
+
+        $this->inventory->refresh();
+        $this->assertEquals($initialQty + 25, $this->inventory->quantity_on_hand);
+    }
+
+    public function test_seller_can_transfer_stock_between_locations(): void
+    {
+        $response = $this->actingAs($this->sellerUser)
+            ->post(route('seller.inventory.transfer'), [
+                'variant_id' => $this->variant->id,
+                'from_location_id' => $this->locationA->id,
+                'to_location_id' => $this->locationB->id,
+                'quantity' => 10,
+                'note' => 'Warehouse replenishment',
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->assertEquals(40, $this->inventory->fresh()->quantity_on_hand);
+    }
+
+    public function test_seller_transfer_fails_gracefully_when_stock_is_insufficient(): void
+    {
+        // Try transferring 9999 units when only 50 available
+        $response = $this->actingAs($this->sellerUser)
+            ->post(route('seller.inventory.transfer'), [
+                'variant_id' => $this->variant->id,
+                'from_location_id' => $this->locationA->id,
+                'to_location_id' => $this->locationB->id,
+                'quantity' => 9999,
+                'note' => 'Oversized transfer',
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('warning');
+        $this->assertTrue(str_contains(session('warning'), 'Insufficient stock at source location'));
+    }
+
     public function test_admin_can_view_global_inventory_overview(): void
     {
         $admin = User::factory()->create();

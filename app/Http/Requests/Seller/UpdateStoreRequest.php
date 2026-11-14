@@ -45,7 +45,7 @@ class UpdateStoreRequest extends FormRequest
     public function rules(): array
     {
         $seller = $this->user()->seller;
-        $activeStoreId = session('seller_active_store_id') ?: $seller->stores()->first()?->id;
+        $activeStoreId = $this->query('store_id') ?: (session('seller_active_store_id') ?: $seller->stores()->first()?->id);
 
         return [
             'name' => ['required', 'string', 'max:255'],

@@ -35,15 +35,19 @@ class QuickOrderController extends Controller
             abort(403, 'Seller profile required.');
         }
 
-        $activeStoreId = session('seller_active_store_id') ?: session('active_store_id');
-        $store = $activeStoreId ? Store::find($activeStoreId) : $seller->stores()->first();
+        $stores = $seller->stores()->get();
+        $storeId = $request->query('store_id') ?: (session('seller_active_store_id') ?: session('active_store_id'));
+        $store = $storeId ? $stores->firstWhere('id', (int) $storeId) : $stores->first();
+        if ($store) {
+            session(['seller_active_store_id' => $store->id]);
+        }
 
         $activeQuickOrders = FulfilmentOrder::query()
-            ->with(['order.customerAddress', 'items.product', 'deliveryAssignment.deliveryPartner'])
+            ->with(['order.customerAddress', 'items.variant.product', 'deliveryAssignment.deliveryPartner'])
             ->where('seller_id', $seller->id)
             ->where('fulfilment_type', FulfilmentType::QUICK)
             ->when($store, fn ($q) => $q->where('store_id', $store->id))
-            ->whereIn('status', ['placed', 'store_accepted', 'packing', 'ready', 'rider_assigned'])
+            ->whereIn('status', ['placed', 'store_accepted', 'packing', 'ready', 'rider_assigned', 'picked_up', 'out_for_delivery'])
             ->latest('id')
             ->get();
 
@@ -51,9 +55,50 @@ class QuickOrderController extends Controller
             ->where('is_active', true)
             ->get();
 
+        $initialOrders = $activeQuickOrders->map(function ($fo) {
+            $timeout = $fo->store ? $fo->store->effectiveQuickTimeout() : 120;
+            $elapsed = now()->diffInSeconds($fo->created_at ?? now());
+            $remaining = max(0, $timeout - $elapsed);
+
+            $customerName = $fo->order?->customerAddress?->name
+                ?? ($fo->order?->address_snapshot['name'] ?? null)
+                ?? ($fo->order?->customer?->user?->name ?? 'Customer');
+
+            $customerAddress = $fo->order?->customerAddress?->line1
+                ?? ($fo->order?->address_snapshot['address_line_1'] ?? ($fo->order?->address_snapshot['line1'] ?? ''));
+
+            return [
+                'id' => $fo->id,
+                'order_number' => $fo->fulfilment_order_number,
+                'parent_order_number' => $fo->order?->order_number,
+                'status' => $fo->status,
+                'status_label' => ucwords(str_replace('_', ' ', $fo->status)),
+                'items_count' => $fo->items->sum('qty'),
+                'items' => $fo->items->map(fn ($it) => [
+                    'title' => $it->title,
+                    'qty' => $it->qty,
+                    'variant_name' => $it->variant_name,
+                ]),
+                'subtotal' => (float) $fo->subtotal,
+                'delivery_fee' => (float) $fo->delivery_fee,
+                'total' => (float) $fo->total_amount,
+                'elapsed_seconds' => $elapsed,
+                'remaining_seconds' => $remaining,
+                'delivery_otp' => $fo->delivery_otp,
+                'customer_name' => $customerName,
+                'customer_address' => $customerAddress,
+                'rider' => $fo->deliveryAssignment?->deliveryPartner ? [
+                    'name' => $fo->deliveryAssignment->deliveryPartner->name,
+                    'phone' => $fo->deliveryAssignment->deliveryPartner->phone,
+                    'vehicle' => $fo->deliveryAssignment->deliveryPartner->vehicle,
+                ] : null,
+            ];
+        });
+
         return view('seller.orders.quick-live', [
             'store' => $store,
-            'activeQuickOrders' => $activeQuickOrders,
+            'stores' => $stores,
+            'initialOrders' => $initialOrders,
             'availableRiders' => $availableRiders,
             'timeoutSeconds' => $store ? $store->effectiveQuickTimeout() : 120,
         ]);
@@ -69,14 +114,14 @@ class QuickOrderController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        $activeStoreId = session('seller_active_store_id') ?: session('active_store_id');
+        $storeId = $request->query('store_id') ?: (session('seller_active_store_id') ?: session('active_store_id'));
 
         $orders = FulfilmentOrder::query()
-            ->with(['order.customerAddress', 'items', 'deliveryAssignment.deliveryPartner'])
+            ->with(['order.customerAddress', 'items.variant.product', 'deliveryAssignment.deliveryPartner'])
             ->where('seller_id', $seller->id)
             ->where('fulfilment_type', FulfilmentType::QUICK)
-            ->when($activeStoreId, fn ($q) => $q->where('store_id', $activeStoreId))
-            ->whereIn('status', ['placed', 'store_accepted', 'packing', 'ready', 'rider_assigned'])
+            ->when($storeId, fn ($q) => $q->where('store_id', (int) $storeId))
+            ->whereIn('status', ['placed', 'store_accepted', 'packing', 'ready', 'rider_assigned', 'picked_up', 'out_for_delivery'])
             ->latest('id')
             ->get()
             ->map(function ($fo) {
@@ -84,26 +129,37 @@ class QuickOrderController extends Controller
                 $elapsed = now()->diffInSeconds($fo->created_at ?? now());
                 $remaining = max(0, $timeout - $elapsed);
 
+                $customerName = $fo->order?->customerAddress?->name
+                    ?? ($fo->order?->address_snapshot['name'] ?? null)
+                    ?? ($fo->order?->customer?->user?->name ?? 'Customer');
+
+                $customerAddress = $fo->order?->customerAddress?->line1
+                    ?? ($fo->order?->address_snapshot['address_line_1'] ?? ($fo->order?->address_snapshot['line1'] ?? ''));
+
                 return [
                     'id' => $fo->id,
                     'order_number' => $fo->fulfilment_order_number,
+                    'parent_order_number' => $fo->order?->order_number,
                     'status' => $fo->status,
+                    'status_label' => ucwords(str_replace('_', ' ', $fo->status)),
                     'items_count' => $fo->items->sum('qty'),
                     'items' => $fo->items->map(fn ($it) => [
                         'title' => $it->title,
                         'qty' => $it->qty,
                         'variant_name' => $it->variant_name,
                     ]),
-                    'subtotal' => $fo->subtotal,
-                    'delivery_fee' => $fo->delivery_fee,
-                    'total' => $fo->total_amount,
+                    'subtotal' => (float) $fo->subtotal,
+                    'delivery_fee' => (float) $fo->delivery_fee,
+                    'total' => (float) $fo->total_amount,
                     'elapsed_seconds' => $elapsed,
                     'remaining_seconds' => $remaining,
-                    'customer_name' => $fo->order?->customerAddress?->name ?? 'Customer',
-                    'customer_address' => $fo->order?->customerAddress?->line1 ?? '',
+                    'delivery_otp' => $fo->delivery_otp,
+                    'customer_name' => $customerName,
+                    'customer_address' => $customerAddress,
                     'rider' => $fo->deliveryAssignment?->deliveryPartner ? [
                         'name' => $fo->deliveryAssignment->deliveryPartner->name,
                         'phone' => $fo->deliveryAssignment->deliveryPartner->phone,
+                        'vehicle' => $fo->deliveryAssignment->deliveryPartner->vehicle,
                     ] : null,
                 ];
             });
@@ -222,11 +278,60 @@ class QuickOrderController extends Controller
                 Auth::id()
             );
 
+            // Attempt auto-assigning nearest delivery partner if not already dispatched during state transition
+            $fulfilmentOrder->refresh();
+            if ($fulfilmentOrder->status === 'ready' && !$fulfilmentOrder->deliveryAssignment) {
+                try {
+                    $this->quickService->autoAssignRider($fulfilmentOrder);
+                } catch (\Throwable $assignErr) {
+                    // If no rider is immediately available, order remains in 'ready' status for manual dispatch
+                }
+            }
+
             if ($request->wantsJson()) {
                 return response()->json(['success' => true, 'message' => 'Order marked ready for pickup!']);
             }
 
             return back()->with('success', 'Order marked ready for pickup!');
+        } catch (\Throwable $e) {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+            }
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Mark order handed over to rider (transitions to picked_up and out_for_delivery).
+     */
+    public function handover(Request $request, FulfilmentOrder $fulfilmentOrder): JsonResponse|RedirectResponse
+    {
+        $this->authorizeOrder($fulfilmentOrder);
+
+        try {
+            if ($this->stateMachine->canTransitionFulfilment($fulfilmentOrder, 'picked_up')) {
+                $this->stateMachine->transitionFulfilmentOrder(
+                    $fulfilmentOrder,
+                    'picked_up',
+                    'Package handed over to delivery rider at store counter',
+                    Auth::id()
+                );
+            }
+
+            if ($this->stateMachine->canTransitionFulfilment($fulfilmentOrder, 'out_for_delivery')) {
+                $this->stateMachine->transitionFulfilmentOrder(
+                    $fulfilmentOrder,
+                    'out_for_delivery',
+                    'Rider departed store towards customer doorstep',
+                    Auth::id()
+                );
+            }
+
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true, 'message' => 'Order handed over to rider and en route!']);
+            }
+
+            return back()->with('success', 'Order handed over to rider and en route!');
         } catch (\Throwable $e) {
             if ($request->wantsJson()) {
                 return response()->json(['success' => false, 'error' => $e->getMessage()], 422);

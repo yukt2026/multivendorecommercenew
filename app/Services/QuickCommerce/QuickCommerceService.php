@@ -202,6 +202,9 @@ class QuickCommerceService
             // Ensure delivery OTP exists for this package
             $fo->ensureDeliveryOtp();
 
+            $existing = DeliveryAssignment::where('fulfilment_order_id', $fo->id)->first();
+            $alreadyAssignedToThisPartner = $existing && (int)$existing->delivery_partner_id === (int)$partner->id;
+
             $assignment = DeliveryAssignment::updateOrCreate(
                 ['fulfilment_order_id' => $fo->id],
                 [
@@ -212,10 +215,12 @@ class QuickCommerceService
                 ]
             );
 
-            // Update partner status and active count
-            $partner->status = 'busy';
-            $partner->active_orders_count = max(1, $partner->active_orders_count + 1);
-            $partner->save();
+            // Update partner status and active count only if not already assigned
+            if (!$alreadyAssignedToThisPartner) {
+                $partner->status = 'busy';
+                $partner->active_orders_count = max(1, $partner->active_orders_count + 1);
+                $partner->save();
+            }
 
             // Transition FO status if eligible
             if ($this->stateMachine->canTransitionFulfilment($fo, 'rider_assigned')) {

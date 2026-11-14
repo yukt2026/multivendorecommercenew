@@ -46,7 +46,7 @@ class OrderController extends Controller
         // Base query scoped strictly to logged-in seller
         $baseQuery = FulfilmentOrder::query()
             ->where('seller_id', $seller->id)
-            ->with(['order.customer.user', 'items.variant', 'store', 'inventoryLocation']);
+            ->with(['order.customer.user', 'items.variant.product', 'store', 'inventoryLocation']);
 
         // Tab counts
         $counts = [
@@ -121,7 +121,7 @@ class OrderController extends Controller
 
         $fulfilmentOrder->loadMissing([
             'order.customer.user',
-            'items.variant',
+            'items.variant.product',
             'store',
             'inventoryLocation',
             'shipment.tracking',

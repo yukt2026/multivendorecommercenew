@@ -5,7 +5,7 @@
 
     <!-- Page Header -->
     <x-page-header 
-        title="Platform &amp; Seller Coupons" 
+        title="Platform & Seller Coupons" 
         subtitle="Manage promotional discount codes, minimum basket thresholds, usage caps, and validity windows."
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Coupons' => '#']"
     >

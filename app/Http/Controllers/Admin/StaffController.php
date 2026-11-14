@@ -21,7 +21,11 @@ class StaffController extends Controller
     public function index(Request $request): View
     {
         $adminRoles = ['super_admin', 'admin', 'support_admin', 'catalog_manager', 'finance_admin'];
-        $query = User::role($adminRoles)->with('roles')->latest('id');
+        $existingAdminRoles = Role::whereIn('name', $adminRoles)->pluck('name')->toArray();
+
+        $query = !empty($existingAdminRoles)
+            ? User::role($existingAdminRoles)->with('roles')->latest('id')
+            : User::whereRaw('1 = 0');
 
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
@@ -32,7 +36,7 @@ class StaffController extends Controller
         }
 
         if ($role = $request->query('role')) {
-            if ($role !== 'all') {
+            if ($role !== 'all' && in_array($role, $existingAdminRoles, true)) {
                 $query->role($role);
             }
         }
@@ -41,10 +45,10 @@ class StaffController extends Controller
         $roles = Role::whereIn('name', $adminRoles)->orWhere('guard_name', 'web')->get();
 
         $metrics = [
-            'total_staff' => User::role($adminRoles)->count(),
-            'super_admins' => User::role('super_admin')->count(),
-            'admins' => User::role('admin')->count(),
-            'support_admins' => User::role('support_admin')->count(),
+            'total_staff' => !empty($existingAdminRoles) ? User::role($existingAdminRoles)->count() : 0,
+            'super_admins' => in_array('super_admin', $existingAdminRoles, true) ? User::role('super_admin')->count() : 0,
+            'admins' => in_array('admin', $existingAdminRoles, true) ? User::role('admin')->count() : 0,
+            'support_admins' => in_array('support_admin', $existingAdminRoles, true) ? User::role('support_admin')->count() : 0,
         ];
 
         return view('admin.staff.index', compact('staff', 'roles', 'metrics'));

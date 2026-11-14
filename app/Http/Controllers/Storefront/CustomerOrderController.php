@@ -42,7 +42,7 @@ class CustomerOrderController extends Controller
 
         $query = Order::query()
             ->where('customer_id', $customer?->id ?? 0)
-            ->with(['fulfilmentOrders.items.variant', 'fulfilmentOrders.store', 'fulfilmentOrders.seller', 'payments'])
+            ->with(['fulfilmentOrders.items.variant.product', 'fulfilmentOrders.store', 'fulfilmentOrders.seller', 'payments'])
             ->latest();
 
         // Status Filter
@@ -88,7 +88,7 @@ class CustomerOrderController extends Controller
         $order = Order::where('order_number', $orderNumber)
             ->where('customer_id', $customer?->id ?? 0)
             ->with([
-                'fulfilmentOrders.items.variant',
+                'fulfilmentOrders.items.variant.product',
                 'fulfilmentOrders.store',
                 'fulfilmentOrders.seller',
                 'fulfilmentOrders.shipment.tracking',
@@ -212,7 +212,7 @@ class CustomerOrderController extends Controller
 
         $fo = FulfilmentOrder::where('order_id', $order->id)
             ->where('fulfilment_order_number', $foNumber)
-            ->with(['items.variant', 'store', 'seller', 'shipment.tracking', 'order.customerAddress'])
+            ->with(['items.variant.product', 'store', 'seller', 'shipment.tracking', 'order.customerAddress'])
             ->firstOrFail();
 
         return view('storefront.orders.track', [
@@ -241,7 +241,7 @@ class CustomerOrderController extends Controller
 
         $item = OrderItem::where('id', $itemId)
             ->whereHas('fulfilmentOrder', fn($q) => $q->where('order_id', $order->id))
-            ->with(['product.brand', 'variant', 'fulfilmentOrder.seller'])
+            ->with(['product.brand', 'variant.product', 'fulfilmentOrder.seller'])
             ->firstOrFail();
 
         $eligibility = $this->returnService->canRequestReturn($item);

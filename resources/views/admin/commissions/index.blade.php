@@ -5,7 +5,7 @@
 
     <!-- Page Header -->
     <x-page-header 
-        title="Commissions Engine &amp; Governance" 
+        title="Commissions Engine & Governance" 
         subtitle="Manage tiered marketplace commission rules, seller overrides, promotional fee windows, and simulate dynamic fee calculations."
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Commission Rules' => '#']"
     >

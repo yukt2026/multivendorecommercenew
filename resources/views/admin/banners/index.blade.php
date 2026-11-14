@@ -5,7 +5,7 @@
 
     <!-- Page Header -->
     <x-page-header 
-        title="Homepage &amp; Promotional Banners" 
+        title="Homepage & Promotional Banners" 
         subtitle="Manage storefront promotional carousels, category strips, deal highlights, and scheduling."
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Banners' => '#']"
     >

@@ -5,7 +5,7 @@
 
     <!-- Page Header -->
     <x-page-header 
-        title="Physical &amp; Dark Stores Network" 
+        title="Physical & Dark Stores Network" 
         subtitle="Manage merchant retail outlets, 10-minute dark stores, delivery radiuses, and store operating states."
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Stores' => '#']"
     >

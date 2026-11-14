@@ -9,7 +9,12 @@
         :breadcrumbs="['Seller Studio' => route('seller.dashboard'), 'Stores' => route('seller.stores.index')]"
     >
         <x-slot name="actions">
-            <x-button variant="primary" size="sm" href="{{ route('seller.stores.create') }}" icon="plus">
+            <x-button variant="outline" size="sm" href="{{ route('seller.stores.reports') }}">
+                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                Outlet Analytics
+            </x-button>
+            <x-button variant="primary" size="sm" href="{{ route('seller.stores.create') }}">
+                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Add Physical Outlet
             </x-button>
         </x-slot>
@@ -109,16 +114,22 @@
                                 </x-badge>
                             </td>
                             <td class="py-3 px-4 text-right">
-                                <div class="flex items-center justify-end space-x-2">
+                                <div class="flex items-center justify-end space-x-1.5">
                                     <form method="POST" action="{{ route('seller.switch_store') }}" class="inline">
                                         @csrf
                                         <input type="hidden" name="store_id" value="{{ $st->id }}">
-                                        <button type="submit" class="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                                            Switch To
+                                        <button type="submit" class="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition {{ $activeStore && $activeStore->id === $st->id ? 'opacity-60 cursor-default bg-slate-50 dark:bg-slate-800' : '' }}" {{ $activeStore && $activeStore->id === $st->id ? 'disabled' : '' }}>
+                                            {{ $activeStore && $activeStore->id === $st->id ? 'Selected' : 'Switch' }}
                                         </button>
                                     </form>
-                                    <a href="{{ route('seller.stores.reports', ['store_id' => $st->id]) }}" class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Store Reports">
+                                    <a href="{{ route('seller.store.edit', ['store_id' => $st->id]) }}" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition" title="Edit Storefront Settings">
+                                        Edit
+                                    </a>
+                                    <a href="{{ route('seller.stores.reports', ['store_id' => $st->id]) }}" class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-slate-500" title="Store Reports">
                                         <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                                    </a>
+                                    <a href="{{ route('store.show', $st->slug) }}" target="_blank" class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-slate-500" title="View Public Store">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                                     </a>
                                 </div>
                             </td>

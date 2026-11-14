@@ -1,5 +1,7 @@
 @extends('layouts.storefront')
 
+@section('hideBottomNav', 'true')
+
 @section('title', 'Shopping Cart - OneStall.in')
 
 @section('content')
@@ -221,7 +223,7 @@
                                                     </div>
                                                 @endif
 
-                                                <div class="flex items-baseline space-x-2 pt-1">
+                                                <div class="flex items-baseline space-x-2 pt-1 whitespace-nowrap">
                                                     <span class="text-base font-black text-slate-900">{{ $item['formatted_price'] }}</span>
                                                     @if ($item['mrp'] > $item['price'])
                                                         <span class="text-xs text-slate-400 line-through">{{ $item['formatted_mrp'] }}</span>
@@ -231,22 +233,16 @@
                                             </div>
                                         </div>
 
-                                        <!-- Quantity Stepper & Actions -->
-                                        <div class="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                                            <!-- Subtotal for line -->
-                                            <div class="text-right">
-                                                <div class="text-xs text-slate-400">Total</div>
-                                                <div class="text-sm font-black text-slate-900">{{ $item['formatted_subtotal'] }}</div>
-                                            </div>
-
+                                        <!-- Quantity Stepper & Actions (Clean Mobile & Desktop Row) -->
+                                        <div class="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-3 sm:gap-4 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0">
                                             <!-- Stepper -->
-                                            <div class="inline-flex items-center rounded-2xl bg-slate-100 p-1 border border-slate-200">
+                                            <div class="inline-flex items-center rounded-xl bg-slate-100 p-0.5 border border-slate-200 shrink-0">
                                                 <!-- Decrement Form -->
                                                 <form action="{{ route('cart.update', $item['id']) }}" method="POST">
                                                     @csrf
                                                     <input type="hidden" name="quantity" value="{{ $item['quantity'] - 1 }}">
                                                     <button type="submit" @click.prevent="$store.cart.updateQuantity({{ $item['id'] }}, {{ $item['quantity'] - 1 }})"
-                                                            class="w-7 h-7 rounded-xl bg-white hover:bg-slate-200 font-black text-slate-800 text-xs flex items-center justify-center shadow-sm active:scale-95 transition">
+                                                            class="w-7 h-7 rounded-lg bg-white hover:bg-slate-200 font-black text-slate-800 text-xs flex items-center justify-center shadow-2xs active:scale-95 transition cursor-pointer" aria-label="Decrease quantity">
                                                         -
                                                     </button>
                                                 </form>
@@ -258,28 +254,32 @@
                                                     @csrf
                                                     <input type="hidden" name="quantity" value="{{ $item['quantity'] + 1 }}">
                                                     <button type="submit" @click.prevent="$store.cart.updateQuantity({{ $item['id'] }}, {{ $item['quantity'] + 1 }})"
-                                                            class="w-7 h-7 rounded-xl bg-white hover:bg-slate-200 font-black text-slate-800 text-xs flex items-center justify-center shadow-sm active:scale-95 transition">
+                                                            class="w-7 h-7 rounded-lg bg-white hover:bg-slate-200 font-black text-slate-800 text-xs flex items-center justify-center shadow-2xs active:scale-95 transition cursor-pointer" aria-label="Increase quantity">
                                                         +
                                                     </button>
                                                 </form>
                                             </div>
 
-                                            <!-- Save for Later & Remove -->
-                                            <div class="flex items-center space-x-3 text-xs">
+                                            <!-- Subtotal & Actions (Never Wraps!) -->
+                                            <div class="flex items-center space-x-2.5 sm:space-x-3 text-xs shrink-0">
+                                                <span class="text-sm font-extrabold text-slate-900 whitespace-nowrap">{{ $item['formatted_subtotal'] }}</span>
+
+                                                <span class="text-slate-200">|</span>
+
                                                 <form action="{{ route('cart.save-for-later', $item['id']) }}" method="POST">
                                                     @csrf
                                                     <button type="submit" @click.prevent="$store.cart.saveForLater({{ $item['id'] }})"
-                                                            class="text-indigo-600 hover:text-indigo-800 font-semibold hover:underline transition">
-                                                        Save for Later
+                                                            class="text-indigo-600 hover:text-indigo-800 font-semibold hover:underline transition whitespace-nowrap cursor-pointer">
+                                                        Save for later
                                                     </button>
                                                 </form>
 
-                                                <span class="text-slate-300">|</span>
+                                                <span class="text-slate-200">|</span>
 
                                                 <form action="{{ route('cart.remove', $item['id']) }}" method="POST">
                                                     @csrf
                                                     <button type="submit" @click.prevent="$store.cart.removeItem({{ $item['id'] }})"
-                                                            class="text-rose-500 hover:text-rose-700 font-semibold hover:underline transition">
+                                                            class="text-rose-500 hover:text-rose-700 font-semibold hover:underline transition whitespace-nowrap cursor-pointer" title="Remove item">
                                                         Remove
                                                     </button>
                                                 </form>
@@ -495,15 +495,15 @@
 
     @if ($summary['item_count'] > 0)
         <!-- Mobile Sticky Checkout Bar (sm:hidden) -->
-        <div class="sm:hidden fixed bottom-14 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2.5 shadow-2xl flex items-center justify-between gap-3">
-            <div>
-                <div class="text-[10px] text-slate-400 font-bold uppercase">Total Payable</div>
-                <div class="text-base font-black text-slate-900" x-text="$store.cart.formattedTotalPayable || '{{ $summary['formatted_total_payable'] }}'">
+        <div class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div class="min-w-0">
+                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Payable</div>
+                <div class="text-lg font-black text-slate-900 tracking-tight whitespace-nowrap" x-text="$store.cart.formattedTotalPayable || '{{ $summary['formatted_total_payable'] }}'">
                     {{ $summary['formatted_total_payable'] }}
                 </div>
             </div>
             <a href="{{ route('checkout.index') }}"
-               class="py-2.5 px-5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 text-white font-extrabold text-xs shadow-md active:scale-95 transition flex items-center space-x-1.5">
+               class="py-3 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 active:scale-95 transition flex items-center space-x-1.5 whitespace-nowrap cursor-pointer">
                 <span>Proceed to Checkout</span>
                 <span>&rarr;</span>
             </a>

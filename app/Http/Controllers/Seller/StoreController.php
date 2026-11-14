@@ -30,7 +30,15 @@ class StoreController extends Controller
         $seller = Auth::user()->seller;
         abort_if(!$seller, 403, 'No seller profile associated with this account.');
 
-        $activeStoreId = session('seller_active_store_id');
+        $stores = $seller->stores()->orderBy('name')->get();
+
+        $requestedStoreId = $request->query('store_id');
+        if ($requestedStoreId && $stores->where('id', (int) $requestedStoreId)->isNotEmpty()) {
+            session(['seller_active_store_id' => (int) $requestedStoreId]);
+            $activeStoreId = (int) $requestedStoreId;
+        } else {
+            $activeStoreId = session('seller_active_store_id');
+        }
         $store = $this->storeService->getSellerStore($seller, $activeStoreId ? (int) $activeStoreId : null);
 
         // Fetch parent categories for store category tagging
@@ -44,6 +52,7 @@ class StoreController extends Controller
 
         return view('seller.store.edit', [
             'store' => $store,
+            'stores' => $stores,
             'seller' => $seller,
             'categories' => $categories,
             'publicStoreUrl' => $publicStoreUrl,
@@ -61,7 +70,13 @@ class StoreController extends Controller
         $seller = Auth::user()->seller;
         abort_if(!$seller, 403);
 
-        $activeStoreId = session('seller_active_store_id');
+        $requestedStoreId = $request->query('store_id');
+        if ($requestedStoreId && $seller->stores()->where('id', (int) $requestedStoreId)->exists()) {
+            session(['seller_active_store_id' => (int) $requestedStoreId]);
+            $activeStoreId = (int) $requestedStoreId;
+        } else {
+            $activeStoreId = session('seller_active_store_id');
+        }
         $store = $this->storeService->getSellerStore($seller, $activeStoreId ? (int) $activeStoreId : null);
 
         $this->storeService->updateStore(
@@ -71,7 +86,9 @@ class StoreController extends Controller
             $request->file('banner')
         );
 
-        return redirect()->route('seller.store.edit')
+        $redirectParams = $requestedStoreId ? ['store_id' => $store->id] : [];
+
+        return redirect()->route('seller.store.edit', $redirectParams)
             ->with('success', 'Storefront details, operating timings, and delivery zones saved successfully!');
     }
 
@@ -99,7 +116,13 @@ class StoreController extends Controller
         $seller = Auth::user()?->seller;
         abort_if(!$seller, 403);
 
-        $activeStoreId = session('seller_active_store_id');
+        $requestedStoreId = $request->query('store_id');
+        if ($requestedStoreId && $seller->stores()->where('id', $requestedStoreId)->exists()) {
+            session(['seller_active_store_id' => (int) $requestedStoreId]);
+            $activeStoreId = (int) $requestedStoreId;
+        } else {
+            $activeStoreId = session('seller_active_store_id');
+        }
         $store = $this->storeService->getSellerStore($seller, $activeStoreId ? (int) $activeStoreId : null);
 
         $storeUrl = url("/store/{$store->slug}");

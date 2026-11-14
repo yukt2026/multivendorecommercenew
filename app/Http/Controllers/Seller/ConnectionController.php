@@ -36,8 +36,7 @@ class ConnectionController extends Controller
         abort_if(!$seller, 403);
 
         $stores = $seller->stores()->get();
-        $activeStoreId = session('seller_active_store_id') ?: $stores->first()?->id;
-        $activeStore = $activeStoreId ? $stores->firstWhere('id', $activeStoreId) : $stores->first();
+        $activeStore = $this->resolveActiveStore($seller, $request);
 
         $connections = $this->connectService->getConnectionsSummary($seller, $activeStore?->id);
         $recentSyncs = SyncLog::query()
@@ -64,7 +63,7 @@ class ConnectionController extends Controller
         abort_if(!$seller, 403);
 
         $stores = $seller->stores()->get();
-        $activeStore = $this->resolveActiveStore($seller);
+        $activeStore = $this->resolveActiveStore($seller, $request);
 
         $imports = CatalogImport::where('seller_id', $seller->id)
             ->latest()
@@ -154,7 +153,7 @@ class ConnectionController extends Controller
         abort_if(!$seller, 403);
 
         $stores = $seller->stores()->get();
-        $activeStore = $this->resolveActiveStore($seller);
+        $activeStore = $this->resolveActiveStore($seller, $request);
 
         $connection = StoreConnection::where('store_id', $activeStore?->id)
             ->where('type', StoreConnectionType::WOOCOMMERCE)
@@ -245,7 +244,7 @@ class ConnectionController extends Controller
         abort_if(!$seller, 403);
 
         $stores = $seller->stores()->get();
-        $activeStore = $this->resolveActiveStore($seller);
+        $activeStore = $this->resolveActiveStore($seller, $request);
 
         $connection = StoreConnection::where('store_id', $activeStore?->id)
             ->where('type', StoreConnectionType::SHOPIFY)
@@ -334,7 +333,7 @@ class ConnectionController extends Controller
         abort_if(!$seller, 403);
 
         $stores = $seller->stores()->get();
-        $activeStore = $this->resolveActiveStore($seller);
+        $activeStore = $this->resolveActiveStore($seller, $request);
 
         $connection = StoreConnection::where('store_id', $activeStore?->id)
             ->where('type', StoreConnectionType::CUSTOM_API)
@@ -417,10 +416,18 @@ class ConnectionController extends Controller
     }
 
     /**
-     * Helper to resolve active store from session.
+     * Helper to resolve active store from request or session.
      */
-    protected function resolveActiveStore($seller): ?Store
+    protected function resolveActiveStore($seller, ?Request $request = null): ?Store
     {
+        if ($request && $request->filled('store_id')) {
+            $requestedStore = $seller->stores()->find((int) $request->store_id);
+            if ($requestedStore) {
+                session(['seller_active_store_id' => $requestedStore->id]);
+                return $requestedStore;
+            }
+        }
+
         $activeStoreId = session('seller_active_store_id');
         return $activeStoreId ? $seller->stores()->find($activeStoreId) : $seller->stores()->first();
     }

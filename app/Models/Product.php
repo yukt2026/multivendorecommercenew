@@ -111,17 +111,26 @@ class Product extends Model
         return $this->hasMany(ProductQuestion::class)->where('is_approved', true);
     }
 
+    public function getPrimaryImageUrlAttribute(): string
+    {
+        return $this->primaryImageUrl();
+    }
+
     public function primaryImageUrl(): string
     {
-        $item = $this->media->first();
+        $item = $this->relationLoaded('media') ? $this->media->first() : $this->media()->orderBy('sort_order')->first();
         if ($item && $item->path) {
-            if (str_starts_with($item->path, 'http://') || str_starts_with($item->path, 'https://')) {
-                return $item->path;
+            $url = image_url($item->path);
+            if ($url) {
+                $cleanPath = ltrim($item->path, '/');
+                $targetFile = public_path('storage/' . $cleanPath);
+                $version = file_exists($targetFile) ? filemtime($targetFile) : 'v2';
+                $sep = str_contains($url, '?') ? '&' : '?';
+                return $url . $sep . 'v=' . $version;
             }
-            return asset('storage/' . $item->path);
         }
 
-        return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300' width='300' height='300'><rect width='300' height='300' rx='24' fill='%23f8fafc'/><circle cx='150' cy='135' r='54' fill='%23e2e8f0'/><text x='150' y='152' font-size='38' text-anchor='middle'>🛍️</text><text x='150' y='235' font-family='sans-serif' font-size='11' font-weight='800' fill='%2394a3b8' letter-spacing='1.5' text-anchor='middle'>ONESTALL</text></svg>";
+        return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300' width='300' height='300'><rect width='300' height='300' rx='28' fill='%23f8fafc'/><circle cx='150' cy='135' r='52' fill='%23eef2f6'/><path d='M132 118 h36 l6 38 h-48 z' fill='%236366f1' fill-opacity='0.15' stroke='%236366f1' stroke-width='3' stroke-linejoin='round'/><path d='M141 118 v-7 a9 9 0 0 1 18 0 v7' fill='none' stroke='%236366f1' stroke-width='3' stroke-linecap='round'/><circle cx='150' cy='137' r='3' fill='%236366f1'/><text x='150' y='232' font-family='sans-serif' font-size='12' font-weight='800' fill='%2394a3b8' letter-spacing='2' text-anchor='middle'>ONESTALL</text></svg>";
     }
 
     public function getEffectivePriceAttribute(): float

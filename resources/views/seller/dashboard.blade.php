@@ -29,21 +29,11 @@
         </x-slot>
 
         <x-slot name="actions">
-            <!-- Store Open/Close Toggle Form -->
-            <form method="POST" action="{{ route('seller.store.toggle_status') }}" class="inline">
-                @csrf
-                <input type="hidden" name="store_id" value="{{ $activeStore?->id }}">
-                <button 
-                    type="submit" 
-                    class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 border {{ $storeStatus['is_open'] ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:border-rose-800' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-800' }}"
-                >
-                    <span class="w-2 h-2 rounded-full {{ $storeStatus['is_open'] ? 'bg-rose-500' : 'bg-emerald-500' }}"></span>
-                    <span>{{ $storeStatus['is_open'] ? 'Close Store Temporarily' : 'Open Store Now' }}</span>
-                </button>
-            </form>
-
-            <x-button variant="outline" size="sm" href="{{ route('home') }}" target="_blank">
-                Live Storefront &rarr;
+            <x-button variant="primary" size="sm" href="{{ route('seller.products.create') }}">
+                + Add Product
+            </x-button>
+            <x-button variant="outline" size="sm" href="{{ route('seller.orders.index') }}">
+                Orders Console &rarr;
             </x-button>
         </x-slot>
     </x-page-header>
@@ -126,12 +116,22 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Top 5 Products by Revenue -->
         <x-card title="Top 5 Products by Revenue" subtitle="Best-performing catalog items this month">
-            <div class="relative h-56">
-                <canvas id="sellerTopProductsChart"></canvas>
-            </div>
+            @if(!empty($charts['top_products']['labels']))
+                <div class="relative h-56">
+                    <canvas id="sellerTopProductsChart"></canvas>
+                </div>
+            @else
+                <div class="h-56 flex flex-col items-center justify-center text-center text-xs text-slate-400">
+                    <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-2 text-slate-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                    </div>
+                    <p class="font-bold text-slate-700 dark:text-slate-300">No Product Sales Yet</p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Top-grossing items will appear here as orders are placed.</p>
+                </div>
+            @endif
         </x-card>
 
-        <!-- Revenue by Store Outlet (If Multi-store) or Category Distribution -->
+        <!-- Revenue by Store Outlet (If Multi-store) or Physical Store Performance -->
         @if($charts['is_multi_store'] && !empty($charts['revenue_by_store']['labels']))
             <x-card title="Revenue by Physical Store Outlet" subtitle="Comparison of earnings across physical branch locations">
                 <div class="relative h-56">
@@ -140,25 +140,43 @@
             </x-card>
         @else
             <!-- Store Dispatch & Timings Profile -->
-            <x-card title="Physical Store Performance" subtitle="Hyper-local dispatch metrics & profile">
+            <x-card title="Physical Store Performance" subtitle="Hyper-local dispatch metrics & store profile">
+                <x-slot name="action">
+                    <a href="{{ route('seller.store.edit') }}" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">
+                        Edit Store &rarr;
+                    </a>
+                </x-slot>
                 <div class="space-y-3 text-xs">
                     <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
                         <span class="text-slate-500">Active Outlet:</span>
                         <span class="font-bold text-slate-900 dark:text-white">{{ $activeStore ? $activeStore->name : ($stores->first()?->name ?? 'Default Store') }}</span>
                     </div>
                     <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
-                        <span class="text-slate-500">Store City & Pincode:</span>
-                        <span class="font-mono text-slate-800 dark:text-slate-200">{{ $activeStore?->location?->city ?? 'Bengaluru' }} - {{ $activeStore?->location?->pincode ?? '560038' }}</span>
+                        <span class="text-slate-500">City &amp; Location:</span>
+                        <span class="font-mono text-slate-800 dark:text-slate-200">
+                            {{ $activeStore?->location?->city ?? 'Location not set' }}
+                            @if($activeStore?->location?->pincode)
+                                ({{ $activeStore->location->pincode }})
+                            @endif
+                        </span>
                     </div>
                     <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
                         <span class="text-slate-500">Instant Delivery Radius:</span>
-                        <span class="font-bold text-amber-500">{{ setting('default_delivery_radius_km', 8.00) }} km (Blinkit Mode)</span>
+                        <span class="font-bold text-slate-900 dark:text-slate-100">
+                            {{ $activeStore?->delivery_radius_km ?? setting('default_delivery_radius_km', 8.00) }} km
+                        </span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                        <span class="text-slate-500">Fulfillment Mode:</span>
+                        <span class="font-bold {{ $activeStore?->accepts_quick_commerce ? 'text-amber-500' : 'text-slate-700 dark:text-slate-300' }}">
+                            {{ $activeStore?->accepts_quick_commerce ? '⚡ Quick 15m Dispatch Active' : 'Standard Delivery Only' }}
+                        </span>
                     </div>
                     <div class="flex justify-between py-2">
-                        <span class="text-slate-500">POS Integration Status:</span>
-                        <span class="text-emerald-500 font-bold flex items-center space-x-1">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <span>Live Bi-directional Sync</span>
+                        <span class="text-slate-500">Operating Status:</span>
+                        <span class="font-bold flex items-center space-x-1.5 {{ $storeStatus['is_open'] ? 'text-emerald-500' : 'text-slate-400' }}">
+                            <span class="w-1.5 h-1.5 rounded-full {{ $storeStatus['is_open'] ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400' }}"></span>
+                            <span>{{ $storeStatus['is_open'] ? 'Open & Accepting Orders' : 'Store Closed' }}</span>
                         </span>
                     </div>
                 </div>
@@ -280,30 +298,78 @@
         </div>
     </div>
 
-    <!-- Widgets Section 2: Settlements, Reviews, Checklist, Announcements -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <!-- Financial Settlements & Customer Feedback -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- 1. Settlements & Payouts Card -->
-        <x-card title="Settlements & Payouts" subtitle="Weekly automated clearing">
-            <div class="space-y-3 text-xs">
-                <div>
-                    <div class="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Unsettled Accrued Balance</div>
-                    <div class="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
-                        {{ $settlement['formatted_accrued'] }}
+        <x-card title="Settlements & Payouts" subtitle="Automated clearing and earnings ledger">
+            <x-slot name="action">
+                <a href="{{ route('seller.settlements.index') }}" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">
+                    View Settlements &rarr;
+                </a>
+            </x-slot>
+
+            <div class="space-y-4 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800">
+                    <div>
+                        <div class="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Unsettled Accrued Balance</div>
+                        <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                            {{ $settlement['formatted_accrued'] }}
+                        </div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">Pending clearing to bank</div>
+                    </div>
+                    <div>
+                        <div class="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Next Scheduled Payout</div>
+                        <div class="text-base font-bold text-slate-800 dark:text-slate-200 mt-1">
+                            {{ $settlement['next_payout_date'] }}
+                        </div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">Weekly automated cycle</div>
                     </div>
                 </div>
 
-                <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <div class="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Next Scheduled Payout</div>
-                    <div class="font-bold text-slate-800 dark:text-slate-200 mt-0.5">
-                        {{ $settlement['next_payout_date'] }}
+                <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+                    <div>
+                        <div class="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Primary Payout Bank</div>
+                        @if($settlement['primary_bank'])
+                            <div class="font-bold text-slate-900 dark:text-white text-xs mt-0.5">
+                                {{ $settlement['primary_bank']->bank_name }}
+                            </div>
+                            <div class="font-mono text-[11px] text-slate-500">
+                                A/C: &bull;&bull;&bull;&bull; {{ substr($settlement['primary_bank']->account_no, -4) }} &bull; IFSC: {{ $settlement['primary_bank']->ifsc }}
+                            </div>
+                        @else
+                            <div class="text-rose-500 font-semibold mt-0.5">No bank account linked</div>
+                            <div class="text-[10px] text-slate-400">Add a bank account to receive automated payouts</div>
+                        @endif
                     </div>
+                    @if($settlement['primary_bank'])
+                        <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 shrink-0">
+                            Verified
+                        </span>
+                    @else
+                        <a href="{{ route('seller.settlements.index') }}" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white shrink-0">
+                            Add Bank
+                        </a>
+                    @endif
                 </div>
 
-                @if($settlement['primary_bank'])
-                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
-                        <div class="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Payout Bank Account</div>
-                        <div class="font-mono text-slate-800 dark:text-slate-200 mt-0.5 truncate">
-                            {{ $settlement['primary_bank']->bank_name }} (&bull;&bull;&bull;&bull; {{ substr($settlement['primary_bank']->account_no, -4) }})
+                @if(!empty($settlement['recent_settlements']) && $settlement['recent_settlements']->isNotEmpty())
+                    <div class="space-y-2 pt-1">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Recent Payout Settlements</div>
+                        <div class="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200/80 dark:border-slate-800 rounded-xl overflow-hidden">
+                            @foreach($settlement['recent_settlements'] as $recentSettlement)
+                                <div class="px-3.5 py-2.5 flex items-center justify-between bg-white dark:bg-slate-900">
+                                    <div>
+                                        <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400">#{{ $recentSettlement->settlement_number }}</span>
+                                        <span class="text-[10px] text-slate-400 ml-1">{{ $recentSettlement->created_at->format('d M Y') }}</span>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="font-bold text-slate-900 dark:text-white">{{ format_currency($recentSettlement->net_payable) }}</span>
+                                        <span class="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded {{ $recentSettlement->status->value === 'paid' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400' }}">
+                                            {{ $recentSettlement->status->value }}
+                                        </span>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
                     </div>
                 @endif
@@ -311,29 +377,42 @@
         </x-card>
 
         <!-- 2. Recent Customer Reviews Card -->
-        <x-card title="Customer Feedback" subtitle="Recent ratings & reviews">
+        <x-card title="Customer Feedback & Ratings" subtitle="Verified customer reviews on your catalog">
             <div class="space-y-3">
                 @forelse($reviews as $rev)
-                    <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800 text-xs space-y-1">
+                    <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800 text-xs space-y-1.5">
                         <div class="flex items-center justify-between">
-                            <span class="font-bold text-slate-800 dark:text-slate-200">{{ $rev->user?->name ?? 'Verified Shopper' }}</span>
-                            <div class="flex items-center text-amber-400 text-xs">
+                            <span class="font-bold text-slate-900 dark:text-white">{{ $rev->user?->name ?? 'Verified Buyer' }}</span>
+                            <div class="flex items-center text-amber-400 text-xs font-bold space-x-0.5">
                                 @for($i = 0; $i < $rev->rating; $i++)
                                     ★
                                 @endfor
+                                <span class="text-slate-400 text-[10px] ml-1">({{ $rev->rating }}/5)</span>
                             </div>
                         </div>
-                        <p class="text-[11px] text-slate-600 dark:text-slate-400 line-clamp-2">"{{ $rev->body }}"</p>
-                        <div class="text-[10px] text-slate-400 truncate">&bull; {{ $rev->product?->title }}</div>
+                        <p class="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">"{{ $rev->body }}"</p>
+                        <div class="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-200/40 dark:border-slate-800/40">
+                            <span class="truncate max-w-[200px]">{{ $rev->product?->title ?? 'Product' }}</span>
+                            <span>{{ $rev->created_at->diffForHumans() }}</span>
+                        </div>
                     </div>
                 @empty
-                    <div class="py-6 text-center text-xs text-slate-400">
-                        No customer reviews yet.
+                    <div class="py-12 text-center text-xs">
+                        <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                        </div>
+                        <p class="font-bold text-slate-700 dark:text-slate-300">No Customer Reviews Yet</p>
+                        <p class="text-slate-400 mt-1 max-w-xs mx-auto text-[11px]">
+                            As customers purchase and review your products, their ratings and feedback will automatically appear here.
+                        </p>
                     </div>
                 @endforelse
             </div>
         </x-card>
+    </div>
 
+    <!-- Merchant Readiness & Platform Notices -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- 3. Onboarding Launchpad Checklist -->
         <x-card title="Merchant Readiness" subtitle="Checklist to scale sales">
             <div class="space-y-3">

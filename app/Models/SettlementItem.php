@@ -25,6 +25,11 @@ class SettlementItem extends Model
         'amount' => 'decimal:2',
     ];
 
+    public function getSettlementIdAttribute(): ?int
+    {
+        return $this->seller_settlement_id;
+    }
+
     public function settlement(): BelongsTo
     {
         return $this->belongsTo(SellerSettlement::class, 'seller_settlement_id');

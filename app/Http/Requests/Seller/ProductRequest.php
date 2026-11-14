@@ -29,6 +29,7 @@ class ProductRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
+            'submit_action' => $this->input('submit_action') ?: 'save_draft',
             'is_returnable' => filter_var($this->input('is_returnable', false), FILTER_VALIDATE_BOOLEAN),
             'is_cod_allowed' => filter_var($this->input('is_cod_allowed', false), FILTER_VALIDATE_BOOLEAN),
             'is_quick_capable' => filter_var($this->input('is_quick_capable', false), FILTER_VALIDATE_BOOLEAN),

@@ -29,7 +29,23 @@ class StoreTiming extends Model
     }
 
     /**
+     * Check if this day's timing is set to 24 hours round-the-clock.
+     */
+    public function is24Hours(): bool
+    {
+        if ($this->is_closed || !$this->opens_at || !$this->closes_at) {
+            return false;
+        }
+
+        $open = substr($this->opens_at, 0, 5);
+        $close = substr($this->closes_at, 0, 5);
+
+        return ($open === '00:00' && in_array($close, ['00:00', '23:59', '23:59:59'])) || ($open === $close);
+    }
+
+    /**
      * Check if the store is currently open based on local time.
+     * Supports standard same-day hours, overnight cross-midnight hours, and 24x7.
      */
     public function isOpenAt(string $time): bool
     {
@@ -37,7 +53,21 @@ class StoreTiming extends Model
             return false;
         }
 
-        return $time >= $this->opens_at && $time <= $this->closes_at;
+        if ($this->is24Hours()) {
+            return true;
+        }
+
+        $open = substr($this->opens_at, 0, 5);
+        $close = substr($this->closes_at, 0, 5);
+        $check = substr($time, 0, 5);
+
+        // Overnight hours (e.g. 20:00 to 04:00)
+        if ($open > $close) {
+            return $check >= $open || $check <= $close;
+        }
+
+        // Standard daytime hours (e.g. 08:00 to 22:00)
+        return $check >= $open && $check <= $close;
     }
 
     /**

@@ -33,12 +33,18 @@ class ReturnController extends Controller
 
         $query = OrderReturn::query()
             ->forSeller($seller->id)
-            ->with(['orderItem.variant', 'orderItem.fulfilmentOrder.order.user'])
+            ->with(['orderItem.variant.product', 'orderItem.fulfilmentOrder.order.user'])
             ->latest('id');
 
         // Status filter
         if ($status = $request->query('status')) {
-            if ($status !== 'all') {
+            if ($status === 'in_transit') {
+                $query->whereIn('status', [
+                    ReturnStatus::REVERSE_PICKUP_SCHEDULED,
+                    ReturnStatus::PICKUP_SCHEDULED,
+                    ReturnStatus::PICKED_UP,
+                ]);
+            } elseif ($status !== 'all') {
                 $query->where('status', $status);
             }
         }
@@ -58,8 +64,13 @@ class ReturnController extends Controller
         $metrics = [
             'total_returns' => OrderReturn::forSeller($seller->id)->count(),
             'pending_approval' => OrderReturn::forSeller($seller->id)->where('status', ReturnStatus::REQUESTED)->count(),
-            'in_transit' => OrderReturn::forSeller($seller->id)->whereIn('status', [ReturnStatus::REVERSE_PICKUP_SCHEDULED, ReturnStatus::PICKED_UP])->count(),
+            'in_transit' => OrderReturn::forSeller($seller->id)->whereIn('status', [
+                ReturnStatus::REVERSE_PICKUP_SCHEDULED,
+                ReturnStatus::PICKUP_SCHEDULED,
+                ReturnStatus::PICKED_UP,
+            ])->count(),
             'qc_pending' => OrderReturn::forSeller($seller->id)->where('status', ReturnStatus::RECEIVED)->count(),
+            'qc_passed' => OrderReturn::forSeller($seller->id)->where('status', ReturnStatus::QC_PASSED)->count(),
             'refunded' => OrderReturn::forSeller($seller->id)->where('status', ReturnStatus::REFUNDED)->count(),
         ];
 
@@ -218,6 +229,7 @@ class ReturnController extends Controller
 
         return response()->stream(function () use ($seller) {
             $handle = fopen('php://output', 'w');
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM for Excel compatibility
             fputcsv($handle, ['Return Number', 'Order Number', 'Item', 'Qty', 'Amount', 'Reason', 'Status', 'QC Status', 'Waybill', 'Date']);
 
             OrderReturn::forSeller($seller->id)

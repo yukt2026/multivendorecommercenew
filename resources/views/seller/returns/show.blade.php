@@ -53,7 +53,7 @@
                     </form>
                 @endif
 
-                @if(in_array($return->status, [\App\Enums\ReturnStatus::APPROVED, \App\Enums\ReturnStatus::REVERSE_PICKUP_SCHEDULED, \App\Enums\ReturnStatus::PICKED_UP]))
+                @if(in_array($return->status, [\App\Enums\ReturnStatus::APPROVED, \App\Enums\ReturnStatus::REVERSE_PICKUP_SCHEDULED, \App\Enums\ReturnStatus::PICKUP_SCHEDULED, \App\Enums\ReturnStatus::PICKED_UP]))
                     <form method="POST" action="{{ route('seller.returns.receive', $return) }}">
                         @csrf
                         <x-button variant="primary" size="sm" type="submit">
@@ -83,6 +83,21 @@
         $customer = $order?->user;
         $fulfilment = $item?->fulfilmentOrder;
     @endphp
+
+    <!-- Feedback Alerts -->
+    @if(session('success'))
+        <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-2">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            <span>{{ session('error') }}</span>
+        </div>
+    @endif
 
     <!-- Alerts if rejected / refunded -->
     @if($return->status === \App\Enums\ReturnStatus::REJECTED)
@@ -298,10 +313,14 @@
                     <div>
                         <span class="text-slate-400">Customer Name:</span>
                         <div class="font-semibold text-slate-900 dark:text-slate-100">
-                            {{ $customer?->name ?? 'Guest User' }}
+                            {{ $order?->customerAddress?->name ?? ($order?->address_snapshot['name'] ?? ($customer?->name ?? 'Customer')) }}
                         </div>
-                        <div class="text-slate-500 font-mono text-[11px]">{{ $customer?->email }}</div>
-                        <div class="text-slate-500 font-mono text-[11px]">{{ $customer?->phone ?? 'No phone' }}</div>
+                        @if($customer?->email || !empty($order?->address_snapshot['email']))
+                            <div class="text-slate-500 font-mono text-[11px]">{{ $order?->address_snapshot['email'] ?? $customer?->email }}</div>
+                        @endif
+                        <div class="text-slate-500 font-mono text-[11px]">
+                            {{ $order?->customerAddress?->phone ?? ($order?->address_snapshot['phone'] ?? ($customer?->phone ?? 'No phone')) }}
+                        </div>
                     </div>
 
                     <div>

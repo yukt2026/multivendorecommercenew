@@ -31,7 +31,7 @@ class RiderController extends Controller
         $rider = $this->resolveRider($request);
 
         $activeAssignments = DeliveryAssignment::query()
-            ->with(['fulfilmentOrder.store.location', 'fulfilmentOrder.order.customerAddress', 'fulfilmentOrder.items'])
+            ->with(['fulfilmentOrder.store.location', 'fulfilmentOrder.order.customerAddress', 'fulfilmentOrder.items.variant.product'])
             ->where('delivery_partner_id', $rider->id)
             ->whereIn('status', [DeliveryAssignmentStatus::ASSIGNED, DeliveryAssignmentStatus::ACCEPTED, DeliveryAssignmentStatus::PICKED_UP])
             ->latest('id')
@@ -61,7 +61,7 @@ class RiderController extends Controller
         $assignment->load([
             'fulfilmentOrder.store.location',
             'fulfilmentOrder.order.customerAddress',
-            'fulfilmentOrder.items',
+            'fulfilmentOrder.items.variant.product',
             'deliveryPartner',
         ]);
 

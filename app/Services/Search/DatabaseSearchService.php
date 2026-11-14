@@ -260,15 +260,39 @@ class DatabaseSearchService implements SearchServiceInterface
             $storeQuery->where('accepts_pickup', true);
         }
 
-        if (!empty($location['lat']) && !empty($location['lng'])) {
-            $radius = (float) ($filters['radius_km'] ?? $location['radius_km'] ?? setting('default_delivery_radius_km', 15.0));
+        if (!empty($filters['city'])) {
+            $storeQuery->whereHas('location', fn ($l) => $l->where('city', $filters['city']));
+        }
+
+        if (!empty($filters['category_id'])) {
+            $catId = (string) $filters['category_id'];
+            $storeQuery->where(function ($b) use ($catId) {
+                $b->whereJsonContains('category_ids', $catId)
+                  ->orWhereHas('products', fn ($p) => $p->where('category_id', (int) $catId));
+            });
+        }
+
+        $applyRadius = !empty($location['lat']) && !empty($location['lng'])
+            && empty($filters['all_stores'])
+            && ($filters['radius_km'] ?? null) !== 'all'
+            && empty($filters['city']); // If specific city selected, don't restrict to user's GPS radius
+
+        if ($applyRadius) {
+            $radius = (float) ($filters['radius_km'] ?? $location['radius_km'] ?? setting('default_delivery_radius_km', 25.0));
             try {
                 $storeQuery->nearby((float) $location['lat'], (float) $location['lng'], $radius);
             } catch (\Throwable $e) {
                 $storeQuery->orderByDesc('rating_avg');
             }
         } else {
-            $storeQuery->orderByDesc('rating_avg');
+            $sortBy = $filters['sort_by'] ?? 'rating';
+            if ($sortBy === 'newest') {
+                $storeQuery->latest();
+            } elseif ($sortBy === 'name') {
+                $storeQuery->orderBy('name');
+            } else {
+                $storeQuery->orderByDesc('rating_avg');
+            }
         }
 
         $paginator = $storeQuery->paginate($perPage)->withQueryString();

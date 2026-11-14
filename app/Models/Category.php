@@ -36,6 +36,11 @@ class Category extends Model
         'sort_order' => 'integer',
     ];
 
+    public function getImageUrlAttribute(): ?string
+    {
+        return image_url($this->image);
+    }
+
     public function parent(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_id');

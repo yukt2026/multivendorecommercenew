@@ -93,7 +93,7 @@ class OrderController extends Controller
             'customer.user',
             'customerAddress',
             'payments',
-            'fulfilmentOrders.items.variant',
+            'fulfilmentOrders.items.variant.product',
             'fulfilmentOrders.store',
             'fulfilmentOrders.seller',
             'fulfilmentOrders.shipment.tracking',

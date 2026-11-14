@@ -427,6 +427,7 @@ class OrderReturnManagementTest extends TestCase
 
         $response->assertOk()
             ->assertViewIs('seller.returns.index')
+            ->assertDontSee('&amp;amp;', false)
             ->assertSee('RET-SELLER-01');
 
         // Seller show
@@ -437,6 +438,15 @@ class OrderReturnManagementTest extends TestCase
             ->assertViewIs('seller.returns.show')
             ->assertSee('RET-SELLER-01')
             ->assertSee('Approve Return');
+
+        // Seller index empty state
+        OrderReturn::query()->delete();
+        $emptyResponse = $this->actingAs($this->sellerUser)
+            ->get(route('seller.returns.index'));
+        $emptyResponse->assertOk()
+            ->assertDontSee('&amp;amp;', false)
+            ->assertDontSee('>refresh<', false)
+            ->assertSee('No Return Requests Found');
     }
 
     public function test_seller_approves_return_and_schedules_cargo_pickup(): void
@@ -633,5 +643,87 @@ class OrderReturnManagementTest extends TestCase
             ->get(route('admin.returns.export'));
         $adminCsv->assertOk();
         $this->assertEquals('text/csv; charset=utf-8', $adminCsv->headers->get('content-type'));
+    }
+
+    public function test_seller_can_filter_returns_by_status_and_search(): void
+    {
+        [$order1, $fo1, $item1] = $this->createDeliveredOrder(daysAgo: 1);
+        [$order2, $fo2, $item2] = $this->createDeliveredOrder(daysAgo: 2);
+
+        $ret1 = OrderReturn::create([
+            'return_number' => 'RET-FILTER-01',
+            'order_item_id' => $item1->id,
+            'type' => 'return',
+            'reason' => 'Defective',
+            'status' => ReturnStatus::REQUESTED,
+            'qc_status' => QCStatus::PENDING,
+            'refund_mode' => 'original',
+            'refund_amount' => 2999.00,
+        ]);
+
+        $ret2 = OrderReturn::create([
+            'return_number' => 'RET-FILTER-02',
+            'order_item_id' => $item2->id,
+            'type' => 'return',
+            'reason' => 'Wrong Item',
+            'status' => ReturnStatus::REVERSE_PICKUP_SCHEDULED,
+            'pickup_waybill' => 'REV-WAYBILL-999',
+            'qc_status' => QCStatus::PENDING,
+            'refund_mode' => 'original',
+            'refund_amount' => 2999.00,
+        ]);
+
+        // Filter requested
+        $response = $this->actingAs($this->sellerUser)
+            ->get(route('seller.returns.index', ['status' => 'requested']));
+        $response->assertOk();
+        $response->assertSee('RET-FILTER-01');
+        $response->assertDontSee('RET-FILTER-02');
+
+        // Filter in_transit
+        $response = $this->actingAs($this->sellerUser)
+            ->get(route('seller.returns.index', ['status' => 'in_transit']));
+        $response->assertOk();
+        $response->assertSee('RET-FILTER-02');
+        $response->assertDontSee('RET-FILTER-01');
+
+        // Search by waybill
+        $response = $this->actingAs($this->sellerUser)
+            ->get(route('seller.returns.index', ['search' => 'REV-WAYBILL-999']));
+        $response->assertOk();
+        $response->assertSee('RET-FILTER-02');
+        $response->assertDontSee('RET-FILTER-01');
+    }
+
+    public function test_seller_cannot_manage_another_sellers_returns(): void
+    {
+        $otherUser = User::factory()->create(['status' => 'active']);
+        $otherSeller = \App\Models\Seller::create([
+            'user_id' => $otherUser->id,
+            'business_name' => 'Other Merchant',
+            'legal_name' => 'Other Merchant LLC',
+            'slug' => 'other-merchant',
+            'status' => \App\Enums\SellerStatus::APPROVED,
+        ]);
+
+        [$order, $fo, $item] = $this->createDeliveredOrder(daysAgo: 1);
+        $return = OrderReturn::create([
+            'return_number' => 'RET-PROTECTED-01',
+            'order_item_id' => $item->id,
+            'type' => 'return',
+            'reason' => 'Defective',
+            'status' => ReturnStatus::REQUESTED,
+            'qc_status' => QCStatus::PENDING,
+            'refund_mode' => 'original',
+            'refund_amount' => 2999.00,
+        ]);
+
+        $this->actingAs($otherUser)
+            ->get(route('seller.returns.show', $return))
+            ->assertStatus(403);
+
+        $this->actingAs($otherUser)
+            ->post(route('seller.returns.approve', $return))
+            ->assertStatus(403);
     }
 }

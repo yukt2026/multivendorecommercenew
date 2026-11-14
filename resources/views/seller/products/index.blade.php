@@ -212,11 +212,14 @@
                                 <td class="py-3 px-3">
                                     <div class="flex items-center space-x-3">
                                         <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
-                                            @if($primaryMedia)
-                                                <img src="{{ $primaryMedia->path }}" alt="{{ $product->title }}" class="w-full h-full object-cover" />
-                                            @else
-                                                <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                            @endif
+                                            <img 
+                                                src="{{ $product->primaryImageUrl() }}" 
+                                                alt="{{ $product->title }}" 
+                                                loading="lazy"
+                                                decoding="async"
+                                                onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\' width=\'100\' height=\'100\'><rect width=\'100\' height=\'100\' rx=\'16\' fill=\'%23f1f5f9\'/><text x=\'50\' y=\'58\' font-size=\'32\' text-anchor=\'middle\'>🛍️</text></svg>';"
+                                                class="w-full h-full object-cover" 
+                                            />
                                         </div>
                                         <div class="space-y-1 min-w-0">
                                             <a href="{{ route('seller.products.edit', $product) }}" class="font-bold text-slate-900 dark:text-white hover:text-indigo-600 line-clamp-1">
@@ -288,7 +291,7 @@
                                                 type="button" 
                                                 @click="openQuickEdit({{ $defaultVariant->id }}, {{ $defaultVariant->mrp }}, {{ $defaultVariant->selling_price }}, {{ $totalStock }})"
                                                 class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition" 
-                                                title="Quick edit price &amp; stock"
+                                                title="Quick edit price & stock"
                                             >
                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                             </button>

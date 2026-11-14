@@ -67,6 +67,18 @@ class ProductVariant extends Model
             ->withTimestamps();
     }
 
+    public function getImageUrlAttribute(): ?string
+    {
+        $media = $this->relationLoaded('media') ? $this->media->first() : $this->media()->first();
+        if ($media && $media->path) {
+            $url = image_url($media->path);
+            if ($url) {
+                return $url;
+            }
+        }
+        return $this->product?->primary_image_url;
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);

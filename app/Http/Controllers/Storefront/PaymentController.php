@@ -29,7 +29,7 @@ class PaymentController extends Controller
     public function pay(Request $request, string $orderNumber): View|RedirectResponse
     {
         $order = Order::where('order_number', $orderNumber)
-            ->with(['customer.user', 'fulfilmentOrders.items'])
+            ->with(['customer.user', 'fulfilmentOrders.items.variant.product'])
             ->firstOrFail();
 
         // If already paid, redirect straight to success
@@ -115,7 +115,7 @@ class PaymentController extends Controller
     public function retry(Request $request, string $orderNumber): View
     {
         $order = Order::where('order_number', $orderNumber)
-            ->with(['customer.user', 'fulfilmentOrders.items'])
+            ->with(['customer.user', 'fulfilmentOrders.items.variant.product'])
             ->firstOrFail();
 
         return view('storefront.payment-retry', [

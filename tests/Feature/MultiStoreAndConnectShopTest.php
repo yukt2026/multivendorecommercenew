@@ -569,4 +569,49 @@ class MultiStoreAndConnectShopTest extends TestCase
             'quantity_on_hand' => 120,
         ]);
     }
+
+    public function test_seller_can_view_connections_hub_and_channels(): void
+    {
+        $this->actingAs($this->sellerUser)
+            ->get(route('seller.connections.index'))
+            ->assertOk()
+            ->assertDontSee('&amp;rarr;', false)
+            ->assertDontSee('&amp;amp;', false)
+            ->assertSee('Connect My Shop')
+            ->assertSee('Physical Store / Outlet')
+            ->assertSee('CSV / Excel Bulk Import')
+            ->assertSee('WooCommerce Integration')
+            ->assertSee('Shopify Storefront')
+            ->assertSee('Custom Website REST API');
+
+        // Test CSV view
+        $this->actingAs($this->sellerUser)
+            ->get(route('seller.connections.csv'))
+            ->assertOk()
+            ->assertSee('CSV / Excel Bulk Catalog Feed');
+
+        // Test CSV template download
+        $this->actingAs($this->sellerUser)
+            ->get(route('seller.connections.csv.template'))
+            ->assertOk();
+
+        // Test WooCommerce view
+        $this->actingAs($this->sellerUser)
+            ->get(route('seller.connections.woocommerce'))
+            ->assertOk()
+            ->assertSee('WooCommerce Two-Way Sync');
+
+        // Test Shopify view
+        $this->actingAs($this->sellerUser)
+            ->get(route('seller.connections.shopify'))
+            ->assertOk()
+            ->assertSee('Shopify Store Integration');
+
+        // Test Custom API view when connection is null
+        $this->actingAs($this->sellerUser)
+            ->get(route('seller.connections.custom_api'))
+            ->assertOk()
+            ->assertSee('Custom Website REST API &amp; Webhooks', false)
+            ->assertSee('API Key Management');
+    }
 }

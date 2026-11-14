@@ -32,7 +32,7 @@
         @if($icon)
             <span class="shrink-0">{{ $icon }}</span>
         @endif
-        <span>{{ $slot }}</span>
+        <span>{!! $slot !!}</span>
         @if($iconTrailing)
             <span class="shrink-0">{{ $iconTrailing }}</span>
         @endif
@@ -48,7 +48,7 @@
             <span class="shrink-0">{{ $icon }}</span>
         @endif
 
-        <span>{{ $slot }}</span>
+        <span>{!! $slot !!}</span>
 
         @if($iconTrailing)
             <span class="shrink-0">{{ $iconTrailing }}</span>

@@ -3,8 +3,8 @@
 @section('content')
 <div class="space-y-6" x-data="{ docTab: 'auth' }">
     <x-page-header 
-        title="Custom Website REST API &amp; Webhooks" 
-        subtitle="Integrate your custom e-commerce storefront, warehouse ERP, or POS via secure token &amp; HMAC authenticated REST endpoints."
+        title="Custom Website REST API & Webhooks" 
+        subtitle="Integrate your custom e-commerce storefront, warehouse ERP, or POS via secure token & HMAC authenticated REST endpoints."
         :breadcrumbs="['Seller Studio' => route('seller.dashboard'), 'Connect My Shop' => route('seller.connections.index'), 'Custom API' => '#']"
     />
 
@@ -80,7 +80,7 @@
                                     'orders:read' => 'List and inspect incoming orders',
                                     'orders:write' => 'Advance fulfillment orders status',
                                 ];
-                                $activeScopes = $connection->config['scopes'] ?? array_keys($allScopes);
+                                $activeScopes = $connection?->config['scopes'] ?? array_keys($allScopes);
                             @endphp
                             @foreach($allScopes as $scope => $label)
                                 <label class="flex items-center space-x-2 cursor-pointer">

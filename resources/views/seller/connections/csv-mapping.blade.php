@@ -3,7 +3,7 @@
 @section('content')
 <div class="space-y-6">
     <x-page-header 
-        title="Column Mapping &amp; Dry-Run Preview" 
+        title="Column Mapping & Dry-Run Preview" 
         subtitle="Map spreadsheet columns to catalog fields and verify sample row parsing before queuing."
         :breadcrumbs="['Seller Studio' => route('seller.dashboard'), 'CSV Feed' => route('seller.connections.csv'), 'Mapping' => '#']"
     />

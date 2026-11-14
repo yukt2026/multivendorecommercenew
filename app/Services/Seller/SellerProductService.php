@@ -41,7 +41,7 @@ class SellerProductService
             ->with([
                 'category:id,name,slug',
                 'brand:id,name,slug,is_verified',
-                'media' => fn ($q) => $q->orderBy('sort_order')->limit(1),
+                'media' => fn ($q) => $q->orderBy('sort_order'),
                 'variants.inventories',
                 'defaultVariant.inventories',
             ])
@@ -657,7 +657,7 @@ class SellerProductService
                 'product_id' => $product->id,
                 'variant_id' => null,
                 'type' => $type,
-                'path' => Storage::url($path),
+                'path' => $path,
                 'sort_order' => $currentMaxSort + $index + 1,
             ]);
 

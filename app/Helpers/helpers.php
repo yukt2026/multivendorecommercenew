@@ -64,3 +64,49 @@ if (!function_exists('clean_html')) {
         return $clean;
     }
 }
+
+if (!function_exists('image_url')) {
+    /**
+     * Resolve any image path or URL into a browser-loadable URL matching the current request host.
+     *
+     * Handles:
+     * - Full URLs with localhost:8000 or 127.0.0.1:8000 (normalizes to current request host)
+     * - Relative paths: 'stores/logos/...', 'products/images/...', 'categories/...'
+     * - Paths prefixed with 'storage/' or '/storage/'
+     * - Data URIs and external CDN URLs
+     *
+     * @param string|null $path
+     * @param string|null $fallback
+     * @return string|null
+     */
+    function image_url(?string $path, ?string $fallback = null): ?string
+    {
+        if (empty($path)) {
+            return $fallback;
+        }
+
+        // Inline Data URIs or SVGs
+        if (str_starts_with($path, 'data:image')) {
+            return $path;
+        }
+
+        // Check if it has http:// or https://
+        if (preg_match('#^https?://#i', $path)) {
+            $parsed = parse_url($path);
+            $host = strtolower($parsed['host'] ?? '');
+            // If the host is local (localhost, 127.0.0.1, etc.), normalize to current request scheme & host
+            if ($host === 'localhost' || $host === '127.0.0.1' || $host === '0.0.0.0' || str_ends_with($host, '.test')) {
+                $pathPart = ltrim($parsed['path'] ?? '', '/');
+                return asset($pathPart);
+            }
+            return $path;
+        }
+
+        $clean = ltrim($path, '/');
+        if (str_starts_with($clean, 'storage/')) {
+            return asset($clean);
+        }
+
+        return asset('storage/' . $clean);
+    }
+}

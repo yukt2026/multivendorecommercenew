@@ -75,6 +75,17 @@ class Seller extends Model
         return $this->status === SellerStatus::REJECTED;
     }
 
+    public function isKycVerified(): bool
+    {
+        return $this->status === SellerStatus::APPROVED 
+            && $this->documents()->where('status', \App\Enums\SellerDocumentStatus::APPROVED)->exists();
+    }
+
+    public function hasPendingDocuments(): bool
+    {
+        return $this->documents()->where('status', \App\Enums\SellerDocumentStatus::PENDING)->exists();
+    }
+
     /**
      * Scope query to approved sellers.
      */
