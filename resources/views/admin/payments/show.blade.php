@@ -10,24 +10,23 @@
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Payments' => route('admin.payments.index'), '#' . $payment->id => '#']"
     >
         <x-slot name="badge">
-            <span class="px-3 py-1 rounded-full text-xs font-bold uppercase
-                @if($payment->status->value === 'paid') bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400
-                @elseif($payment->status->value === 'pending') bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400
-                @elseif($payment->status->value === 'refunded') bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-400
-                @else bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400
-                @endif
-            ">
-                {{ $payment->status->label() }}
+            <span class="px-3 py-1 rounded-full text-xs font-bold uppercase border {{ $payment->status instanceof \App\Enums\PaymentStatus ? $payment->status->badgeClass() : 'bg-slate-100 text-slate-800' }}">
+                {{ $payment->status instanceof \App\Enums\PaymentStatus ? $payment->status->label() : (string)$payment->status }}
             </span>
         </x-slot>
 
         <x-slot name="actions">
-            @if($payment->status->value === 'paid' && $refundableBalance > 0)
-                <button @click="openRefundModal = true" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center space-x-1.5 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                    <span>Process Refund</span>
-                </button>
-            @endif
+            <div class="flex items-center space-x-2">
+                <a href="{{ route('admin.payments.index') }}" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition">
+                    <span>&larr; Back to Payments</span>
+                </a>
+                @if(in_array($payment->status->value, ['paid', 'partially_refunded']) && $refundableBalance > 0)
+                    <button type="button" @click="openRefundModal = true" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center space-x-1.5 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                        <span>Process Refund</span>
+                    </button>
+                @endif
+            </div>
         </x-slot>
     </x-page-header>
 
@@ -39,45 +38,99 @@
         </div>
         <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
             <div class="text-xs text-rose-500 mb-1 font-semibold">Total Refunded</div>
-            <div class="text-2xl font-black font-mono text-rose-600 dark:text-rose-400">- {{ format_currency($totalRefunded) }}</div>
+            <div class="text-2xl font-black font-mono text-rose-600 dark:text-rose-400">
+                @if($totalRefunded > 0)
+                    - {{ format_currency($totalRefunded) }}
+                @else
+                    {{ format_currency(0.00) }}
+                @endif
+            </div>
         </div>
         <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
             <div class="text-xs text-emerald-600 dark:text-emerald-400 mb-1 font-semibold">Refundable Balance</div>
             <div class="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">{{ format_currency($refundableBalance) }}</div>
         </div>
         <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div class="text-xs text-indigo-600 dark:text-indigo-400 mb-1 font-semibold">Payment Gateway</div>
-            <div class="text-2xl font-black uppercase text-indigo-600 dark:text-indigo-400">{{ $payment->gateway }}</div>
+            <div class="text-xs text-indigo-600 dark:text-indigo-400 mb-1 font-semibold">Gateway &amp; Method</div>
+            <div class="text-xl font-black uppercase text-indigo-600 dark:text-indigo-400">
+                {{ $payment->gateway }}
+                <span class="text-xs font-mono font-normal text-slate-500">({{ $payment->method instanceof \App\Enums\PaymentMethod ? $payment->method->label() : strtoupper((string)$payment->method) }})</span>
+            </div>
         </div>
     </div>
 
     <!-- Metadata Details -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">Transaction Reference</h3>
-            <div class="text-xs space-y-2 text-slate-600 dark:text-slate-300">
-                <div><span class="text-slate-400 w-36 inline-block">Gateway Payment ID:</span> <span class="font-mono text-slate-900 dark:text-white">{{ $payment->gateway_payment_id ?? 'N/A' }}</span></div>
-                <div><span class="text-slate-400 w-36 inline-block">Gateway Order ID:</span> <span class="font-mono text-slate-900 dark:text-white">{{ $payment->gateway_order_id ?? 'N/A' }}</span></div>
-                <div><span class="text-slate-400 w-36 inline-block">Payment Method:</span> <span class="font-semibold uppercase">{{ $payment->method?->value ?? (string) $payment->method }}</span></div>
-                <div><span class="text-slate-400 w-36 inline-block">Currency:</span> <span class="font-mono">{{ $payment->currency }}</span></div>
-                <div><span class="text-slate-400 w-36 inline-block">Verified At:</span> <span>{{ $payment->verified_at ? $payment->verified_at->format('d M Y, h:i A') : 'N/A' }}</span></div>
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center space-x-2">
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span>Transaction Reference</span>
+            </h3>
+            <div class="text-xs space-y-2.5 text-slate-600 dark:text-slate-300">
+                <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800/60">
+                    <span class="text-slate-400">Payment Record ID:</span>
+                    <span class="font-mono font-bold text-slate-900 dark:text-white">#{{ $payment->id }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800/60">
+                    <span class="text-slate-400">Gateway Payment ID:</span>
+                    <span class="font-mono font-bold text-slate-900 dark:text-white select-all">{{ $payment->gateway_payment_id ?? 'N/A' }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800/60">
+                    <span class="text-slate-400">Gateway Order ID:</span>
+                    <span class="font-mono font-bold text-slate-900 dark:text-white select-all">{{ $payment->gateway_order_id ?? 'N/A' }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800/60">
+                    <span class="text-slate-400">Currency:</span>
+                    <span class="font-mono font-semibold">{{ $payment->currency ?? 'INR' }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800/60">
+                    <span class="text-slate-400">Created At:</span>
+                    <span class="font-mono">{{ $payment->created_at->format('d M Y, h:i:s A') }}</span>
+                </div>
+                <div class="flex justify-between py-1">
+                    <span class="text-slate-400">Gateway Verified At:</span>
+                    <span class="font-mono">{{ $payment->verified_at ? $payment->verified_at->format('d M Y, h:i:s A') : 'Pending / Not Verified' }}</span>
+                </div>
             </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">Linked Parent Order</h3>
-            <div class="text-xs space-y-2 text-slate-600 dark:text-slate-300">
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center space-x-2">
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                <span>Linked Parent Order</span>
+            </h3>
+            <div class="text-xs space-y-2.5 text-slate-600 dark:text-slate-300">
                 @if($payment->order)
-                    <div><span class="text-slate-400 w-28 inline-block">Order Number:</span> <strong>#{{ $payment->order->order_number }}</strong></div>
-                    <div><span class="text-slate-400 w-28 inline-block">Customer:</span> {{ $payment->order->customer?->user?->name ?? 'Guest' }}</div>
-                    <div><span class="text-slate-400 w-28 inline-block">Order Status:</span> <x-order-status-badge :status="$payment->order->status" /></div>
+                    <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800/60">
+                        <span class="text-slate-400">Order Number:</span>
+                        <a href="{{ route('admin.orders.show', $payment->order) }}" class="font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+                            #{{ $payment->order->order_number }}
+                        </a>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800/60">
+                        <span class="text-slate-400">Customer:</span>
+                        <span class="font-medium text-slate-900 dark:text-white">{{ $payment->order->customer?->user?->name ?? 'Guest Customer' }}</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800/60">
+                        <span class="text-slate-400">Customer Email:</span>
+                        <span class="font-mono text-slate-600 dark:text-slate-400">{{ $payment->order->customer?->user?->email ?? 'N/A' }}</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800/60">
+                        <span class="text-slate-400">Order Grand Total:</span>
+                        <span class="font-mono font-bold text-slate-900 dark:text-white">{{ format_currency((float)$payment->order->grand_total) }}</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800/60">
+                        <span class="text-slate-400">Order Lifecycle Status:</span>
+                        <x-order-status-badge :status="$payment->order->status" />
+                    </div>
                     <div class="pt-2">
-                        <a href="{{ route('admin.orders.show', $payment->order) }}" class="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold">
-                            Open Order Console &rarr;
+                        <a href="{{ route('admin.orders.show', $payment->order) }}" class="inline-flex items-center space-x-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-bold">
+                            <span>Open Order Console</span>
+                            <span>&rarr;</span>
                         </a>
                     </div>
                 @else
-                    <div class="text-slate-400">No parent order associated.</div>
+                    <div class="text-slate-400 py-4 text-center">No parent order associated with this payment record.</div>
                 @endif
             </div>
         </div>
@@ -94,11 +147,11 @@
                 <thead class="bg-slate-50 dark:bg-slate-800/60 text-slate-500 uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800 font-semibold">
                     <tr>
                         <th class="px-6 py-3.5">Refund ID</th>
-                        <th class="px-6 py-3.5">Gateway Refund ID</th>
+                        <th class="px-6 py-3.5">Gateway Reference</th>
                         <th class="px-6 py-3.5">Reason</th>
                         <th class="px-6 py-3.5 text-right">Amount</th>
                         <th class="px-6 py-3.5">Status</th>
-                        <th class="px-6 py-3.5">Date</th>
+                        <th class="px-6 py-3.5">Processed Date</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -109,13 +162,20 @@
                         <td class="px-6 py-3.5 text-slate-700 dark:text-slate-300">{{ $rf->reason }}</td>
                         <td class="px-6 py-3.5 text-right font-mono font-bold text-rose-600 dark:text-rose-400">- {{ format_currency((float)$rf->amount) }}</td>
                         <td class="px-6 py-3.5">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">{{ $rf->status->value }}</span>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase
+                                @if($rf->status->value === 'processed') bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400
+                                @elseif($rf->status->value === 'pending') bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400
+                                @else bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400
+                                @endif
+                            ">
+                                {{ $rf->status->label() }}
+                            </span>
                         </td>
                         <td class="px-6 py-3.5 text-slate-500 font-mono text-[11px]">{{ $rf->created_at->format('d M Y, h:i A') }}</td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-6 text-center text-slate-400">No refunds processed on this payment.</td>
+                        <td colspan="6" class="px-6 py-8 text-center text-slate-400">No refunds processed on this payment.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -127,29 +187,54 @@
     @if(!empty($payment->raw_response))
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
         <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-2">Raw Gateway Response Payload (Sanitized Audit)</h3>
-        <pre class="p-4 rounded-xl bg-slate-950 text-emerald-400 font-mono text-[11px] overflow-x-auto">{{ json_encode($payment->raw_response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+        <pre class="p-4 rounded-xl bg-slate-950 text-emerald-400 font-mono text-[11px] overflow-x-auto leading-relaxed">{{ json_encode($payment->raw_response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
     </div>
     @endif
 
     <!-- Refund Modal -->
     <div x-show="openRefundModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
         <div @click.away="openRefundModal = false" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md p-6">
-            <h3 class="text-base font-bold text-slate-900 dark:text-white mb-2">Initiate Gateway Refund</h3>
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">Initiate Gateway Refund</h3>
+                <button type="button" @click="openRefundModal = false" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+            </div>
             <p class="text-xs text-slate-500 mb-4">Refund will be processed via {{ strtoupper($payment->gateway) }} API directly back to the customer's source account.</p>
 
             <form action="{{ route('admin.payments.refund', $payment) }}" method="POST" class="space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Refund Amount (Max {{ format_currency($refundableBalance) }})</label>
-                    <input type="number" step="0.01" name="amount" required max="{{ $refundableBalance }}" x-model="refundAmount" class="w-full text-xs font-mono rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-rose-500">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Refund Amount (Max {{ format_currency($refundableBalance) }})
+                    </label>
+                    <input 
+                        type="number" 
+                        step="0.01" 
+                        name="amount" 
+                        required 
+                        min="0.01"
+                        max="{{ $refundableBalance }}" 
+                        x-model="refundAmount" 
+                        class="w-full text-xs font-mono rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500"
+                    >
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Reason for Refund</label>
-                    <input type="text" name="reason" required x-model="refundReason" placeholder="e.g. Customer cancelled item / defective product" class="w-full text-xs rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-rose-500">
+                    <input 
+                        type="text" 
+                        name="reason" 
+                        required 
+                        x-model="refundReason" 
+                        placeholder="e.g. Customer cancelled item / defective product" 
+                        class="w-full text-xs rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500"
+                    >
                 </div>
                 <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                    <button type="button" @click="openRefundModal = false" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold shadow-sm">Execute Refund</button>
+                    <button type="button" @click="openRefundModal = false" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold shadow-sm transition">
+                        Execute Refund
+                    </button>
                 </div>
             </form>
         </div>

@@ -16,6 +16,7 @@
             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border
                 {{ $stVal === 'open' ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-400' : '' }}
                 {{ $stVal === 'in_progress' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400' : '' }}
+                {{ $stVal === 'waiting_customer' ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-400' : '' }}
                 {{ $stVal === 'resolved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400' : '' }}
                 {{ $stVal === 'closed' ? 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400' : '' }}
             ">
@@ -71,12 +72,24 @@
                 </div>
 
                 <!-- Reply Composer -->
-                <form method="POST" action="{{ route('admin.support.reply', $ticket) }}" class="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <form method="POST" action="{{ route('admin.support.reply', $ticket) }}" class="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800" id="ticketReplyForm">
                     @csrf
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Post Response or Note</label>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Post Response or Note</label>
+                            <button 
+                                type="button" 
+                                id="aiSuggestBtn"
+                                class="inline-flex items-center space-x-1.5 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/40 px-2.5 py-1 rounded-lg transition"
+                                title="Synthesize smart automated response draft via AI"
+                            >
+                                <svg class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                <span>AI Suggest Reply</span>
+                            </button>
+                        </div>
                         <textarea 
                             name="message" 
+                            id="replyMessage"
                             rows="4" 
                             required 
                             placeholder="Type your reply to the customer or internal staff note..." 
@@ -117,6 +130,7 @@
                         <select name="status" class="w-full text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2">
                             <option value="open" {{ $stVal === 'open' ? 'selected' : '' }}>Open</option>
                             <option value="in_progress" {{ $stVal === 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                            <option value="waiting_customer" {{ $stVal === 'waiting_customer' ? 'selected' : '' }}>Waiting on Customer</option>
                             <option value="resolved" {{ $stVal === 'resolved' ? 'selected' : '' }}>Resolved</option>
                             <option value="closed" {{ $stVal === 'closed' ? 'selected' : '' }}>Closed</option>
                         </select>
@@ -192,4 +206,53 @@
     </div>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const aiBtn = document.getElementById('aiSuggestBtn');
+    const replyInput = document.getElementById('replyMessage');
+
+    if (aiBtn && replyInput) {
+        aiBtn.addEventListener('click', async function () {
+            const originalHtml = aiBtn.innerHTML;
+            aiBtn.disabled = true;
+            aiBtn.classList.add('opacity-70', 'cursor-not-allowed');
+            aiBtn.innerHTML = `
+                <svg class="animate-spin w-3.5 h-3.5 text-purple-600" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                <span>Synthesizing...</span>
+            `;
+
+            try {
+                const response = await fetch("{{ route('admin.support.ai_reply', $ticket) }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ auto_send: false })
+                });
+
+                const data = await response.json();
+                if (data.success && data.data && data.data.reply_text) {
+                    replyInput.value = data.data.reply_text;
+                    replyInput.focus();
+                } else {
+                    alert('Could not synthesize AI reply. Please draft manually.');
+                }
+            } catch (err) {
+                console.error('AI draft generation failed', err);
+                alert('AI service currently unavailable.');
+            } finally {
+                aiBtn.disabled = false;
+                aiBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+                aiBtn.innerHTML = originalHtml;
+            }
+        });
+    }
+});
+</script>
 @endsection

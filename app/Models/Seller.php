@@ -55,6 +55,11 @@ class Seller extends Model
         return $this->business_name ?? '';
     }
 
+    public function getStoreNameAttribute(): string
+    {
+        return $this->business_name ?? $this->legal_name ?? ('Seller #' . $this->id);
+    }
+
     public function isEditingLocked(): bool
     {
         return in_array($this->status, [SellerStatus::KYC_SUBMITTED, SellerStatus::APPROVED]);

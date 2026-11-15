@@ -22,29 +22,7 @@ class SupportTicketController extends Controller
      */
     public function index(Request $request): View
     {
-        $query = SupportTicket::query()->with(['user', 'seller', 'order', 'assignedAgent'])->latest('id');
-
-        if ($search = $request->query('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('ticket_number', 'like', "%{$search}%")
-                  ->orWhere('subject', 'like', "%{$search}%")
-                  ->orWhereHas('user', fn($uq) => $uq->where('name', 'like', "%{$search}%"));
-            });
-        }
-
-        if ($status = $request->query('status')) {
-            if ($status !== 'all') {
-                $query->where('status', $status);
-            }
-        }
-
-        if ($priority = $request->query('priority')) {
-            if ($priority !== 'all') {
-                $query->where('priority', $priority);
-            }
-        }
-
-        $tickets = $query->paginate(15)->withQueryString();
+        $tickets = $this->buildTicketsQuery($request)->paginate(15)->withQueryString();
 
         $metrics = [
             'total_tickets' => SupportTicket::count(),
@@ -53,9 +31,7 @@ class SupportTicketController extends Controller
             'resolved' => SupportTicket::where('status', TicketStatus::RESOLVED)->count(),
         ];
 
-        $adminRoles = ['super_admin', 'admin', 'support_admin'];
-        $existingAdminRoles = \Spatie\Permission\Models\Role::whereIn('name', $adminRoles)->pluck('name')->toArray();
-        $staff = !empty($existingAdminRoles) ? User::role($existingAdminRoles)->get() : collect();
+        $staff = $this->getStaffUsers();
 
         return view('admin.support.index', compact('tickets', 'metrics', 'staff'));
     }
@@ -66,7 +42,7 @@ class SupportTicketController extends Controller
     public function show(SupportTicket $ticket): View
     {
         $ticket->load(['user', 'seller', 'order', 'assignedAgent', 'messages.user']);
-        $staff = User::role(['super_admin', 'admin', 'support_admin'])->get();
+        $staff = $this->getStaffUsers();
 
         return view('admin.support.show', compact('ticket', 'staff'));
     }
@@ -127,7 +103,7 @@ class SupportTicketController extends Controller
     public function updateStatus(Request $request, SupportTicket $ticket): RedirectResponse
     {
         $validated = $request->validate([
-            'status' => ['required', 'string', 'in:open,in_progress,resolved,closed'],
+            'status' => ['required', 'string', 'in:open,in_progress,waiting_customer,resolved,closed'],
         ]);
 
         $ticket->status = TicketStatus::from($validated['status']);
@@ -176,33 +152,79 @@ class SupportTicketController extends Controller
     /**
      * Export support tickets as CSV.
      */
-    public function export(): StreamedResponse
+    public function export(Request $request): StreamedResponse
     {
         $headers = [
-            'Content-Type' => 'text/csv',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="tickets-' . now()->format('Ymd-His') . '.csv"',
         ];
 
-        return response()->stream(function () {
+        $query = $this->buildTicketsQuery($request);
+
+        return response()->stream(function () use ($query) {
             $handle = fopen('php://output', 'w');
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM
             fputcsv($handle, ['Ticket #', 'Subject', 'Customer', 'Category', 'Priority', 'Status', 'Assigned Agent', 'Created At']);
 
-            SupportTicket::with(['user', 'assignedAgent'])->chunk(100, function ($tickets) use ($handle) {
+            $query->chunk(100, function ($tickets) use ($handle) {
                 foreach ($tickets as $t) {
+                    $stVal = is_object($t->status) ? $t->status->value : (string) $t->status;
+                    $prVal = is_object($t->priority) ? $t->priority->value : (string) $t->priority;
                     fputcsv($handle, [
                         $t->ticket_number,
                         $t->subject,
                         $t->user?->name ?? 'N/A',
-                        $t->category,
-                        $t->priority?->value ?? (string) $t->priority,
-                        $t->status?->value ?? (string) $t->status,
+                        $t->category ?? 'General',
+                        ucfirst($prVal),
+                        ucfirst(str_replace('_', ' ', $stVal)),
                         $t->assignedAgent?->name ?? 'Unassigned',
-                        $t->created_at->toDateTimeString(),
+                        $t->created_at?->toDateTimeString() ?? '',
                     ]);
                 }
             });
 
             fclose($handle);
         }, 200, $headers);
+    }
+
+    /**
+     * Build base query for tickets listing and export.
+     */
+    protected function buildTicketsQuery(Request $request)
+    {
+        $query = SupportTicket::query()->with(['user', 'seller', 'order', 'assignedAgent'])->latest('id');
+
+        if ($search = $request->query('search')) {
+            $search = trim((string) $search);
+            $query->where(function ($q) use ($search) {
+                $q->where('ticket_number', 'like', "%{$search}%")
+                  ->orWhere('subject', 'like', "%{$search}%")
+                  ->orWhereHas('user', fn($uq) => $uq->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"));
+            });
+        }
+
+        if ($status = $request->query('status')) {
+            if ($status !== 'all') {
+                $query->where('status', $status);
+            }
+        }
+
+        if ($priority = $request->query('priority')) {
+            if ($priority !== 'all') {
+                $query->where('priority', $priority);
+            }
+        }
+
+        return $query;
+    }
+
+    /**
+     * Safely resolve admin & support staff users.
+     */
+    protected function getStaffUsers()
+    {
+        $adminRoles = ['super_admin', 'admin', 'support_admin'];
+        $existingAdminRoles = \Spatie\Permission\Models\Role::whereIn('name', $adminRoles)->pluck('name')->toArray();
+        return !empty($existingAdminRoles) ? User::role($existingAdminRoles)->get() : collect();
     }
 }

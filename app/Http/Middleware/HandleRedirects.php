@@ -7,6 +7,7 @@ namespace App\Http\Middleware;
 use App\Models\RedirectRule;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 class HandleRedirects
@@ -21,12 +22,17 @@ class HandleRedirects
             return $next($request);
         }
 
+        // Never redirect administrative, seller console, API, or system health endpoints
+        if ($request->is('admin*', 'seller*', 'api*', '_ignition*', 'up')) {
+            return $next($request);
+        }
+
         // Normalize path: e.g. 'old-category/' -> '/old-category'
         $path = '/' . ltrim(rtrim($request->path(), '/'), '/');
 
         // Look up active redirect rule from cached mapping (fast in-memory/file lookup)
         try {
-            $rulesMap = \Illuminate\Support\Facades\Cache::remember('redirect_rules.map', 3600, function () {
+            $rulesMap = Cache::remember('redirect_rules.map', 3600, function () {
                 return RedirectRule::active()
                     ->get(['id', 'source_path', 'target_path', 'status_code'])
                     ->keyBy('source_path')
@@ -38,6 +44,11 @@ class HandleRedirects
         }
 
         if ($rule) {
+            // Guard against self-redirect loops
+            if ($rule->target_path === $path) {
+                return $next($request);
+            }
+
             $rule->recordHit();
 
             $target = $rule->target_path;

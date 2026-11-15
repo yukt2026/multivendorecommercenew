@@ -91,6 +91,24 @@ class Setting extends Model
             return static::$runtimeCache[$key];
         }
 
+        // Check common setting aliases across legacy and modern callers
+        $aliases = [
+            'cod_enabled' => 'cod_allowed',
+            'cod_allowed' => 'cod_enabled',
+            'max_cod_amount' => 'cod_max_limit_amount',
+            'cod_max_limit_amount' => 'max_cod_amount',
+            'free_delivery_threshold' => 'free_shipping_threshold',
+            'free_shipping_threshold' => 'free_delivery_threshold',
+            'base_delivery_fee' => 'standard_delivery_fee',
+            'standard_delivery_fee' => 'base_delivery_fee',
+            'quick_default_radius_km' => 'quick_max_radius_km',
+            'quick_max_radius_km' => 'quick_default_radius_km',
+        ];
+
+        if (isset($aliases[$key]) && array_key_exists($aliases[$key], static::$runtimeCache)) {
+            return static::$runtimeCache[$aliases[$key]];
+        }
+
         // Check fallback in config/onestall.php or return provided default
         return config("onestall.{$key}", $default);
     }
@@ -102,18 +120,21 @@ class Setting extends Model
     {
         static::clearRuntimeCache();
 
+        $existing = static::where('key', $key)->first();
+
+        // Preserve existing group, label, and type if not explicitly supplied
+        $effectiveGroup = $group ?? $existing?->group ?? 'general';
+        $effectiveLabel = $label ?? $existing?->label;
+        $effectiveType = $type ?? $existing?->type ?? static::detectType($value);
+
         if (is_array($value)) {
-            if ($type !== null && !in_array($type, ['array', 'json'])) {
-                $group = $group ?? $type;
-            }
-            $type = 'array';
+            $effectiveType = in_array($effectiveType, ['array', 'json'], true) ? $effectiveType : 'array';
             $serializedValue = json_encode($value);
         } else {
-            $type = $type ?? static::detectType($value);
-            $serializedValue = match ($type) {
+            $serializedValue = match ($effectiveType) {
                 'json', 'array' => is_string($value) ? $value : json_encode($value),
-                'boolean' => $value ? '1' : '0',
-                default => (string) $value,
+                'boolean', 'bool' => filter_var($value, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
+                default => (string) ($value ?? ''),
             };
         }
 
@@ -121,9 +142,9 @@ class Setting extends Model
             ['key' => $key],
             [
                 'value' => $serializedValue,
-                'type' => $type,
-                'group' => $group ?? 'general',
-                'label' => $label,
+                'type' => $effectiveType,
+                'group' => $effectiveGroup,
+                'label' => $effectiveLabel,
             ]
         );
 

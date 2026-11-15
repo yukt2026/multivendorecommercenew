@@ -286,6 +286,16 @@ class NotificationService
                 $res = $driver->send($log->recipient, $log->event_key, $log->content ?? '', ['event_key' => $log->event_key]);
                 $success = (bool) ($res['success'] ?? false);
                 $error = $res['error'] ?? null;
+            } elseif ($log->channel === 'mail') {
+                try {
+                    \Illuminate\Support\Facades\Mail::raw($log->content ?? '', function ($m) use ($log) {
+                        $m->to($log->recipient)->subject($log->subject ?? ('Notification from ' . (function_exists('setting') ? setting('name', 'OneStall') : 'OneStall')));
+                    });
+                    $success = true;
+                } catch (\Throwable $e) {
+                    $success = false;
+                    $error = $e->getMessage();
+                }
             }
 
             if ($success) {

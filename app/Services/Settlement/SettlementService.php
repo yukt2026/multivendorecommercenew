@@ -199,18 +199,36 @@ class SettlementService
             $settlement->save();
 
             // Reconcile COD remittances that were deducted in this settlement
-            $remittanceReferences = $settlement->items()
+            $remittanceIds = $settlement->items()
                 ->where('type', 'cod_deduction')
-                ->pluck('description')
-                ->toArray();
+                ->get()
+                ->map(function ($item) {
+                    if (preg_match('/Ref #(\d+)/', (string) $item->description, $m)) {
+                        return (int) $m[1];
+                    }
+                    return null;
+                })
+                ->filter()
+                ->values()
+                ->all();
 
-            CodRemittance::query()
-                ->where('seller_id', $settlement->seller_id)
-                ->where('status', CODRemittanceStatus::COLLECTED)
-                ->update([
-                    'status' => CODRemittanceStatus::REMITTED,
-                    'remitted_at' => now(),
-                ]);
+            if (!empty($remittanceIds)) {
+                CodRemittance::whereIn('id', $remittanceIds)
+                    ->where('status', CODRemittanceStatus::COLLECTED)
+                    ->update([
+                        'status' => CODRemittanceStatus::REMITTED,
+                        'remitted_at' => now(),
+                    ]);
+            } else {
+                CodRemittance::query()
+                    ->where('seller_id', $settlement->seller_id)
+                    ->where('status', CODRemittanceStatus::COLLECTED)
+                    ->where('collected_at', '<=', $settlement->period_end ? $settlement->period_end->copy()->endOfDay() : now())
+                    ->update([
+                        'status' => CODRemittanceStatus::REMITTED,
+                        'remitted_at' => now(),
+                    ]);
+            }
 
             Log::info("Settlement #{$settlement->settlement_number} marked PAID with UTR: {$utrReference}");
 

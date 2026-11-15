@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Enum;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -16,18 +18,30 @@ use Spatie\Permission\Models\Role;
 class StaffController extends Controller
 {
     /**
+     * Admin staff role identifiers.
+     */
+    protected array $adminRoles = [
+        'super_admin',
+        'admin',
+        'support_admin',
+        'catalog_manager',
+        'finance_admin',
+        'support_staff',
+    ];
+
+    /**
      * Display list of admin staff members.
      */
     public function index(Request $request): View
     {
-        $adminRoles = ['super_admin', 'admin', 'support_admin', 'catalog_manager', 'finance_admin'];
-        $existingAdminRoles = Role::whereIn('name', $adminRoles)->pluck('name')->toArray();
+        $existingAdminRoles = Role::whereIn('name', $this->adminRoles)->pluck('name')->toArray();
 
         $query = !empty($existingAdminRoles)
             ? User::role($existingAdminRoles)->with('roles')->latest('id')
             : User::whereRaw('1 = 0');
 
         if ($search = $request->query('search')) {
+            $search = trim((string) $search);
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
@@ -41,8 +55,14 @@ class StaffController extends Controller
             }
         }
 
+        if ($status = $request->query('status')) {
+            if ($status !== 'all') {
+                $query->where('status', $status);
+            }
+        }
+
         $staff = $query->paginate(15)->withQueryString();
-        $roles = Role::whereIn('name', $adminRoles)->orWhere('guard_name', 'web')->get();
+        $roles = Role::whereIn('name', $this->adminRoles)->get();
 
         $metrics = [
             'total_staff' => !empty($existingAdminRoles) ? User::role($existingAdminRoles)->count() : 0,
@@ -65,14 +85,17 @@ class StaffController extends Controller
             'phone' => ['nullable', 'string', 'max:20'],
             'password' => ['required', 'string', 'min:8'],
             'role' => ['required', 'string', 'exists:roles,name'],
+            'status' => ['nullable', 'string', new Enum(UserStatus::class)],
         ]);
+
+        $status = !empty($validated['status']) ? UserStatus::from($validated['status']) : UserStatus::ACTIVE;
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
             'password' => Hash::make($validated['password']),
-            'status' => 'active',
+            'status' => $status,
         ]);
 
         $user->assignRole($validated['role']);
@@ -99,13 +122,15 @@ class StaffController extends Controller
             'phone' => ['nullable', 'string', 'max:20'],
             'password' => ['nullable', 'string', 'min:8'],
             'role' => ['required', 'string', 'exists:roles,name'],
-            'status' => ['required', 'in:active,blocked'],
+            'status' => ['nullable', 'string', new Enum(UserStatus::class)],
         ]);
 
         $staff->name = $validated['name'];
         $staff->email = $validated['email'];
         $staff->phone = $validated['phone'] ?? null;
-        $staff->status = $validated['status'];
+        if (!empty($validated['status'])) {
+            $staff->status = UserStatus::from($validated['status']);
+        }
 
         if (!empty($validated['password'])) {
             $staff->password = Hash::make($validated['password']);
@@ -113,6 +138,14 @@ class StaffController extends Controller
         $staff->save();
 
         $staff->syncRoles([$validated['role']]);
+
+        if (function_exists('activity')) {
+            activity('staff')
+                ->performedOn($staff)
+                ->causedBy(auth()->user())
+                ->withProperties(['role' => $validated['role']])
+                ->log("Staff user {$staff->name} updated");
+        }
 
         return redirect()->route('admin.staff.index')->with('success', "Staff member '{$staff->name}' updated successfully.");
     }
@@ -143,8 +176,7 @@ class StaffController extends Controller
      */
     public function roles(): View
     {
-        $adminRoles = ['super_admin', 'admin', 'support_admin', 'finance_admin', 'catalog_manager'];
-        $roles = Role::whereIn('name', $adminRoles)->orWhere('guard_name', 'web')->with('permissions')->get();
+        $roles = Role::whereIn('name', $this->adminRoles)->with('permissions')->get();
         $permissions = Permission::all()->groupBy(function ($p) {
             return explode('.', $p->name)[0] ?? 'general';
         });

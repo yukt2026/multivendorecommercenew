@@ -57,8 +57,8 @@
 
     <!-- Filter Strip -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
-        <form method="GET" action="{{ route('admin.staff.index') }}" class="flex flex-wrap items-center gap-2 w-full md:w-auto">
-            <div class="relative w-full md:w-72">
+        <form method="GET" action="{{ route('admin.staff.index') }}" class="flex flex-wrap items-center gap-2 w-full">
+            <div class="relative flex-1 min-w-[200px]">
                 <input 
                     type="text" 
                     name="search" 
@@ -78,9 +78,19 @@
                 @endforeach
             </select>
 
-            <button type="submit" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-sm transition">
+            <select name="status" class="text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white py-2 px-3">
+                <option value="all">All Statuses</option>
+                <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active Only</option>
+                <option value="suspended" {{ request('status') === 'suspended' ? 'selected' : '' }}>Suspended Only</option>
+                <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive Only</option>
+            </select>
+
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-sm transition">
                 Filter
             </button>
+            <a href="{{ route('admin.staff.index') }}" class="px-3 py-2 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
+                Reset
+            </a>
         </form>
     </div>
 
@@ -93,6 +103,7 @@
                         <th class="px-6 py-3.5">Staff Member</th>
                         <th class="px-6 py-3.5">Contact</th>
                         <th class="px-6 py-3.5">Assigned Role</th>
+                        <th class="px-6 py-3.5">Account Status</th>
                         <th class="px-6 py-3.5">Joined Date</th>
                         <th class="px-6 py-3.5 text-right">Actions</th>
                     </tr>
@@ -123,10 +134,36 @@
                                     {{ $role->name === 'super_admin' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-800' : '' }}
                                     {{ $role->name === 'admin' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800' : '' }}
                                     {{ $role->name === 'support_admin' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-800' : '' }}
+                                    {{ !in_array($role->name, ['super_admin', 'admin', 'support_admin']) ? 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700' : '' }}
                                 ">
                                     {{ str_replace('_', ' ', $role->name) }}
                                 </span>
                             @endforeach
+                        </td>
+                        <td class="px-6 py-4">
+                            @php
+                                $statusEnum = $u->status instanceof \App\Enums\UserStatus ? $u->status : \App\Enums\UserStatus::tryFrom((string) $u->status);
+                                $rawStatus = $statusEnum?->value ?? ($u->status ?? 'active');
+                                $label = $statusEnum?->label() ?? ucfirst((string) $rawStatus);
+                                $badgeClass = match ($rawStatus) {
+                                    'active' => 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400',
+                                    'suspended' => 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-400',
+                                    'inactive' => 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300',
+                                    'pending' => 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400',
+                                    default => 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300',
+                                };
+                                $dotClass = match ($rawStatus) {
+                                    'active' => 'bg-emerald-500',
+                                    'suspended' => 'bg-rose-500',
+                                    'inactive' => 'bg-slate-400',
+                                    'pending' => 'bg-amber-500',
+                                    default => 'bg-slate-400',
+                                };
+                            @endphp
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border {{ $badgeClass }}">
+                                <span class="w-1.5 h-1.5 rounded-full mr-1.5 {{ $dotClass }}"></span>
+                                {{ $label }}
+                            </span>
                         </td>
                         <td class="px-6 py-4 text-slate-500">
                             {{ $u->created_at->format('d M Y') }}
@@ -154,7 +191,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                        <td colspan="6" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
                             No staff accounts found matching criteria.
                         </td>
                     </tr>
@@ -163,7 +200,7 @@
             </table>
         </div>
         <div class="p-4 border-t border-slate-200 dark:border-slate-800">
-            {{ $staff->links() }}
+            <x-pagination :paginator="$staff" />
         </div>
     </div>
 
@@ -223,6 +260,15 @@
                         </div>
 
                         <div>
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Account Status</label>
+                            <select name="status" x-model="form.status" class="w-full text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5">
+                                <option value="active">Active</option>
+                                <option value="suspended">Suspended</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+
+                        <div>
                             <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1" x-text="isEditing ? 'New Password (Leave blank to keep current)' : 'Password *'"></label>
                             <div class="relative rounded-lg shadow-xs" x-data="{ showPass: false }">
                                 <input :type="showPass ? 'text' : 'password'" type="password" name="password" :required="!isEditing" placeholder="••••••••" class="w-full text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5 pr-10 focus:ring-1 focus:ring-indigo-500">
@@ -267,7 +313,8 @@ function staffManager() {
             name: '',
             email: '',
             phone: '',
-            role: 'admin'
+            role: 'admin',
+            status: 'active'
         },
         openModal() {
             this.isEditing = false;
@@ -276,18 +323,26 @@ function staffManager() {
                 name: '',
                 email: '',
                 phone: '',
-                role: 'admin'
+                role: 'admin',
+                status: 'active'
             };
             this.isOpen = true;
         },
         editStaff(staff, currentRole) {
             this.isEditing = true;
             this.formUrl = `/admin/staff/${staff.id}`;
+            let statusVal = 'active';
+            if (staff.status && typeof staff.status === 'object' && staff.status.value) {
+                statusVal = staff.status.value;
+            } else if (typeof staff.status === 'string') {
+                statusVal = staff.status;
+            }
             this.form = {
                 name: staff.name,
                 email: staff.email,
                 phone: staff.phone || '',
-                role: currentRole || 'admin'
+                role: currentRole || 'admin',
+                status: statusVal
             };
             this.isOpen = true;
         },

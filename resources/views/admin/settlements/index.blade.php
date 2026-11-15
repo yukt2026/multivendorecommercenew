@@ -1,7 +1,7 @@
 @extends('layouts.dashboard', ['portal' => 'admin', 'title' => 'Seller Settlements'])
 
 @section('content')
-<div class="space-y-6" x-data="{ openGenerateModal: false, openPayModal: false, selectedSettlement: null, utrRef: '' }">
+<div class="space-y-6" x-data="{ openGenerateModal: false, openPayModal: false, openHoldModal: false, selectedSettlement: null, utrRef: '', holdReason: '' }">
 
     <!-- Page Header -->
     <x-page-header 
@@ -16,13 +16,24 @@
         </x-slot>
 
         <x-slot name="actions">
-            <button 
-                @click="openGenerateModal = true" 
-                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center space-x-1.5"
-            >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                <span>Generate Settlement Batch</span>
-            </button>
+            <div class="flex items-center space-x-2">
+                <a 
+                    href="{{ route('admin.settlements.export', request()->query()) }}" 
+                    class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg shadow-sm transition flex items-center space-x-1.5"
+                    title="Export filtered settlements as CSV"
+                >
+                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    <span>Export CSV</span>
+                </a>
+
+                <button 
+                    @click="openGenerateModal = true" 
+                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center space-x-1.5"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                    <span>Generate Settlement Batch</span>
+                </button>
+            </div>
         </x-slot>
     </x-page-header>
 
@@ -66,42 +77,51 @@
     </div>
 
     <!-- Filters Bar -->
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div class="flex items-center space-x-2">
+    <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div class="flex flex-wrap items-center gap-1.5">
             @php $currentStatus = request('status', 'all'); @endphp
-            <a href="{{ route('admin.settlements.index', ['status' => 'all']) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium {{ $currentStatus === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
-                All
+            <a href="{{ route('admin.settlements.index', array_merge(request()->except('status', 'page'), ['status' => 'all'])) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium {{ $currentStatus === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
+                All ({{ $metrics['total_settlements'] }})
             </a>
-            <a href="{{ route('admin.settlements.index', ['status' => 'pending']) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium {{ $currentStatus === 'pending' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
+            <a href="{{ route('admin.settlements.index', array_merge(request()->except('status', 'page'), ['status' => 'pending'])) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium {{ $currentStatus === 'pending' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
                 Pending ({{ $metrics['pending_count'] }})
             </a>
-            <a href="{{ route('admin.settlements.index', ['status' => 'processing']) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium {{ $currentStatus === 'processing' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
+            <a href="{{ route('admin.settlements.index', array_merge(request()->except('status', 'page'), ['status' => 'processing'])) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium {{ $currentStatus === 'processing' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
                 Processing ({{ $metrics['processing_count'] }})
             </a>
-            <a href="{{ route('admin.settlements.index', ['status' => 'paid']) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium {{ $currentStatus === 'paid' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
+            <a href="{{ route('admin.settlements.index', array_merge(request()->except('status', 'page'), ['status' => 'paid'])) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium {{ $currentStatus === 'paid' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
                 Paid
             </a>
-            <a href="{{ route('admin.settlements.index', ['status' => 'on_hold']) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium {{ $currentStatus === 'on_hold' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
+            <a href="{{ route('admin.settlements.index', array_merge(request()->except('status', 'page'), ['status' => 'on_hold'])) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium {{ $currentStatus === 'on_hold' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
                 On Hold ({{ $metrics['on_hold_count'] }})
             </a>
         </div>
 
-        <form method="GET" action="{{ route('admin.settlements.index') }}" class="flex items-center space-x-2">
-            <input type="hidden" name="status" value="{{ $currentStatus }}">
+        <form method="GET" action="{{ route('admin.settlements.index') }}" class="flex flex-wrap items-center gap-2">
+            @if(request('status') && request('status') !== 'all')
+                <input type="hidden" name="status" value="{{ request('status') }}">
+            @endif
+
             <select name="seller_id" onchange="this.form.submit()" class="text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-indigo-500">
                 <option value="">All Sellers</option>
                 @foreach($sellers as $s)
                     <option value="{{ $s->id }}" {{ request('seller_id') == $s->id ? 'selected' : '' }}>{{ $s->store_name }}</option>
                 @endforeach
             </select>
+
             <input 
                 type="text" 
                 name="search" 
                 value="{{ request('search') }}" 
-                placeholder="Settlement # or UTR..." 
-                class="text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-indigo-500 w-44"
+                placeholder="Settlement #, UTR, or Seller..." 
+                class="text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-indigo-500 w-48"
             >
-            <button type="submit" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-medium">Search</button>
+
+            <button type="submit" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-medium transition">Search</button>
+
+            @if(request()->hasAny(['search', 'seller_id', 'date_from', 'date_to']) || (request('status') && request('status') !== 'all'))
+                <a href="{{ route('admin.settlements.index') }}" class="px-2.5 py-1.5 text-xs text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 font-medium transition">Reset</a>
+            @endif
         </form>
     </div>
 
@@ -131,7 +151,7 @@
                                 {{ $s->settlement_number }}
                             </a>
                             @if($s->reference)
-                                <div class="text-[10px] text-slate-400 font-mono">UTR: {{ $s->reference }}</div>
+                                <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">UTR: {{ $s->reference }}</div>
                             @endif
                         </td>
                         <td class="px-6 py-4">
@@ -139,7 +159,7 @@
                             <div class="text-[10px] text-slate-400">Seller #{{ $s->seller_id }}</div>
                         </td>
                         <td class="px-6 py-4 text-slate-500 dark:text-slate-400 font-mono text-[11px]">
-                            {{ $s->period_start->format('d M') }} &rarr; {{ $s->period_end->format('d M Y') }}
+                            {{ $s->period_start ? $s->period_start->format('d M') : '-' }} &rarr; {{ $s->period_end ? $s->period_end->format('d M Y') : '-' }}
                         </td>
                         <td class="px-6 py-4 text-right font-mono font-bold text-slate-900 dark:text-white">
                             {{ format_currency((float)$s->gross) }}
@@ -170,6 +190,9 @@
                             ">
                                 {{ $s->status->label() }}
                             </span>
+                            @if($s->status->value === 'on_hold' && $s->hold_reason)
+                                <div class="text-[10px] text-rose-500 mt-1 max-w-[140px] truncate" title="{{ $s->hold_reason }}">{{ $s->hold_reason }}</div>
+                            @endif
                         </td>
                         <td class="px-6 py-4 text-right space-x-1.5 whitespace-nowrap">
                             <a href="{{ route('admin.settlements.show', $s) }}" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-[11px] font-semibold transition">
@@ -183,6 +206,12 @@
                                         Approve
                                     </button>
                                 </form>
+                                <button 
+                                    @click="selectedSettlement = {{ json_encode($s) }}; openHoldModal = true" 
+                                    class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 rounded text-[11px] font-semibold transition"
+                                >
+                                    Hold
+                                </button>
                             @elseif($s->status->value === 'processing')
                                 <button 
                                     @click="selectedSettlement = {{ json_encode($s) }}; openPayModal = true" 
@@ -190,6 +219,19 @@
                                 >
                                     Pay UTR
                                 </button>
+                                <button 
+                                    @click="selectedSettlement = {{ json_encode($s) }}; openHoldModal = true" 
+                                    class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 rounded text-[11px] font-semibold transition"
+                                >
+                                    Hold
+                                </button>
+                            @elseif($s->status->value === 'on_hold')
+                                <form method="POST" action="{{ route('admin.settlements.release', $s) }}" class="inline">
+                                    @csrf
+                                    <button type="submit" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[11px] font-semibold shadow-sm transition">
+                                        Release
+                                    </button>
+                                </form>
                             @endif
 
                             <a href="{{ route('admin.settlements.pdf', $s) }}" class="p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition inline-block" title="Download PDF Statement">
@@ -208,7 +250,7 @@
             </table>
         </div>
         <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800">
-            {{ $settlements->links() }}
+            <x-pagination :paginator="$settlements" />
         </div>
     </div>
 
@@ -257,7 +299,7 @@
                 Record bank NEFT/RTGS/IMPS transaction reference (UTR) for Settlement <strong class="text-indigo-600 dark:text-indigo-400" x-text="selectedSettlement?.settlement_number"></strong>.
             </p>
 
-            <form :action="'/admin/settlements/' + selectedSettlement?.id + '/pay'" method="POST" class="space-y-4">
+            <form :action="'{{ url('admin/settlements') }}/' + (selectedSettlement ? selectedSettlement.id : '') + '/pay'" method="POST" class="space-y-4">
                 @csrf
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Bank UTR Reference Number</label>
@@ -270,6 +312,33 @@
                     </button>
                     <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-sm">
                         Confirm Paid
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hold Settlement Modal -->
+    <div x-show="openHoldModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div @click.away="openHoldModal = false" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md p-6">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">Place Settlement On Hold</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                Temporarily pause payout for Settlement <strong class="text-indigo-600 dark:text-indigo-400" x-text="selectedSettlement?.settlement_number"></strong> pending dispute or review.
+            </p>
+
+            <form :action="'{{ url('admin/settlements') }}/' + (selectedSettlement ? selectedSettlement.id : '') + '/hold'" method="POST" class="space-y-4">
+                @csrf
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Reason for Hold *</label>
+                    <textarea name="reason" required rows="3" x-model="holdReason" placeholder="Explain reason for holding payout..." class="w-full text-xs rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-indigo-500"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <button type="button" @click="openHoldModal = false" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold shadow-sm">
+                        Place On Hold
                     </button>
                 </div>
             </form>

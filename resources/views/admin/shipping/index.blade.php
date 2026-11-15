@@ -152,9 +152,9 @@
 
                 @foreach($currentPriorities as $index => $courierKey)
                     @php $courierInfo = $availableCouriers[$courierKey] ?? ['name' => ucfirst($courierKey), 'desc' => 'Courier partner']; @endphp
-                    <div class="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-xl">
+                    <div class="courier-row flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-xl transition" data-key="{{ $courierKey }}">
                         <div class="flex items-center space-x-3">
-                            <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400 text-xs font-bold flex items-center justify-center">
+                            <span class="courier-badge w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400 text-xs font-bold flex items-center justify-center">
                                 {{ $index + 1 }}
                             </span>
                             <div>
@@ -162,10 +162,18 @@
                                 <div class="text-[10px] text-slate-500">{{ $courierInfo['desc'] }}</div>
                             </div>
                         </div>
-                        <input type="hidden" name="courier_priorities[]" value="{{ $courierKey }}">
-                        <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 text-[10px] font-bold rounded">
-                            Active
-                        </span>
+                        <div class="flex items-center space-x-2">
+                            <button type="button" class="btn-move-up p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition" title="Move Up">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                            </button>
+                            <button type="button" class="btn-move-down p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition" title="Move Down">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <input type="hidden" name="courier_priorities[]" value="{{ $courierKey }}">
+                            <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 text-[10px] font-bold rounded">
+                                Active
+                            </span>
+                        </div>
                     </div>
                 @endforeach
             </div>
@@ -274,5 +282,134 @@
         </div>
     </form>
 
+    <!-- Recent Consignments Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">Recent Cargo Consignments</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Live tracking status and carrier booking records for latest consignments.</p>
+            </div>
+            <a 
+                href="{{ route('admin.shipping.failed_queue') }}" 
+                class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center space-x-1"
+            >
+                <span>View Failed Queue ({{ $metrics['failed_consignments'] }})</span>
+                <span>&rarr;</span>
+            </a>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 dark:bg-slate-800/60 text-slate-500 uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800 font-semibold">
+                    <tr>
+                        <th class="px-6 py-3.5">Shipment #</th>
+                        <th class="px-6 py-3.5">Order</th>
+                        <th class="px-6 py-3.5">Merchant</th>
+                        <th class="px-6 py-3.5">Courier &amp; AWB</th>
+                        <th class="px-6 py-3.5">Status</th>
+                        <th class="px-6 py-3.5">Created At</th>
+                        <th class="px-6 py-3.5 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    @forelse($recentShipments as $shp)
+                    @php
+                        $fo = $shp->fulfilmentOrder;
+                        $order = $fo?->order;
+                        $stVal = is_object($shp->status) ? $shp->status->value : (string) $shp->status;
+                    @endphp
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition">
+                        <td class="px-6 py-4 font-mono font-bold text-slate-900 dark:text-white">
+                            {{ $shp->shipment_number }}
+                        </td>
+                        <td class="px-6 py-4">
+                            @if($order)
+                                <a href="{{ route('admin.orders.show', $order) }}" class="font-mono font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+                                    {{ $order->order_number }}
+                                </a>
+                            @else
+                                <span class="text-slate-400">—</span>
+                            @endif
+                        </td>
+                        <td class="px-6 py-4 text-slate-800 dark:text-slate-200">
+                            {{ $fo?->seller?->business_name ?? $fo?->seller?->legal_name ?? 'OneStall Direct' }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="font-semibold text-slate-900 dark:text-white">{{ $shp->courier ?: 'OneStall Cargo' }}</div>
+                            <div class="font-mono text-[10px] text-slate-400 mt-0.5">
+                                {{ $shp->awb ? 'AWB: ' . $shp->awb : 'Missing AWB' }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border
+                                {{ in_array($stVal, ['delivered']) ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400' : '' }}
+                                {{ in_array($stVal, ['in_transit', 'out_for_delivery', 'picked_up']) ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-400' : '' }}
+                                {{ in_array($stVal, ['manifest_created', 'pending']) ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400' : '' }}
+                                {{ in_array($stVal, ['failed', 'cancelled']) ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-400' : '' }}
+                            ">
+                                {{ ucfirst(str_replace('_', ' ', $stVal)) }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-slate-500 text-[11px]">
+                            {{ $shp->created_at?->format('d M Y, h:i A') }}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            @if(!$shp->awb || $stVal === 'failed')
+                                <form method="POST" action="{{ route('admin.shipping.retry_shipment', $shp) }}" class="inline-block">
+                                    @csrf
+                                    <button type="submit" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 text-[11px] font-semibold rounded-lg transition">
+                                        Retry Booking
+                                    </button>
+                                </form>
+                            @elseif($shp->label_url)
+                                <a href="{{ $shp->label_url }}" target="_blank" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 text-[11px] font-semibold rounded-lg transition inline-flex items-center space-x-1">
+                                    <span>Shipping Label</span>
+                                </a>
+                            @else
+                                <span class="text-slate-400 text-xs">—</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-slate-400">
+                            No shipments created yet.
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const list = document.getElementById('courier-priority-list');
+    if (!list) return;
+
+    function updateBadges() {
+        list.querySelectorAll('.courier-row').forEach((row, idx) => {
+            const badge = row.querySelector('.courier-badge');
+            if (badge) badge.textContent = idx + 1;
+        });
+    }
+
+    list.addEventListener('click', function (e) {
+        const upBtn = e.target.closest('.btn-move-up');
+        const downBtn = e.target.closest('.btn-move-down');
+        const row = e.target.closest('.courier-row');
+        if (!row) return;
+
+        if (upBtn && row.previousElementSibling) {
+            list.insertBefore(row, row.previousElementSibling);
+            updateBadges();
+        } else if (downBtn && row.nextElementSibling) {
+            list.insertBefore(row.nextElementSibling, row);
+            updateBadges();
+        }
+    });
+});
+</script>
 @endsection

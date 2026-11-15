@@ -23,6 +23,35 @@ class InventoryController extends Controller
     {
         $this->authorize('viewAny', Inventory::class);
 
+        $query = $this->buildInventoryQuery($request);
+        $inventories = $query->paginate(20)->withQueryString();
+
+        // Platform KPI metrics
+        $totalItems = Inventory::count();
+        $totalOnHand = (int) Inventory::sum('quantity_on_hand');
+        $totalReserved = (int) Inventory::sum('quantity_reserved');
+        $outOfStock = Inventory::whereRaw('(quantity_on_hand - quantity_reserved) <= 0')->count();
+
+        $sellers = Seller::orderBy('business_name')->get(['id', 'business_name']);
+
+        return view('admin.inventory.index', [
+            'inventories' => $inventories,
+            'sellers' => $sellers,
+            'filters' => $request->only(['seller_id', 'location_type', 'stock_status', 'quick_available', 'search']),
+            'metrics' => [
+                'total_items' => $totalItems,
+                'total_on_hand' => $totalOnHand,
+                'total_reserved' => $totalReserved,
+                'out_of_stock' => $outOfStock,
+            ],
+        ]);
+    }
+
+    /**
+     * Build filtered query for global inventory balances.
+     */
+    protected function buildInventoryQuery(Request $request)
+    {
         $query = Inventory::query()
             ->with([
                 'variant.product.seller:id,business_name',
@@ -53,43 +82,91 @@ class InventoryController extends Controller
 
         // Quick Commerce candidate
         if ($request->filled('quick_available')) {
-            $query->where('is_quick_available', filter_var($request->quick_available, FILTER_VALIDATE_BOOLEAN));
+            $val = $request->quick_available;
+            if ($val === '1' || $val === 'true') {
+                $query->where('is_quick_available', true);
+            } elseif ($val === '0' || $val === 'false') {
+                $query->where('is_quick_available', false);
+            }
         }
 
-        // Search by Product title, SKU, or Seller business name
+        // Search by Product title, SKU, location name, or Seller business name
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
             $query->where(function ($q) use ($search) {
                 $q->whereHas('variant', function ($vq) use ($search) {
                     $vq->where('sku', 'like', "%{$search}%")
                         ->orWhereHas('product', fn ($pq) => $pq->where('title', 'like', "%{$search}%"));
-                })->orWhereHas('location.seller', function ($sq) use ($search) {
-                    $sq->where('business_name', 'like', "%{$search}%");
+                })->orWhereHas('location', function ($lq) use ($search) {
+                    $lq->where('name', 'like', "%{$search}%")
+                       ->orWhereHas('seller', fn ($sq) => $sq->where('business_name', 'like', "%{$search}%"));
                 });
             });
         }
 
-        $inventories = $query->paginate(20)->withQueryString();
+        return $query;
+    }
 
-        // Platform KPI metrics
-        $totalItems = Inventory::count();
-        $totalOnHand = (int) Inventory::sum('quantity_on_hand');
-        $totalReserved = (int) Inventory::sum('quantity_reserved');
-        $outOfStock = Inventory::whereRaw('(quantity_on_hand - quantity_reserved) <= 0')->count();
+    /**
+     * Export global inventory balances to CSV.
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $this->authorize('viewAny', Inventory::class);
 
-        $sellers = Seller::orderBy('business_name')->get(['id', 'business_name']);
+        $filename = 'global-inventory-' . now()->format('Ymd-His') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
 
-        return view('admin.inventory.index', [
-            'inventories' => $inventories,
-            'sellers' => $sellers,
-            'filters' => $request->only(['seller_id', 'location_type', 'stock_status', 'quick_available', 'search']),
-            'metrics' => [
-                'total_items' => $totalItems,
-                'total_on_hand' => $totalOnHand,
-                'total_reserved' => $totalReserved,
-                'out_of_stock' => $outOfStock,
-            ],
-        ]);
+        $query = $this->buildInventoryQuery($request);
+
+        return response()->stream(function () use ($query) {
+            $handle = fopen('php://output', 'w');
+            // UTF-8 BOM
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($handle, [
+                'Inventory ID',
+                'SKU',
+                'Product Title',
+                'Merchant Business',
+                'Location Name',
+                'Location Type',
+                'Quantity On Hand',
+                'Quantity Reserved',
+                'Quantity Available',
+                'Low Stock Threshold',
+                'Stock Health',
+                'Quick Commerce Eligible',
+                'Last Updated',
+            ]);
+
+            $query->chunk(200, function ($inventories) use ($handle) {
+                foreach ($inventories as $inv) {
+                    $available = $inv->quantity_on_hand - $inv->quantity_reserved;
+                    $status = $available <= 0 ? 'Out of Stock' : ($available <= $inv->low_stock_threshold ? 'Low Stock' : 'In Stock');
+
+                    fputcsv($handle, [
+                        $inv->id,
+                        $inv->variant?->sku ?? 'N/A',
+                        $inv->variant?->product?->title ?? 'N/A',
+                        $inv->location?->seller?->business_name ?? 'OneStall Direct',
+                        $inv->location?->name ?? 'N/A',
+                        strtoupper((string) ($inv->location?->type?->value ?? $inv->location?->type ?? 'N/A')),
+                        $inv->quantity_on_hand,
+                        $inv->quantity_reserved,
+                        max(0, $available),
+                        $inv->low_stock_threshold,
+                        $status,
+                        $inv->is_quick_available ? 'Yes' : 'No',
+                        $inv->updated_at?->toDateTimeString() ?? '',
+                    ]);
+                }
+            });
+
+            fclose($handle);
+        }, 200, $headers);
     }
 
     /**

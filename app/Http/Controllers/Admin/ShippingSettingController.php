@@ -139,6 +139,14 @@ class ShippingSettingController extends Controller
         Setting::set('shipping_rto_max_attempts', $validated['rto_max_attempts'], 'shipping');
         Setting::set('shipping_courier_priorities', $validated['courier_priorities'], 'shipping');
 
+        // Cross-sync platform delivery settings
+        Setting::set('free_shipping_threshold', $validated['free_shipping_threshold'], 'delivery');
+        Setting::set('free_delivery_threshold', $validated['free_shipping_threshold'], 'delivery');
+        Setting::set('standard_delivery_fee', $validated['standard_base_fee'], 'delivery');
+        Setting::set('base_delivery_fee', $validated['standard_base_fee'], 'delivery');
+        Setting::set('quick_max_radius_km', $validated['quick_max_radius_km'], 'delivery');
+        Setting::set('cod_max_limit_amount', $validated['cod_max_limit'], 'payment');
+
         // OneStall Cargo Platform Settings
         if (!empty($validated['cargo_base_url'])) {
             Setting::set('cargo_base_url', $validated['cargo_base_url'], 'cargo');

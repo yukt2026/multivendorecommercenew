@@ -110,6 +110,7 @@ Route::middleware(['auth', 'role:super_admin|admin|support_admin'])->group(funct
 
     // Global Inventory Overview & Sync Logs
     Route::prefix('inventory')->name('inventory.')->group(function () {
+        Route::get('/export', [\App\Http\Controllers\Admin\InventoryController::class, 'export'])->name('export');
         Route::get('/sync-logs/export', [\App\Http\Controllers\Admin\InventoryController::class, 'exportSyncLogs'])->name('sync_logs.export');
         Route::post('/sync-logs/prune', [\App\Http\Controllers\Admin\InventoryController::class, 'pruneSyncLogs'])->name('sync_logs.prune');
         Route::get('/sync-logs', [\App\Http\Controllers\Admin\InventoryController::class, 'syncLogs'])->name('sync_logs');
@@ -147,6 +148,7 @@ Route::middleware(['auth', 'role:super_admin|admin|support_admin'])->group(funct
 
     // Seller Settlements & Payouts (Blueprint Section 18)
     Route::prefix('settlements')->name('settlements.')->group(function () {
+        Route::get('/export', [SettlementController::class, 'exportSummary'])->name('export');
         Route::get('/', [SettlementController::class, 'index'])->name('index');
         Route::post('/generate', [SettlementController::class, 'generate'])->name('generate');
         Route::get('/{settlement}', [SettlementController::class, 'show'])->name('show');
@@ -175,6 +177,8 @@ Route::middleware(['auth', 'role:super_admin|admin|support_admin'])->group(funct
         Route::get('/{store}', [StoreController::class, 'show'])->name('show');
         Route::post('/{store}/approve', [StoreController::class, 'approve'])->name('approve');
         Route::post('/{store}/suspend', [StoreController::class, 'suspend'])->name('suspend');
+        Route::post('/{store}/toggle-quick', [StoreController::class, 'toggleQuick'])->name('toggle_quick');
+        Route::post('/{store}/update-radius', [StoreController::class, 'updateRadius'])->name('update_radius');
     });
 
     // Payments & Refunds Governance
@@ -182,6 +186,7 @@ Route::middleware(['auth', 'role:super_admin|admin|support_admin'])->group(funct
         Route::get('/', [PaymentController::class, 'index'])->name('index');
         Route::get('/export', [PaymentController::class, 'export'])->name('export');
         Route::get('/refunds', [PaymentController::class, 'refunds'])->name('refunds');
+        Route::get('/refunds/export', [PaymentController::class, 'exportRefunds'])->name('refunds.export');
         Route::get('/{payment}', [PaymentController::class, 'show'])->name('show');
         Route::post('/{payment}/refund', [PaymentController::class, 'refund'])->name('refund');
     });
@@ -222,6 +227,7 @@ Route::middleware(['auth', 'role:super_admin|admin|support_admin'])->group(funct
         Route::get('/{page}/edit', [CmsPageController::class, 'edit'])->name('edit');
         Route::put('/{page}', [CmsPageController::class, 'update'])->name('update');
         Route::delete('/{page}', [CmsPageController::class, 'destroy'])->name('destroy');
+        Route::post('/{page}/toggle', [CmsPageController::class, 'toggle'])->name('toggle');
     });
 
     // Logistics & Shipping Rules
@@ -282,18 +288,24 @@ Route::middleware(['auth', 'role:super_admin|admin|support_admin'])->group(funct
     Route::prefix('audit-logs')->name('audit-logs.')->group(function () {
         Route::get('/', [AuditLogController::class, 'index'])->name('index');
         Route::get('/export', [AuditLogController::class, 'export'])->name('export');
+        Route::post('/purge', [AuditLogController::class, 'purge'])->name('purge');
     });
 
     // Notification Templates & Audit Logs (Blueprint Section 27)
     Route::prefix('notifications')->name('notifications.')->group(function () {
         Route::get('/templates', [\App\Http\Controllers\Admin\NotificationTemplateController::class, 'index'])->name('templates.index');
         Route::put('/templates/{template}', [\App\Http\Controllers\Admin\NotificationTemplateController::class, 'update'])->name('templates.update');
+        Route::post('/templates/{template}/toggle', [\App\Http\Controllers\Admin\NotificationTemplateController::class, 'toggle'])->name('templates.toggle');
+        Route::post('/templates/{template}/preview', [\App\Http\Controllers\Admin\NotificationTemplateController::class, 'preview'])->name('templates.preview');
+        Route::get('/logs/export', [\App\Http\Controllers\Admin\NotificationLogController::class, 'export'])->name('logs.export');
+        Route::post('/logs/retry-all', [\App\Http\Controllers\Admin\NotificationLogController::class, 'retryAllFailed'])->name('logs.retry_all');
         Route::get('/logs', [\App\Http\Controllers\Admin\NotificationLogController::class, 'index'])->name('logs.index');
         Route::post('/logs/{log}/retry', [\App\Http\Controllers\Admin\NotificationLogController::class, 'retry'])->name('logs.retry');
     });
 
     // SEO 301/302 Redirect Manager (Blueprint Section 32)
     Route::prefix('redirects')->name('redirects.')->group(function () {
+        Route::get('/export', [\App\Http\Controllers\Admin\RedirectRuleController::class, 'export'])->name('export');
         Route::get('/', [\App\Http\Controllers\Admin\RedirectRuleController::class, 'index'])->name('index');
         Route::post('/', [\App\Http\Controllers\Admin\RedirectRuleController::class, 'store'])->name('store');
         Route::put('/{rule}', [\App\Http\Controllers\Admin\RedirectRuleController::class, 'update'])->name('update');

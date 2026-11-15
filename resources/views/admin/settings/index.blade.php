@@ -34,6 +34,7 @@
         <!-- Tab Body Form -->
         <form method="POST" action="{{ route('admin.settings.update') }}" class="p-6 space-y-6">
             @csrf
+            <input type="hidden" name="tab" value="{{ $currentTab }}">
 
             @php
                 $tabSettings = $settings->get($currentTab, collect());
@@ -57,27 +58,27 @@
                             </div>
 
                             <div class="md:col-span-2">
-                                @if($setting->type === 'boolean')
+                                @if($setting->type === 'boolean' || $setting->type === 'bool')
                                     <select 
                                         name="settings[{{ $setting->key }}]" 
-                                        class="text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5 max-w-xs w-full"
+                                        class="text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5 max-w-xs w-full font-semibold focus:ring-1 focus:ring-indigo-500"
                                     >
-                                        <option value="1" {{ $setting->value ? 'selected' : '' }}>Enabled / True</option>
-                                        <option value="0" {{ !$setting->value ? 'selected' : '' }}>Disabled / False</option>
+                                        <option value="1" {{ ($setting->value == '1' || $setting->value === 'true' || $setting->value === true) ? 'selected' : '' }}>Enabled / True</option>
+                                        <option value="0" {{ ($setting->value == '0' || $setting->value === 'false' || $setting->value === false || empty($setting->value)) ? 'selected' : '' }}>Disabled / False</option>
                                     </select>
-                                @elseif($setting->type === 'textarea')
+                                @elseif($setting->type === 'textarea' || $setting->type === 'text')
                                     <textarea 
                                         name="settings[{{ $setting->key }}]" 
                                         rows="3" 
-                                        class="text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5 w-full focus:ring-1 focus:ring-indigo-500 font-mono"
+                                        class="text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5 w-full focus:ring-1 focus:ring-indigo-500 font-mono leading-relaxed"
                                     >{{ is_array($setting->value) ? json_encode($setting->value, JSON_PRETTY_PRINT) : $setting->value }}</textarea>
-                                @elseif($setting->type === 'integer' || $setting->type === 'numeric' || $setting->type === 'float')
+                                @elseif(in_array($setting->type, ['integer', 'numeric', 'float', 'number'], true))
                                     <input 
                                         type="number" 
                                         step="any" 
                                         name="settings[{{ $setting->key }}]" 
                                         value="{{ $setting->value }}" 
-                                        class="text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5 max-w-xs w-full focus:ring-1 focus:ring-indigo-500"
+                                        class="text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5 max-w-xs w-full focus:ring-1 focus:ring-indigo-500 font-semibold"
                                     >
                                 @else
                                     <input 

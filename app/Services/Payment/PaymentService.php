@@ -187,8 +187,8 @@ class PaymentService
         ?string $reason = null,
         ?int $fulfilmentOrderId = null
     ): Refund {
-        if ($payment->status !== PaymentStatus::PAID) {
-            throw new InvalidArgumentException('Only successfully paid payments can be refunded.');
+        if (!in_array($payment->status, [PaymentStatus::PAID, PaymentStatus::PARTIALLY_REFUNDED], true)) {
+            throw new InvalidArgumentException('Only successfully paid or partially refunded payments can be refunded.');
         }
 
         $alreadyRefunded = (float) $payment->refunds()
@@ -201,10 +201,17 @@ class PaymentService
             throw new InvalidArgumentException("Invalid refund amount. Maximum refundable is " . format_currency($remainingPaid) . ".");
         }
 
-        $gateway = $this->gatewayManager->driver($payment->gateway);
-
-        // Execute Gateway Refund API
-        $result = $gateway->refund($payment, $amount, $reason);
+        if ($payment->gateway === 'cod') {
+            $result = [
+                'status' => 'processed',
+                'gateway_refund_id' => 'cod_ref_' . strtoupper(uniqid()),
+                'raw' => ['gateway' => 'cod', 'mode' => 'cash_manual_refund', 'processed_by' => Auth::id()],
+            ];
+        } else {
+            $gateway = $this->gatewayManager->driver($payment->gateway);
+            // Execute Gateway Refund API
+            $result = $gateway->refund($payment, $amount, $reason);
+        }
 
         return DB::transaction(function () use ($payment, $amount, $reason, $fulfilmentOrderId, $result, $alreadyRefunded) {
             $refund = Refund::create([
@@ -218,9 +225,16 @@ class PaymentService
                 'processed_at' => now(),
             ]);
 
+            $totalRefundedNow = $alreadyRefunded + $amount;
+            if ($totalRefundedNow >= ((float) $payment->amount - 0.01)) {
+                $payment->status = PaymentStatus::REFUNDED;
+            } else {
+                $payment->status = PaymentStatus::PARTIALLY_REFUNDED;
+            }
+            $payment->save();
+
             $order = $payment->order;
             if ($order) {
-                $totalRefundedNow = $alreadyRefunded + $amount;
                 if ($totalRefundedNow >= ((float) $payment->amount - 0.01)) {
                     $order->payment_status = PaymentStatus::REFUNDED;
                 } else {

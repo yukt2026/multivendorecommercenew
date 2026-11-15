@@ -6,7 +6,7 @@
     <!-- Page Header & Action Bar -->
     <x-page-header 
         :title="'Settlement #' . $settlement->settlement_number" 
-        :subtitle="'Cycle period ' . $settlement->period_start->format('d M Y') . ' to ' . $settlement->period_end->format('d M Y') . ' for ' . ($settlement->seller?->store_name ?? 'Seller #' . $settlement->seller_id)"
+        :subtitle="'Cycle period ' . ($settlement->period_start ? $settlement->period_start->format('d M Y') : '-') . ' to ' . ($settlement->period_end ? $settlement->period_end->format('d M Y') : '-') . ' for ' . ($settlement->seller?->store_name ?? 'Seller #' . $settlement->seller_id)"
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Settlements' => route('admin.settlements.index'), $settlement->settlement_number => '#']"
     >
         <x-slot name="badge">

@@ -45,6 +45,7 @@ class SettingController extends Controller
         $payload = $request->validate([
             'settings' => 'required|array',
             'settings.*' => 'nullable',
+            'tab' => 'nullable|string',
         ]);
 
         foreach ($payload['settings'] as $key => $value) {
@@ -58,7 +59,9 @@ class SettingController extends Controller
                 ->log("System settings updated: " . implode(', ', array_keys($payload['settings'])));
         }
 
-        return redirect()->back()->with('success', 'System platform settings updated successfully.');
+        $tab = $request->input('tab', 'general');
+
+        return redirect()->route('admin.settings.index', ['tab' => $tab])->with('success', 'System platform settings updated successfully.');
     }
 
     /**
@@ -69,17 +72,23 @@ class SettingController extends Controller
         $defaults = [
             // General
             ['key' => 'name', 'value' => 'OneStall', 'group' => 'general', 'label' => 'Platform Store Name', 'type' => 'string'],
-            ['key' => 'currency', 'value' => 'INR', 'group' => 'general', 'label' => 'Primary Currency', 'type' => 'string'],
+            ['key' => 'currency', 'value' => 'INR', 'group' => 'general', 'label' => 'Primary Currency Code', 'type' => 'string'],
+            ['key' => 'currency_symbol', 'value' => '₹', 'group' => 'general', 'label' => 'Currency Symbol', 'type' => 'string'],
             ['key' => 'timezone', 'value' => 'Asia/Kolkata', 'group' => 'general', 'label' => 'System Timezone', 'type' => 'string'],
             ['key' => 'support_email', 'value' => 'support@onestall.com', 'group' => 'general', 'label' => 'Customer Support Email', 'type' => 'string'],
+            ['key' => 'support_phone', 'value' => '1800-663-78255', 'group' => 'general', 'label' => 'Customer Support Phone / Hotline', 'type' => 'string'],
 
             // SEO
             ['key' => 'meta_title', 'value' => 'OneStall - Unified Hyperlocal & Multi-Vendor Marketplace', 'group' => 'seo', 'label' => 'Default SEO Meta Title', 'type' => 'string'],
-            ['key' => 'meta_description', 'value' => 'Shop groceries, electronics, and daily essentials with instant 10-30 min quick delivery or nationwide cargo shipping.', 'group' => 'seo', 'label' => 'Default Meta Description', 'type' => 'string'],
+            ['key' => 'meta_description', 'value' => 'Shop groceries, electronics, and daily essentials with instant 10-30 min quick delivery or nationwide cargo shipping.', 'group' => 'seo', 'label' => 'Default Meta Description', 'type' => 'textarea'],
             ['key' => 'google_site_verification', 'value' => '', 'group' => 'seo', 'label' => 'Google Search Console Verification Code', 'type' => 'string'],
             ['key' => 'bing_site_verification', 'value' => '', 'group' => 'seo', 'label' => 'Bing Webmaster Verification Code', 'type' => 'string'],
             ['key' => 'default_og_image', 'value' => '', 'group' => 'seo', 'label' => 'Default Social Share Image (OG Image URL)', 'type' => 'string'],
-            ['key' => 'robots_txt', 'value' => '', 'group' => 'seo', 'label' => 'Custom robots.txt Rules (Blank for Auto-Generated)', 'type' => 'text'],
+            ['key' => 'robots_txt', 'value' => '', 'group' => 'seo', 'label' => 'Custom robots.txt Rules (Blank for Auto-Generated)', 'type' => 'textarea'],
+            ['key' => 'social_facebook', 'value' => '', 'group' => 'seo', 'label' => 'Facebook Page URL', 'type' => 'string'],
+            ['key' => 'social_instagram', 'value' => '', 'group' => 'seo', 'label' => 'Instagram Profile URL', 'type' => 'string'],
+            ['key' => 'social_twitter', 'value' => '', 'group' => 'seo', 'label' => 'Twitter / X Profile URL', 'type' => 'string'],
+            ['key' => 'social_linkedin', 'value' => '', 'group' => 'seo', 'label' => 'LinkedIn Company URL', 'type' => 'string'],
 
             // Payment
             ['key' => 'razorpay_key_id', 'value' => 'rzp_test_sample', 'group' => 'payment', 'label' => 'Razorpay Key ID', 'type' => 'string'],
@@ -94,6 +103,8 @@ class SettingController extends Controller
             // Fulfilment
             ['key' => 'fulfilment_priority_order', 'value' => 'nearby_store,nearby_seller,onestall_store,regional_warehouse,national_seller', 'group' => 'fulfilment', 'label' => 'Fulfilment Source Priority (CSV)', 'type' => 'string'],
             ['key' => 'quick_delivery_sla_mins', 'value' => '20', 'group' => 'fulfilment', 'label' => 'Quick Commerce Delivery Target SLA (Mins)', 'type' => 'number'],
+            ['key' => 'quick_order_timeout_seconds', 'value' => '120', 'group' => 'fulfilment', 'label' => 'Store Acceptance Timeout (Seconds)', 'type' => 'number'],
+            ['key' => 'quick_default_max_concurrent_orders', 'value' => '15', 'group' => 'fulfilment', 'label' => 'Max Concurrent Quick Orders Per Store', 'type' => 'number'],
 
             // Commission
             ['key' => 'default_commission_pct', 'value' => '10.00', 'group' => 'commission', 'label' => 'Default Platform Commission %', 'type' => 'number'],
@@ -103,20 +114,33 @@ class SettingController extends Controller
             // Delivery
             ['key' => 'default_delivery_radius_km', 'value' => '8.00', 'group' => 'delivery', 'label' => 'Standard Delivery Radius (km)', 'type' => 'number'],
             ['key' => 'quick_max_radius_km', 'value' => '5.00', 'group' => 'delivery', 'label' => '10-Minute Dark Store Max Radius (km)', 'type' => 'number'],
-            ['key' => 'free_shipping_threshold', 'value' => '999.00', 'group' => 'delivery', 'label' => 'Free Shipping Order Minimum (INR)', 'type' => 'number'],
+            ['key' => 'free_shipping_threshold', 'value' => '499.00', 'group' => 'delivery', 'label' => 'Free Shipping Order Minimum (INR)', 'type' => 'number'],
             ['key' => 'standard_delivery_fee', 'value' => '40.00', 'group' => 'delivery', 'label' => 'Base Delivery Fee (INR)', 'type' => 'number'],
+            ['key' => 'min_order_value', 'value' => '99.00', 'group' => 'delivery', 'label' => 'Minimum Order Checkout Amount (INR)', 'type' => 'number'],
         ];
 
         foreach ($defaults as $d) {
-            Setting::firstOrCreate(
-                ['key' => $d['key']],
-                [
-                    'value' => $d['value'],
-                    'group' => $d['group'],
-                    'label' => $d['label'],
-                    'type' => $d['type'],
-                ]
-            );
+            $existing = Setting::where('key', $d['key'])->first();
+            if (!$existing) {
+                Setting::create($d);
+            } else {
+                $needsSave = false;
+                if (empty($existing->group) || ($existing->group === 'general' && $d['group'] !== 'general')) {
+                    $existing->group = $d['group'];
+                    $needsSave = true;
+                }
+                if (empty($existing->label)) {
+                    $existing->label = $d['label'];
+                    $needsSave = true;
+                }
+                if (empty($existing->type) || ($existing->type === 'text' && $d['type'] === 'textarea')) {
+                    $existing->type = $d['type'];
+                    $needsSave = true;
+                }
+                if ($needsSave) {
+                    $existing->save();
+                }
+            }
         }
     }
 }

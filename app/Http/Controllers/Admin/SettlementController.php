@@ -25,24 +25,13 @@ class SettlementController extends Controller
     ) {}
 
     /**
-     * Display list of settlements with metrics and filters.
+     * Build base query for settlements with filters and search.
      */
-    public function index(Request $request): View
+    private function buildSettlementsQuery(Request $request)
     {
         $query = SellerSettlement::query()
             ->with(['seller', 'items'])
             ->latest('id');
-
-        // Metrics Summary
-        $metrics = [
-            'total_settlements' => SellerSettlement::count(),
-            'pending_count' => SellerSettlement::where('status', SettlementStatus::PENDING)->count(),
-            'pending_amount' => (float) SellerSettlement::where('status', SettlementStatus::PENDING)->sum('net'),
-            'processing_count' => SellerSettlement::where('status', SettlementStatus::PROCESSING)->count(),
-            'processing_amount' => (float) SellerSettlement::where('status', SettlementStatus::PROCESSING)->sum('net'),
-            'paid_amount' => (float) SellerSettlement::whereIn('status', [SettlementStatus::PAID, SettlementStatus::SETTLED])->sum('net'),
-            'on_hold_count' => SellerSettlement::where('status', SettlementStatus::ON_HOLD)->count(),
-        ];
 
         // Filters
         if ($status = $request->query('status')) {
@@ -55,20 +44,114 @@ class SettlementController extends Controller
             $query->where('seller_id', $sellerId);
         }
 
-        if ($search = $request->query('search')) {
+        if ($dateFrom = $request->query('date_from')) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+
+        if ($dateTo = $request->query('date_to')) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
+        if ($search = trim((string) $request->query('search'))) {
             $query->where(function ($q) use ($search) {
                 $q->where('settlement_number', 'like', "%{$search}%")
                   ->orWhere('reference', 'like', "%{$search}%")
                   ->orWhereHas('seller', function ($sq) use ($search) {
-                      $sq->where('store_name', 'like', "%{$search}%");
+                      $sq->where('business_name', 'like', "%{$search}%")
+                        ->orWhere('legal_name', 'like', "%{$search}%");
                   });
             });
         }
+
+        return $query;
+    }
+
+    /**
+     * Display list of settlements with metrics and filters.
+     */
+    public function index(Request $request): View
+    {
+        $query = $this->buildSettlementsQuery($request);
+
+        // Metrics Summary
+        $metrics = [
+            'total_settlements' => SellerSettlement::count(),
+            'pending_count' => SellerSettlement::where('status', SettlementStatus::PENDING)->count(),
+            'pending_amount' => (float) SellerSettlement::where('status', SettlementStatus::PENDING)->sum('net'),
+            'processing_count' => SellerSettlement::where('status', SettlementStatus::PROCESSING)->count(),
+            'processing_amount' => (float) SellerSettlement::where('status', SettlementStatus::PROCESSING)->sum('net'),
+            'paid_amount' => (float) SellerSettlement::whereIn('status', [SettlementStatus::PAID, SettlementStatus::SETTLED])->sum('net'),
+            'on_hold_count' => SellerSettlement::where('status', SettlementStatus::ON_HOLD)->count(),
+        ];
 
         $settlements = $query->paginate(15)->withQueryString();
         $sellers = Seller::whereIn('status', [\App\Enums\SellerStatus::APPROVED, 'approved', 'active'])->orderBy('business_name')->get();
 
         return view('admin.settlements.index', compact('settlements', 'metrics', 'sellers'));
+    }
+
+    /**
+     * Export settlements summary list as CSV.
+     */
+    public function exportSummary(Request $request): StreamedResponse
+    {
+        $query = $this->buildSettlementsQuery($request);
+
+        $date = now()->format('Y-m-d');
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"Settlements-Summary-{$date}.csv\"",
+        ];
+
+        return response()->stream(function () use ($query) {
+            $handle = fopen('php://output', 'w');
+            // Write UTF-8 BOM for Microsoft Excel compatibility
+            fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            fputcsv($handle, [
+                'Settlement Number',
+                'Seller ID',
+                'Store Name',
+                'Legal Entity',
+                'Cycle Period Start',
+                'Cycle Period End',
+                'Status',
+                'Gross Sales',
+                'Commission Fee',
+                'Tax on Commission (GST)',
+                'COD Deducted',
+                'Adjustments',
+                'Net Payable',
+                'Bank UTR Reference',
+                'Paid At',
+                'Created At',
+            ]);
+
+            $query->chunk(100, function ($settlements) use ($handle) {
+                foreach ($settlements as $s) {
+                    fputcsv($handle, [
+                        $s->settlement_number,
+                        $s->seller_id,
+                        $s->seller?->store_name ?? 'N/A',
+                        $s->seller?->legal_name ?? $s->seller?->business_name ?? 'N/A',
+                        $s->period_start ? $s->period_start->format('Y-m-d') : '',
+                        $s->period_end ? $s->period_end->format('Y-m-d') : '',
+                        $s->status->label(),
+                        $s->gross,
+                        $s->commission,
+                        $s->tax_on_commission,
+                        $s->cod_collected,
+                        $s->adjustments,
+                        $s->net,
+                        $s->reference ?? '',
+                        $s->paid_at ? $s->paid_at->toDateTimeString() : '',
+                        $s->created_at ? $s->created_at->toDateTimeString() : '',
+                    ]);
+                }
+            });
+
+            fclose($handle);
+        }, 200, $headers);
     }
 
     /**
@@ -198,15 +281,17 @@ class SettlementController extends Controller
      */
     public function exportCsv(SellerSettlement $settlement): StreamedResponse
     {
-        $settlement->load(['seller', 'items.fulfilmentOrder', 'items.commissionEntry']);
+        $settlement->load(['seller', 'items.fulfilmentOrder', 'items.commissionEntry.rule']);
 
         $headers = [
-            'Content-Type' => 'text/csv',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"Settlement-{$settlement->settlement_number}-items.csv\"",
         ];
 
         return response()->stream(function () use ($settlement) {
             $handle = fopen('php://output', 'w');
+            fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
             fputcsv($handle, [
                 'Item ID',
                 'Type',

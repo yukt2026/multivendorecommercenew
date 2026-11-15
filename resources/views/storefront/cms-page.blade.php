@@ -24,7 +24,11 @@
 
     <!-- Article Content -->
     <div class="prose prose-slate max-w-none text-sm text-slate-700 leading-relaxed space-y-4">
-        {!! nl2br(e($page->content)) !!}
+        @if(strip_tags($page->content) !== $page->content)
+            {!! clean_html($page->content) !!}
+        @else
+            {!! nl2br(e($page->content)) !!}
+        @endif
     </div>
 
 </div>

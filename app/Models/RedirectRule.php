@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class RedirectRule extends Model
 {
@@ -28,6 +29,20 @@ class RedirectRule extends Model
         'last_accessed_at' => 'datetime',
     ];
 
+    /**
+     * Clear cached lookup mapping whenever rules change.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function () {
+            Cache::forget('redirect_rules.map');
+        });
+
+        static::deleted(function () {
+            Cache::forget('redirect_rules.map');
+        });
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
@@ -44,11 +59,13 @@ class RedirectRule extends Model
     }
 
     /**
-     * Record a hit on this redirect rule.
+     * Record a hit on this redirect rule silently without triggering saved events.
      */
     public function recordHit(): void
     {
-        $this->increment('hit_count');
-        $this->update(['last_accessed_at' => now()]);
+        static::withoutEvents(function () {
+            $this->increment('hit_count');
+            $this->update(['last_accessed_at' => now()]);
+        });
     }
 }

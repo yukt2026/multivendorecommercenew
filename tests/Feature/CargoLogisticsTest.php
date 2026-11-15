@@ -264,9 +264,16 @@ class CargoLogisticsTest extends TestCase
     public function test_cargo_client_live_http_request_with_signatures_and_retries(): void
     {
         $this->cargoClient->setFakeMode(false);
+        $baseUrl = rtrim($this->cargoClient->getBaseUrl(), '/');
 
         Http::fake([
-            'https://api.onestallcargo.internal/v1/shipments' => Http::response([
+            $baseUrl . '/shipments*' => Http::response([
+                'success' => true,
+                'awb' => 'OSC-LIVE-123',
+                'courier' => 'OneStall Express Air',
+                'charges' => 195.00,
+            ], 201),
+            '*/shipments*' => Http::response([
                 'success' => true,
                 'awb' => 'OSC-LIVE-123',
                 'courier' => 'OneStall Express Air',

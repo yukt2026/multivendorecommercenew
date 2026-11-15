@@ -54,6 +54,23 @@ class CargoClient
     }
 
     /**
+     * Get base API URL.
+     */
+    public function getBaseUrl(): string
+    {
+        return $this->baseUrl;
+    }
+
+    /**
+     * Set base API URL.
+     */
+    public function setBaseUrl(string $url): self
+    {
+        $this->baseUrl = $url;
+        return $this;
+    }
+
+    /**
      * Get webhook secret key.
      */
     public function getWebhookSecret(): string

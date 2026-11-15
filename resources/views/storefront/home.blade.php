@@ -47,27 +47,31 @@
                                      alt="{{ $banner->title }}" 
                                      class="absolute inset-0 w-full h-full object-cover object-center z-0 transition-transform duration-700 hover:scale-105"
                                      loading="{{ $index === 0 ? 'eager' : 'lazy' }}">
-                                <!-- Semi-transparent scrim: text readable on left, artwork clear on right -->
-                                <div class="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/50 to-transparent z-[1] pointer-events-none"></div>
+                                <!-- Subtle gentle scrim for contrast without obscuring the artwork -->
+                                <div class="absolute inset-0 bg-gradient-to-r from-slate-950/40 via-slate-950/10 to-transparent z-[1] pointer-events-none"></div>
                             @else
                                 <div class="absolute inset-0 z-0 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900"></div>
                             @endif
 
-                            <div class="max-w-xl space-y-2 sm:space-y-4 relative z-10">
+                            <!-- Clickable Slide Link Overlay -->
+                            <a href="{{ $targetUrl }}" class="absolute inset-0 z-[5]" aria-label="{{ $banner->title }}"></a>
+
+                            <!-- Frosted Glass Content Card (Ensures readability on light or dark images) -->
+                            <div class="max-w-xl space-y-2 sm:space-y-4 relative z-10 bg-slate-950/50 backdrop-blur-md p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/10 shadow-2xl">
                                 <span class="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[9px] sm:text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950 shadow-sm">
                                     <span>⚡ ONESTALL SPECIAL</span>
                                 </span>
-                                <h2 class="text-base sm:text-4xl font-black text-white tracking-tight leading-tight line-clamp-2 drop-shadow-md">
+                                <h2 class="text-base sm:text-3xl font-black text-white tracking-tight leading-tight line-clamp-2 drop-shadow-md">
                                     {{ $banner->title }}
                                 </h2>
                                 <p class="text-xs sm:text-sm text-slate-200 max-w-md hidden sm:block drop-shadow-sm">
                                     Shop from your trusted neighbourhood retailers with 15-minute express delivery or pan-India marketplace catalog.
                                 </p>
                                 <div class="pt-1 sm:pt-2">
-                                    <a href="{{ $targetUrl }}" class="inline-flex items-center space-x-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-[11px] sm:text-xs uppercase tracking-wider transition shadow-lg shadow-amber-400/20 active:scale-95">
+                                    <span class="inline-flex items-center space-x-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-[11px] sm:text-xs uppercase tracking-wider transition shadow-lg shadow-amber-400/20 active:scale-95 pointer-events-none">
                                         <span>Order Now</span>
                                         <span>&rarr;</span>
-                                    </a>
+                                    </span>
                                 </div>
                             </div>
                         </div>

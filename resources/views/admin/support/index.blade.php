@@ -17,7 +17,7 @@
 
         <x-slot name="actions">
             <a 
-                href="{{ route('admin.support.export') }}" 
+                href="{{ route('admin.support.export', request()->query()) }}" 
                 class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition"
             >
                 <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -64,6 +64,7 @@
                 <option value="all">All Statuses</option>
                 <option value="open" {{ request('status') === 'open' ? 'selected' : '' }}>Open</option>
                 <option value="in_progress" {{ request('status') === 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                <option value="waiting_customer" {{ request('status') === 'waiting_customer' ? 'selected' : '' }}>Waiting on Customer</option>
                 <option value="resolved" {{ request('status') === 'resolved' ? 'selected' : '' }}>Resolved</option>
                 <option value="closed" {{ request('status') === 'closed' ? 'selected' : '' }}>Closed</option>
             </select>
@@ -156,14 +157,26 @@
                             </form>
                         </td>
                         <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border
-                                {{ $stVal === 'open' ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-800' : '' }}
-                                {{ $stVal === 'in_progress' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-800' : '' }}
-                                {{ $stVal === 'resolved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800' : '' }}
-                                {{ $stVal === 'closed' ? 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700' : '' }}
-                            ">
-                                {{ ucfirst(str_replace('_', ' ', $stVal)) }}
-                            </span>
+                            <form method="POST" action="{{ route('admin.support.status', $t) }}">
+                                @csrf
+                                <select 
+                                    name="status" 
+                                    onchange="this.form.submit()" 
+                                    class="text-xs font-semibold rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 py-1 px-2 transition
+                                        {{ $stVal === 'open' ? 'text-rose-600 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900' : '' }}
+                                        {{ $stVal === 'in_progress' ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900' : '' }}
+                                        {{ $stVal === 'waiting_customer' ? 'text-sky-600 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-900' : '' }}
+                                        {{ $stVal === 'resolved' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900' : '' }}
+                                        {{ $stVal === 'closed' ? 'text-slate-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700' : '' }}
+                                    "
+                                >
+                                    <option value="open" {{ $stVal === 'open' ? 'selected' : '' }}>Open</option>
+                                    <option value="in_progress" {{ $stVal === 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                                    <option value="waiting_customer" {{ $stVal === 'waiting_customer' ? 'selected' : '' }}>Waiting Customer</option>
+                                    <option value="resolved" {{ $stVal === 'resolved' ? 'selected' : '' }}>Resolved</option>
+                                    <option value="closed" {{ $stVal === 'closed' ? 'selected' : '' }}>Closed</option>
+                                </select>
+                            </form>
                         </td>
                         <td class="px-6 py-4 text-right">
                             <a 
@@ -185,7 +198,7 @@
             </table>
         </div>
         <div class="p-4 border-t border-slate-200 dark:border-slate-800">
-            {{ $tickets->links() }}
+            <x-pagination :paginator="$tickets" />
         </div>
     </div>
 

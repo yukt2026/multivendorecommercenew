@@ -59,18 +59,18 @@
 
                                 <td class="py-3 px-4 text-xs">
                                     <div class="font-medium text-slate-800 dark:text-slate-200">
-                                        {{ $fo?->seller?->company_name ?? 'Merchant' }}
+                                        {{ $fo?->seller?->business_name ?? $fo?->seller?->legal_name ?? 'OneStall Direct' }}
                                     </div>
                                 </td>
 
                                 <td class="py-3 px-4 text-xs">
-                                    <div class="font-semibold text-slate-800 dark:text-slate-200">{{ $shp->courier }}</div>
+                                    <div class="font-semibold text-slate-800 dark:text-slate-200">{{ $shp->courier ?: 'OneStall Cargo' }}</div>
                                     <div class="text-[10px] text-slate-400 uppercase">{{ $shp->service ?? 'Surface' }}</div>
                                 </td>
 
                                 <td class="py-3 px-4 text-xs">
                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                        {{ $shp->status->label() }}
+                                        {{ $shp->status instanceof \App\Enums\ShipmentStatus ? $shp->status->label() : ucfirst(str_replace('_', ' ', (string) $shp->status)) }}
                                     </span>
                                     <div class="text-[10px] text-rose-600 font-medium mt-1">
                                         {{ $shp->awb ? 'Pickup dispatch error' : 'Missing AWB / API Timeout' }}
@@ -93,7 +93,7 @@
             </div>
 
             <div class="p-4 border-t border-slate-200 dark:border-slate-800">
-                {{ $failedShipments->links() }}
+                <x-pagination :paginator="$failedShipments" />
             </div>
         @else
             <x-empty-state 

@@ -21,12 +21,27 @@ class CmsPageController extends Controller
         $query = CmsPage::query()->latest('id');
 
         if ($search = $request->query('search')) {
-            $query->where('title', 'like', "%{$search}%")->orWhere('slug', 'like', "%{$search}%");
+            $search = trim((string) $search);
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('slug', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status') && $request->status !== 'all') {
+            $isActive = in_array($request->status, ['published', '1', 'active'], true);
+            $query->where('is_active', $isActive);
         }
 
         $pages = $query->paginate(15)->withQueryString();
 
-        return view('admin.cms.index', compact('pages'));
+        $metrics = [
+            'total' => CmsPage::count(),
+            'published' => CmsPage::where('is_active', true)->count(),
+            'draft' => CmsPage::where('is_active', false)->count(),
+        ];
+
+        return view('admin.cms.index', compact('pages', 'metrics'));
     }
 
     /**
@@ -42,16 +57,19 @@ class CmsPageController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $slugInput = $request->input('slug');
+        $slug = !empty($slugInput) ? Str::slug((string) $slugInput) : Str::slug((string) $request->input('title', ''));
+        $request->merge(['slug' => $slug]);
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', 'unique:cms_pages,slug'],
+            'slug' => ['required', 'string', 'max:255', 'unique:cms_pages,slug'],
             'content' => ['required', 'string'],
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:500'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $validated['slug'] = !empty($validated['slug']) ? Str::slug($validated['slug']) : Str::slug($validated['title']);
         $validated['is_active'] = $request->boolean('is_active', true);
 
         $page = CmsPage::create($validated);
@@ -79,6 +97,12 @@ class CmsPageController extends Controller
      */
     public function update(Request $request, CmsPage $page): RedirectResponse
     {
+        if ($request->filled('slug')) {
+            $request->merge(['slug' => Str::slug((string) $request->input('slug'))]);
+        } elseif ($request->filled('title')) {
+            $request->merge(['slug' => Str::slug((string) $request->input('title'))]);
+        }
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:cms_pages,slug,' . $page->id],
@@ -88,7 +112,6 @@ class CmsPageController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $validated['slug'] = Str::slug($validated['slug']);
         $validated['is_active'] = $request->boolean('is_active');
 
         $page->update($validated);
@@ -111,6 +134,32 @@ class CmsPageController extends Controller
         $title = $page->title;
         $page->delete();
 
+        if (function_exists('activity')) {
+            activity('cms')
+                ->causedBy(auth()->user())
+                ->log("CMS Page '{$title}' deleted");
+        }
+
         return redirect()->route('admin.cms.index')->with('success', "Page '{$title}' deleted.");
+    }
+
+    /**
+     * Toggle active/published status of CMS page.
+     */
+    public function toggle(CmsPage $page): RedirectResponse
+    {
+        $page->is_active = !$page->is_active;
+        $page->save();
+
+        $statusLabel = $page->is_active ? 'Published' : 'Draft';
+
+        if (function_exists('activity')) {
+            activity('cms')
+                ->performedOn($page)
+                ->causedBy(auth()->user())
+                ->log("CMS Page #{$page->id} ({$page->title}) status toggled to {$statusLabel}");
+        }
+
+        return back()->with('success', "Page '{$page->title}' is now {$statusLabel}.");
     }
 }

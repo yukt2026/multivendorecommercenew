@@ -230,6 +230,19 @@
                                 <span class="px-3 py-1 rounded-full text-[11px] font-black bg-amber-100 text-amber-900 border border-amber-300">
                                     ⚡ All Items Quick Delivery (15-30m)
                                 </span>
+                            @else
+                                @php
+                                    $hasQuick = collect($fulfilmentPlan->groups)->contains(fn($g) => $g->fulfilmentType->value === 'quick');
+                                @endphp
+                                @if ($hasQuick)
+                                    <span class="px-3 py-1 rounded-full text-[11px] font-black bg-indigo-100 text-indigo-900 border border-indigo-300">
+                                        📦 Multi-Package (Quick + Standard)
+                                    </span>
+                                @else
+                                    <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                                        🚚 Standard Courier Delivery
+                                    </span>
+                                @endif
                             @endif
                         </div>
 

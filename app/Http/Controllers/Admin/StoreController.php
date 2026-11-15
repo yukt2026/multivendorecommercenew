@@ -6,10 +6,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\StoreStatus;
 use App\Http\Controllers\Controller;
+use App\Models\FulfilmentOrder;
 use App\Models\Store;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Spatie\Activitylog\Models\Activity;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StoreController extends Controller
@@ -19,13 +21,16 @@ class StoreController extends Controller
      */
     public function index(Request $request): View
     {
-        $query = Store::query()->with(['seller', 'location'])->latest('id');
+        $this->authorize('viewAny', Store::class);
+
+        $query = Store::query()->with(['seller.user', 'location'])->latest('id');
 
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('slug', 'like', "%{$search}%")
-                  ->orWhereHas('seller', fn($sq) => $sq->where('business_name', 'like', "%{$search}%"));
+                  ->orWhereHas('seller', fn($sq) => $sq->where('business_name', 'like', "%{$search}%"))
+                  ->orWhereHas('location', fn($lq) => $lq->where('city', 'like', "%{$search}%")->orWhere('pincode', 'like', "%{$search}%"));
             });
         }
 
@@ -35,11 +40,28 @@ class StoreController extends Controller
             }
         }
 
-        if ($request->boolean('quick_only')) {
-            $query->where('accepts_quick_commerce', true);
+        if ($request->has('quick_only')) {
+            $quickVal = $request->query('quick_only');
+            if ($quickVal === '1' || $quickVal === 'true') {
+                $query->where('accepts_quick_commerce', true);
+            } elseif ($quickVal === '0' || $quickVal === 'false') {
+                $query->where('accepts_quick_commerce', false);
+            }
+        }
+
+        if ($city = $request->query('city')) {
+            $query->whereHas('location', fn($lq) => $lq->where('city', $city));
         }
 
         $stores = $query->paginate(15)->withQueryString();
+
+        $cities = Store::query()
+            ->join('store_locations', 'stores.id', '=', 'store_locations.store_id')
+            ->whereNotNull('store_locations.city')
+            ->distinct()
+            ->pluck('store_locations.city')
+            ->filter()
+            ->values();
 
         $metrics = [
             'total_stores' => Store::count(),
@@ -49,7 +71,7 @@ class StoreController extends Controller
             'onestall_owned' => Store::where('is_onestall_owned', true)->count(),
         ];
 
-        return view('admin.stores.index', compact('stores', 'metrics'));
+        return view('admin.stores.index', compact('stores', 'metrics', 'cities'));
     }
 
     /**
@@ -112,9 +134,28 @@ class StoreController extends Controller
      */
     public function show(Store $store): View
     {
-        $store->load(['seller.user', 'location', 'timings', 'deliveryZones', 'inventoryLocations.inventories']);
+        $this->authorize('view', $store);
 
-        return view('admin.stores.show', compact('store'));
+        $store->load([
+            'seller.user',
+            'location',
+            'timings',
+            'deliveryZones',
+            'inventoryLocations.inventories.variant.product',
+        ]);
+
+        $recentOrders = FulfilmentOrder::query()
+            ->where('store_id', $store->id)
+            ->with(['order.customer.user'])
+            ->latest('id')
+            ->take(5)
+            ->get();
+
+        $activityLogs = class_exists(Activity::class)
+            ? Activity::forSubject($store)->latest()->take(10)->get()
+            : collect();
+
+        return view('admin.stores.show', compact('store', 'recentOrders', 'activityLogs'));
     }
 
     /**
@@ -122,6 +163,8 @@ class StoreController extends Controller
      */
     public function approve(Store $store): RedirectResponse
     {
+        $this->authorize('update', $store);
+
         $store->status = StoreStatus::ACTIVE;
         $store->save();
 
@@ -140,6 +183,12 @@ class StoreController extends Controller
      */
     public function suspend(Request $request, Store $store): RedirectResponse
     {
+        $this->authorize('update', $store);
+
+        $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
         $store->status = StoreStatus::SUSPENDED;
         $store->save();
 
@@ -157,31 +206,144 @@ class StoreController extends Controller
     }
 
     /**
-     * Export stores directory as CSV.
+     * Toggle Quick Commerce capability for a store.
      */
-    public function export(): StreamedResponse
+    public function toggleQuick(Store $store): RedirectResponse
     {
+        $this->authorize('update', $store);
+
+        $store->accepts_quick_commerce = !$store->accepts_quick_commerce;
+        $store->save();
+
+        $state = $store->accepts_quick_commerce ? 'enabled' : 'disabled';
+
+        if (function_exists('activity')) {
+            activity('store')
+                ->performedOn($store)
+                ->causedBy(auth()->user())
+                ->log("Store #{$store->id} ({$store->name}) Quick Commerce {$state}");
+        }
+
+        return back()->with('success', "Quick commerce has been {$state} for store '{$store->name}'.");
+    }
+
+    /**
+     * Update delivery radius for a store.
+     */
+    public function updateRadius(Request $request, Store $store): RedirectResponse
+    {
+        $this->authorize('update', $store);
+
+        $validated = $request->validate([
+            'delivery_radius_km' => 'required|numeric|min:0.5|max:100',
+        ]);
+
+        $oldRadius = $store->delivery_radius_km;
+        $store->delivery_radius_km = (float) $validated['delivery_radius_km'];
+        $store->save();
+
+        if (function_exists('activity')) {
+            activity('store')
+                ->performedOn($store)
+                ->causedBy(auth()->user())
+                ->withProperties(['old' => $oldRadius, 'new' => $store->delivery_radius_km])
+                ->log("Store #{$store->id} ({$store->name}) delivery radius updated to {$store->delivery_radius_km} km");
+        }
+
+        return back()->with('success', "Delivery radius updated to {$store->delivery_radius_km} km for store '{$store->name}'.");
+    }
+
+    /**
+     * Export stores directory as CSV with active filters.
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $this->authorize('viewAny', Store::class);
+
+        $query = Store::query()->with(['seller.user', 'location'])->latest('id');
+
+        if ($search = $request->query('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('slug', 'like', "%{$search}%")
+                  ->orWhereHas('seller', fn($sq) => $sq->where('business_name', 'like', "%{$search}%"))
+                  ->orWhereHas('location', fn($lq) => $lq->where('city', 'like', "%{$search}%")->orWhere('pincode', 'like', "%{$search}%"));
+            });
+        }
+
+        if ($status = $request->query('status')) {
+            if ($status !== 'all') {
+                $query->where('status', $status);
+            }
+        }
+
+        if ($request->has('quick_only')) {
+            $quickVal = $request->query('quick_only');
+            if ($quickVal === '1' || $quickVal === 'true') {
+                $query->where('accepts_quick_commerce', true);
+            } elseif ($quickVal === '0' || $quickVal === 'false') {
+                $query->where('accepts_quick_commerce', false);
+            }
+        }
+
+        if ($city = $request->query('city')) {
+            $query->whereHas('location', fn($lq) => $lq->where('city', $city));
+        }
+
         $headers = [
-            'Content-Type' => 'text/csv',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="stores-' . now()->format('Ymd-His') . '.csv"',
         ];
 
-        return response()->stream(function () {
+        return response()->stream(function () use ($query) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Store ID', 'Name', 'Seller', 'Status', 'Quick Commerce', 'Delivery Radius (km)', 'City', 'Latitude', 'Longitude']);
+            // Add UTF-8 BOM
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($handle, [
+                'Store ID',
+                'Name',
+                'Slug',
+                'Seller ID',
+                'Seller Business',
+                'Ownership',
+                'Status',
+                'Quick Commerce (10-30m)',
+                'Customer Pickup',
+                'Delivery Radius (km)',
+                'Address',
+                'City',
+                'State',
+                'Pincode',
+                'Latitude',
+                'Longitude',
+                'Rating',
+                'Rating Count',
+                'Registered Date',
+            ]);
 
-            Store::with(['seller', 'location'])->chunk(100, function ($stores) use ($handle) {
+            $query->chunk(100, function ($stores) use ($handle) {
                 foreach ($stores as $s) {
+                    $loc = $s->location;
                     fputcsv($handle, [
                         $s->id,
                         $s->name,
+                        $s->slug,
+                        $s->seller_id,
                         $s->seller?->business_name ?? 'N/A',
+                        $s->is_onestall_owned ? 'OneStall Owned' : 'Merchant Store',
                         $s->status->value,
                         $s->accepts_quick_commerce ? 'Yes' : 'No',
+                        $s->accepts_pickup ? 'Yes' : 'No',
                         $s->effectiveDeliveryRadius(),
-                        $s->location?->city ?? 'N/A',
-                        $s->location?->lat ?? '',
-                        $s->location?->lng ?? '',
+                        $loc?->address ?? '',
+                        $loc?->city ?? 'N/A',
+                        $loc?->state ?? '',
+                        $loc?->pincode ?? '',
+                        $loc?->lat ?? '',
+                        $loc?->lng ?? '',
+                        number_format((float) ($s->rating_avg ?? 0), 2),
+                        $s->rating_count ?? 0,
+                        $s->created_at?->format('Y-m-d H:i:s') ?? '',
                     ]);
                 }
             });
