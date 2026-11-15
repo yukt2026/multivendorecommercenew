@@ -1,7 +1,7 @@
 @extends('layouts.dashboard', ['portal' => 'admin', 'title' => 'Admin Order Console #' . $order->order_number])
 
 @section('content')
-<div class="space-y-6">
+<div class="space-y-6" x-data="{ assignModalFoId: null }">
 
     <!-- Page Header & Action Bar -->
     <x-page-header 
@@ -177,18 +177,34 @@
                     </div>
 
                     <!-- Logistics / Rider / Courier Ribbon -->
-                    @if($isQuick && $rider)
+                    @if($isQuick)
                         <div class="px-6 py-2.5 bg-amber-50/50 dark:bg-amber-950/20 border-b border-amber-100 dark:border-amber-900/30 flex flex-wrap items-center justify-between gap-2 text-xs">
                             <div class="flex items-center space-x-2">
-                                <span class="font-bold text-slate-800 dark:text-slate-200">🚴 Assigned Rider:</span>
-                                <span class="font-bold text-amber-800 dark:text-amber-300">{{ $rider->name }}</span>
-                                <a href="tel:{{ $rider->phone }}" class="text-indigo-600 font-mono hover:underline font-bold">({{ $rider->phone }})</a>
-                                @if($rider->vehicle_number)
-                                    <span class="text-slate-400 font-mono text-[10px]">&bull; {{ $rider->vehicle_number }}</span>
+                                @if($rider)
+                                    <span class="font-bold text-slate-800 dark:text-slate-200">🚴 Assigned Rider:</span>
+                                    <span class="font-bold text-amber-800 dark:text-amber-300">{{ $rider->name }}</span>
+                                    <a href="tel:{{ $rider->phone }}" class="text-indigo-600 font-mono hover:underline font-bold">({{ $rider->phone }})</a>
+                                    @if($rider->vehicle_number)
+                                        <span class="text-slate-400 font-mono text-[10px]">&bull; {{ $rider->vehicle_number }}</span>
+                                    @endif
+                                @else
+                                    <span class="font-bold text-amber-800 dark:text-amber-400">⚡ Hyperlocal Dispatch:</span>
+                                    <span class="text-slate-500">No rider assigned</span>
                                 @endif
                             </div>
-                            <div class="text-[11px] text-slate-500 font-mono">
-                                SLA: {{ $fo->minutes_since_placed }}m elapsed
+                            <div class="flex items-center space-x-3">
+                                <div class="text-[11px] text-slate-500 font-mono">
+                                    SLA: {{ $fo->minutes_since_placed }}m elapsed
+                                </div>
+                                @if(!in_array($fo->status, ['delivered', 'cancelled']))
+                                    <button 
+                                        type="button" 
+                                        @click="assignModalFoId = {{ $fo->id }}; $dispatch('open-modal', 'assign-rider-modal')"
+                                        class="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold shadow-xs transition cursor-pointer"
+                                    >
+                                        {{ $rider ? 'Reassign Rider' : '+ Assign Rider' }}
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     @elseif($shipment && $shipment->awb)
@@ -368,6 +384,56 @@
                 class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition"
             >
                 Save Note
+            </button>
+        </x-slot>
+    </x-modal>
+
+    <!-- Assign / Reassign Rider Modal -->
+    <x-modal name="assign-rider-modal" size="md">
+        <x-slot name="header">
+            <div class="flex items-center space-x-2">
+                <span class="text-amber-500 text-lg">🚴</span>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">Assign Delivery Partner</h3>
+            </div>
+        </x-slot>
+
+        <form id="assignRiderForm" method="POST" :action="'{{ url('/admin/delivery-partners/orders') }}/' + assignModalFoId + '/assign'" class="space-y-4">
+            @csrf
+            <p class="text-xs text-slate-500">Manually select a verified delivery rider to fulfill this quick-commerce package.</p>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Select Delivery Rider <span class="text-rose-500">*</span></label>
+                <select 
+                    name="delivery_partner_id" 
+                    required 
+                    class="w-full text-xs font-medium p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                >
+                    <option value="">-- Choose Rider --</option>
+                    @if(isset($availableRiders))
+                        @foreach($availableRiders as $avRider)
+                            <option value="{{ $avRider->id }}">
+                                {{ $avRider->name }} ({{ $avRider->phone }}) &bull; {{ $avRider->vehicle }} &bull; [{{ ucfirst($avRider->status) }}]
+                            </option>
+                        @endforeach
+                    @endif
+                </select>
+            </div>
+        </form>
+
+        <x-slot name="footer">
+            <button 
+                type="button" 
+                @click="$dispatch('close-modal', 'assign-rider-modal')" 
+                class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold transition"
+            >
+                Cancel
+            </button>
+            <button 
+                form="assignRiderForm"
+                type="submit" 
+                class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+            >
+                Confirm Assignment
             </button>
         </x-slot>
     </x-modal>

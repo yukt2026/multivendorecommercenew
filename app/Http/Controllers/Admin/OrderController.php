@@ -8,6 +8,7 @@ use App\Enums\FulfilmentType;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
+use App\Models\DeliveryPartner;
 use App\Models\FulfilmentOrder;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
@@ -199,8 +200,14 @@ class OrderController extends Controller
             'statusHistory.changedByUser',
         ]);
 
+        $availableRiders = DeliveryPartner::where('is_active', true)
+            ->where('approval_status', 'approved')
+            ->orderBy('name')
+            ->get();
+
         return view('admin.orders.show', [
             'order' => $order,
+            'availableRiders' => $availableRiders,
         ]);
     }
 

@@ -33,6 +33,7 @@ class User extends Authenticatable
         'phone',
         'password',
         'status',
+        'wallet_balance',
         'email_verified_at',
         'phone_verified_at',
         'last_login_at',
@@ -96,6 +97,14 @@ class User extends Authenticatable
     public function seller(): HasOne
     {
         return $this->hasOne(Seller::class);
+    }
+
+    /**
+     * Delivery partner (rider) profile relationship.
+     */
+    public function deliveryPartner(): HasOne
+    {
+        return $this->hasOne(DeliveryPartner::class);
     }
 
     /**

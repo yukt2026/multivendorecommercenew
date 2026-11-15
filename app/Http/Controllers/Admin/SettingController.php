@@ -27,6 +27,7 @@ class SettingController extends Controller
             'fulfilment' => 'Fulfilment Priorities & SLAs',
             'commission' => 'Commissions & Tax Defaults',
             'delivery' => 'Delivery Radius & Thresholds',
+            'rider_payout' => 'Rider Payout & Fleet Rates',
         ];
 
         // Ensure essential defaults exist in DB
@@ -117,6 +118,13 @@ class SettingController extends Controller
             ['key' => 'free_shipping_threshold', 'value' => '499.00', 'group' => 'delivery', 'label' => 'Free Shipping Order Minimum (INR)', 'type' => 'number'],
             ['key' => 'standard_delivery_fee', 'value' => '40.00', 'group' => 'delivery', 'label' => 'Base Delivery Fee (INR)', 'type' => 'number'],
             ['key' => 'min_order_value', 'value' => '99.00', 'group' => 'delivery', 'label' => 'Minimum Order Checkout Amount (INR)', 'type' => 'number'],
+
+            // Rider Payout & Fleet Rates
+            ['key' => 'rider_base_payout', 'value' => '35.00', 'group' => 'rider_payout', 'label' => 'Rider Base Payout per Order (₹)', 'type' => 'number'],
+            ['key' => 'rider_base_threshold_km', 'value' => '3.00', 'group' => 'rider_payout', 'label' => 'Base Distance Included in Payout (km)', 'type' => 'number'],
+            ['key' => 'rider_per_km_payout', 'value' => '10.00', 'group' => 'rider_payout', 'label' => 'Extra Distance Rate (₹ per km)', 'type' => 'number'],
+            ['key' => 'rider_surge_bonus', 'value' => '0.00', 'group' => 'rider_payout', 'label' => 'Live Surge / Bad Weather Bonus (₹)', 'type' => 'number'],
+            ['key' => 'rider_default_cash_limit', 'value' => '5000.00', 'group' => 'rider_payout', 'label' => 'Default COD Cash-In-Hand Limit per Rider (₹)', 'type' => 'number'],
         ];
 
         foreach ($defaults as $d) {

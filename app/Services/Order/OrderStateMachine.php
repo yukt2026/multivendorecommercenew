@@ -31,9 +31,12 @@ class OrderStateMachine
         'store_accepted' => ['packing', 'cancelled', 'rejected'],
         'packing' => ['ready', 'cancelled'],
         'ready' => ['rider_assigned', 'picked_up', 'cancelled'],
-        'rider_assigned' => ['picked_up', 'cancelled'],
-        'picked_up' => ['out_for_delivery'],
-        'out_for_delivery' => ['delivered', 'cancelled'],
+        'rider_assigned' => ['accepted', 'picked_up', 'ready', 'cancelled'],
+        'accepted' => ['picked_up', 'ready', 'cancelled'],
+        'picked_up' => ['out_for_delivery', 'cancelled'],
+        'out_for_delivery' => ['delivered', 'cancelled', 'delivery_failed'],
+        'delivery_failed' => ['returned_to_store', 'out_for_delivery', 'cancelled'],
+        'returned_to_store' => [],
         'delivered' => [],
         'cancelled' => [],
         'rejected' => ['placed'], // Allow re-queue on auto-reroute
@@ -85,7 +88,8 @@ class OrderStateMachine
      */
     public function canTransitionFulfilment(FulfilmentOrder $fo, string $targetStatus): bool
     {
-        $current = strtolower($fo->status ?? 'placed');
+        $statusVal = $fo->status instanceof \BackedEnum ? $fo->status->value : (string) ($fo->status ?? 'placed');
+        $current = strtolower($statusVal);
         $target = strtolower($targetStatus);
 
         if ($current === $target) {
@@ -121,7 +125,8 @@ class OrderStateMachine
      */
     public function getAllowedNextFulfilmentStatuses(FulfilmentOrder $fo): array
     {
-        $current = strtolower($fo->status ?? 'placed');
+        $statusVal = $fo->status instanceof \BackedEnum ? $fo->status->value : (string) ($fo->status ?? 'placed');
+        $current = strtolower($statusVal);
         $matrix = $fo->fulfilment_type === FulfilmentType::QUICK
             ? self::QUICK_ALLOWED_TRANSITIONS
             : self::STANDARD_ALLOWED_TRANSITIONS;
@@ -140,7 +145,8 @@ class OrderStateMachine
         ?string $note = null,
         ?int $userId = null
     ): FulfilmentOrder {
-        $fromStatus = strtolower($fo->status ?? 'placed');
+        $statusVal = $fo->status instanceof \BackedEnum ? $fo->status->value : (string) ($fo->status ?? 'placed');
+        $fromStatus = strtolower($statusVal);
         $toStatus = strtolower($newStatus);
 
         if ($fromStatus === $toStatus) {
@@ -188,12 +194,31 @@ class OrderStateMachine
                 'changed_by' => $userId ?? Auth::id(),
             ]);
 
-            // 2. Handle cancellation stock release
+            // 2. Handle cancellation stock release & rider capacity release
             if ($toStatus === 'cancelled' && $fo->order) {
                 $this->inventoryService->releaseForOrder(
                     $fo->order->order_number,
                     "Fulfilment package #{$fo->fulfilment_order_number} cancelled"
                 );
+
+                if ($fo->deliveryAssignment) {
+                    $assignment = $fo->deliveryAssignment;
+                    $stVal = is_object($assignment->status) ? $assignment->status->value : (string) $assignment->status;
+                    if (in_array($stVal, ['assigned', 'accepted', 'picked_up'], true)) {
+                        $assignment->status = \App\Enums\DeliveryAssignmentStatus::CANCELLED;
+                        $assignment->notes = ($assignment->notes ? $assignment->notes . ' | ' : '') . "Package cancelled: {$note}";
+                        $assignment->save();
+
+                        if ($assignment->deliveryPartner) {
+                            $partner = $assignment->deliveryPartner;
+                            $partner->active_orders_count = max(0, $partner->active_orders_count - 1);
+                            if ($partner->active_orders_count === 0) {
+                                $partner->status = 'available';
+                            }
+                            $partner->save();
+                        }
+                    }
+                }
             }
 
             // 3. Handle quick order rejection with auto-reroute hook
@@ -380,6 +405,26 @@ class OrderStateMachine
                         'note' => "Package cancelled: {$reason}",
                         'changed_by' => $userId ?? Auth::id(),
                     ]);
+
+                    // Release assigned delivery partner if any
+                    if ($fo->deliveryAssignment) {
+                        $assignment = $fo->deliveryAssignment;
+                        $stVal = is_object($assignment->status) ? $assignment->status->value : (string) $assignment->status;
+                        if (in_array($stVal, ['assigned', 'accepted', 'picked_up'], true)) {
+                            $assignment->status = \App\Enums\DeliveryAssignmentStatus::CANCELLED;
+                            $assignment->notes = ($assignment->notes ? $assignment->notes . ' | ' : '') . "Order cancelled: {$reason}";
+                            $assignment->save();
+
+                            if ($assignment->deliveryPartner) {
+                                $partner = $assignment->deliveryPartner;
+                                $partner->active_orders_count = max(0, $partner->active_orders_count - 1);
+                                if ($partner->active_orders_count === 0) {
+                                    $partner->status = 'available';
+                                }
+                                $partner->save();
+                            }
+                        }
+                    }
                 }
             }
 

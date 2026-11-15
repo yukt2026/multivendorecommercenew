@@ -6,7 +6,7 @@
     <!-- Page Header & Action Bar -->
     <x-page-header 
         title="Delivery Partners Fleet" 
-        subtitle="Manage hyperlocal quick-commerce riders, realtime GPS coordinates, duty availability, and vehicle fleet."
+        subtitle="Manage hyperlocal quick-commerce riders, realtime GPS coordinates, duty availability, KYC verification, and vehicle fleet."
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Delivery Fleet' => '#']"
     >
         <x-slot name="badge">
@@ -22,6 +22,24 @@
                     class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition flex items-center space-x-1"
                 >
                     <span>&larr; Mission Control</span>
+                </a>
+
+                <a 
+                    href="{{ route('admin.delivery_partners.settlements') }}" 
+                    class="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-emerald-600 text-xs font-bold transition shadow-xs flex items-center space-x-1.5"
+                    title="View Rider Wallets & Settlements"
+                >
+                    <span>💰</span>
+                    <span>Wallets &amp; Payouts</span>
+                </a>
+
+                <a 
+                    href="{{ route('admin.settings.index', ['tab' => 'rider_payout']) }}" 
+                    class="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-indigo-600 text-xs font-bold transition shadow-xs flex items-center space-x-1.5"
+                    title="Configure Base Pay, KM Rates &amp; Cash Limits"
+                >
+                    <span>⚙️</span>
+                    <span>Payout Rates</span>
                 </a>
 
                 <a 
@@ -46,47 +64,55 @@
     </x-page-header>
 
     <!-- Metrics Cards Strip -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
             <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Fleet</div>
-            <div class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+            <div class="text-xl font-black text-slate-900 dark:text-white">
                 {{ number_format($metrics['total_riders']) }}
             </div>
-            <div class="text-[10px] text-slate-400">Registered delivery partners</div>
+            <div class="text-[10px] text-slate-400">Registered partners</div>
         </div>
 
-        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
             <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Available &amp; Online</div>
-            <div class="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 flex items-center space-x-1.5">
+            <div class="text-xl font-black text-emerald-600 dark:text-emerald-400 flex items-center space-x-1.5">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span>{{ number_format($metrics['available']) }}</span>
             </div>
-            <div class="text-[10px] text-slate-400">Ready for instant dispatch</div>
+            <div class="text-[10px] text-slate-400">Ready for dispatch</div>
         </div>
 
-        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
             <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Busy / On Delivery</div>
-            <div class="text-xl sm:text-2xl font-black text-amber-500 flex items-center space-x-1.5">
+            <div class="text-xl font-black text-amber-500 flex items-center space-x-1.5">
                 <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
                 <span>{{ number_format($metrics['busy']) }}</span>
             </div>
             <div class="text-[10px] text-slate-400">Active package en route</div>
         </div>
 
-        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pending KYC</div>
+            <div class="text-xl font-black text-violet-600 dark:text-violet-400">
+                {{ number_format($metrics['pending_approval']) }}
+            </div>
+            <div class="text-[10px] text-slate-400">Awaiting verification</div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
             <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Offline / Off-Duty</div>
-            <div class="text-xl sm:text-2xl font-black text-slate-500">
+            <div class="text-xl font-black text-slate-500">
                 {{ number_format($metrics['offline']) }}
             </div>
             <div class="text-[10px] text-slate-400">Not accepting orders</div>
         </div>
 
-        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
             <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Deliveries</div>
-            <div class="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400">
+            <div class="text-xl font-black text-indigo-600 dark:text-indigo-400">
                 {{ number_format($metrics['completed_deliveries']) }}
             </div>
-            <div class="text-[10px] text-slate-400">Completed order drop-offs</div>
+            <div class="text-[10px] text-slate-400">Completed drop-offs</div>
         </div>
     </div>
 
@@ -105,12 +131,21 @@
                 <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </div>
 
-            <!-- Status Filter -->
+            <!-- Duty Status Filter -->
             <select name="status" class="text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
                 <option value="all">All Duty Statuses</option>
                 <option value="available" {{ $status === 'available' ? 'selected' : '' }}>🟢 Available &amp; Online</option>
                 <option value="busy" {{ $status === 'busy' ? 'selected' : '' }}>🟡 Busy / On Job</option>
                 <option value="offline" {{ $status === 'offline' ? 'selected' : '' }}>⚪ Offline / Off-Duty</option>
+            </select>
+
+            <!-- Approval Status Filter -->
+            <select name="approval" class="text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                <option value="all">All Approval Statuses</option>
+                <option value="approved" {{ $approval === 'approved' ? 'selected' : '' }}>✓ Approved</option>
+                <option value="pending" {{ $approval === 'pending' ? 'selected' : '' }}>⏳ Pending Approval</option>
+                <option value="under_review" {{ $approval === 'under_review' ? 'selected' : '' }}>🔍 Under Review</option>
+                <option value="rejected" {{ $approval === 'rejected' ? 'selected' : '' }}>✕ Rejected</option>
             </select>
 
             <!-- Vehicle Type Filter -->
@@ -126,7 +161,7 @@
                 Filter
             </button>
 
-            @if($search || $status !== 'all' || $vehicle !== 'all')
+            @if($search || $status !== 'all' || $vehicle !== 'all' || $approval !== 'all')
                 <a href="{{ route('admin.delivery_partners.index') }}" class="text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 self-center">
                     Reset
                 </a>
@@ -159,6 +194,7 @@
                             <th class="p-4">Rider Profile</th>
                             <th class="p-4">Phone / Contact</th>
                             <th class="p-4">Vehicle Fleet</th>
+                            <th class="p-4">KYC Approval</th>
                             <th class="p-4">Duty Status</th>
                             <th class="p-4">Live GPS Position</th>
                             <th class="p-4 text-center">Active Jobs</th>
@@ -185,7 +221,11 @@
                                     <div class="font-mono font-bold text-slate-800 dark:text-slate-200">
                                         <a href="tel:{{ $rider->phone }}" class="hover:text-indigo-600 transition">{{ $rider->phone }}</a>
                                     </div>
-                                    <span class="text-[10px] text-slate-400 font-sans">SMS / OTP Verified</span>
+                                    @if($rider->emergency_contact_phone)
+                                        <div class="text-[10px] text-slate-400">Emergency: {{ $rider->emergency_contact_phone }}</div>
+                                    @else
+                                        <span class="text-[10px] text-slate-400 font-sans">SMS / OTP Verified</span>
+                                    @endif
                                 </td>
 
                                 <td class="p-4">
@@ -194,6 +234,43 @@
                                     </div>
                                     <div class="text-[10px] font-mono text-slate-400">
                                         {{ $rider->vehicle_number ?: 'No Plate Tagged' }}
+                                    </div>
+                                </td>
+
+                                <td class="p-4">
+                                    @if($rider->approval_status === 'approved')
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                                            ✓ Approved
+                                        </span>
+                                    @elseif(in_array($rider->approval_status, ['pending', 'under_review']))
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-800" title="Awaiting Admin KYC Review">
+                                            ⏳ {{ ucfirst(str_replace('_', ' ', $rider->approval_status)) }}
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-800" title="{{ $rider->rejection_reason }}">
+                                            ✕ Rejected
+                                        </span>
+                                    @endif
+
+                                    @php
+                                        $pendingDocs = $rider->documents->where('verification_status', 'pending')->count();
+                                        $totalDocs = $rider->documents->count();
+                                    @endphp
+                                    <div class="mt-1.5">
+                                        <button 
+                                            type="button" 
+                                            @click="openKycModal(@js($rider))"
+                                            class="inline-flex items-center space-x-1 text-[10px] font-bold px-2 py-0.5 rounded-md border transition cursor-pointer
+                                                {{ $pendingDocs > 0 ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400 hover:bg-amber-100' : 
+                                                   ($totalDocs > 0 ? 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200' : 
+                                                   'bg-slate-50 text-slate-400 border-slate-100 dark:bg-slate-800 dark:text-slate-500 hover:bg-slate-100') }}"
+                                            title="Review KYC Documents"
+                                        >
+                                            <span>📄 Docs: {{ $totalDocs }}</span>
+                                            @if($pendingDocs > 0)
+                                                <span class="text-amber-600 dark:text-amber-400 font-extrabold">({{ $pendingDocs }} pending)</span>
+                                            @endif
+                                        </button>
                                     </div>
                                 </td>
 
@@ -246,6 +323,39 @@
 
                                 <td class="p-4 text-right">
                                     <div class="inline-flex items-center space-x-1">
+                                        @if($rider->approval_status !== 'approved')
+                                            <!-- Quick Approve Form -->
+                                            <form method="POST" action="{{ route('admin.delivery_partners.approve', $rider) }}" class="inline" onsubmit="return confirm('Approve rider {{ $rider->name }} for delivery operations?');">
+                                                @csrf
+                                                <button 
+                                                    type="submit" 
+                                                    class="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 rounded-lg transition" 
+                                                    title="Approve Rider KYC"
+                                                >
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                </button>
+                                            </form>
+
+                                            <!-- Quick Reject Button -->
+                                            <button 
+                                                type="button" 
+                                                @click="openRejectModal({{ json_encode(['id' => $rider->id, 'name' => $rider->name]) }})" 
+                                                class="p-1.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-lg transition" 
+                                                title="Reject Application"
+                                            >
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                            </button>
+                                        @endif
+
+                                        <button 
+                                            type="button" 
+                                            @click="openKycModal(@js($rider))" 
+                                            class="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition" 
+                                            title="Review KYC Documents"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                        </button>
+
                                         <button 
                                             type="button" 
                                             @click="openEditModal(@js($rider))" 
@@ -360,7 +470,69 @@
                 </div>
             </div>
 
-            <!-- Row 3: Duty Status & GPS Coordinates -->
+            <!-- Row 3: Emergency Contact Info -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                        Emergency Contact Person
+                    </label>
+                    <input 
+                        type="text" 
+                        name="emergency_contact_name" 
+                        x-model="form.emergency_contact_name" 
+                        placeholder="e.g. Priya Sharma (Spouse / Parent)"
+                        class="w-full p-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                        Emergency Contact Phone
+                    </label>
+                    <input 
+                        type="text" 
+                        name="emergency_contact_phone" 
+                        x-model="form.emergency_contact_phone" 
+                        placeholder="+919876500000"
+                        class="w-full p-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono"
+                    />
+                </div>
+            </div>
+
+            <!-- Row 4: Cash Limit & Password (Create Only) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                        Cash In Hand Limit (₹)
+                    </label>
+                    <input 
+                        type="number" 
+                        step="100" 
+                        name="cash_in_hand_limit" 
+                        x-model="form.cash_in_hand_limit" 
+                        placeholder="5000"
+                        class="w-full p-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono"
+                    />
+                    <div class="text-[10px] text-slate-400 mt-0.5">Maximum COD amount rider can hold before remitting</div>
+                </div>
+
+                <template x-if="modalMode === 'create'">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                            Rider Login Password
+                        </label>
+                        <input 
+                            type="password" 
+                            name="password" 
+                            placeholder="Leave empty for default (Password@123)"
+                            class="w-full p-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                        />
+                        <div class="text-[10px] text-slate-400 mt-0.5">Used for Rider Portal &amp; API access</div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Row 5: Duty Status & GPS Coordinates -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
@@ -441,6 +613,192 @@
         </x-slot>
     </x-modal>
 
+    <!-- Reject KYC Modal -->
+    <x-modal name="reject-modal" size="md">
+        <x-slot name="header">
+            <div class="flex items-center space-x-2">
+                <span class="text-rose-500 text-lg">✕</span>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">Reject Rider KYC Application</h3>
+            </div>
+        </x-slot>
+
+        <form id="rejectForm" :action="rejectAction" method="POST" class="space-y-4">
+            @csrf
+            <div class="text-xs text-slate-600 dark:text-slate-300">
+                Rejecting application for <strong x-text="rejectRiderName"></strong>. Please provide a clear rejection reason for the applicant.
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                    Rejection Reason <span class="text-rose-500">*</span>
+                </label>
+                <textarea 
+                    name="rejection_reason" 
+                    rows="3" 
+                    required 
+                    placeholder="e.g. Driving license image is blurred; vehicle insurance expired."
+                    class="w-full p-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500"
+                ></textarea>
+            </div>
+        </form>
+
+        <x-slot name="footer">
+            <button 
+                type="button" 
+                @click="$dispatch('close-modal', 'reject-modal')" 
+                class="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 transition"
+            >
+                Cancel
+            </button>
+            <button 
+                form="rejectForm"
+                type="submit" 
+                class="px-5 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition flex items-center space-x-1.5 cursor-pointer"
+            >
+                <span>Confirm Rejection</span>
+            </button>
+        </x-slot>
+    </x-modal>
+
+    <!-- KYC Documents Review Modal -->
+    <x-modal name="kyc-docs-modal" size="xl">
+        <x-slot name="header">
+            <div class="flex items-center space-x-2">
+                <span class="text-indigo-600 text-lg">📄</span>
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                        KYC Documents: <span x-text="selectedRider?.name"></span>
+                    </h3>
+                    <p class="text-[11px] text-slate-400">
+                        Phone: <span x-text="selectedRider?.phone"></span> &bull; 
+                        Vehicle: <span x-text="selectedRider?.vehicle"></span> (<span x-text="selectedRider?.vehicle_number || 'No Plate'"></span>) &bull;
+                        Status: <span class="uppercase font-bold" x-text="selectedRider?.approval_status"></span>
+                    </p>
+                </div>
+            </div>
+        </x-slot>
+
+        <div class="space-y-4">
+            <template x-if="!selectedDocs || selectedDocs.length === 0">
+                <div class="p-8 text-center bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <div class="text-3xl mb-2">📤</div>
+                    <div class="text-sm font-bold text-slate-700 dark:text-slate-300">No KYC Documents Uploaded Yet</div>
+                    <div class="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                        The rider has not submitted documents yet. They can upload documents through their mobile portal at <code>/rider/kyc</code>.
+                    </div>
+                </div>
+            </template>
+
+            <template x-if="selectedDocs && selectedDocs.length > 0">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 dark:bg-slate-800 text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                            <tr>
+                                <th class="p-3">Document Type</th>
+                                <th class="p-3">Doc #</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3">File / Preview</th>
+                                <th class="p-3 text-right">Review Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                            <template x-for="doc in selectedDocs" :key="doc.id">
+                                <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                                    <td class="p-3 font-bold text-slate-800 dark:text-slate-200">
+                                        <span x-text="formatDocType(doc.document_type)"></span>
+                                    </td>
+                                    <td class="p-3 font-mono text-slate-600 dark:text-slate-400">
+                                        <span x-text="doc.document_number || '—'"></span>
+                                    </td>
+                                    <td class="p-3">
+                                        <span 
+                                            class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold"
+                                            :class="doc.verification_status === 'approved' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400' : (doc.verification_status === 'rejected' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-400' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-400')"
+                                            x-text="(doc.verification_status || 'PENDING').toUpperCase()"
+                                        ></span>
+                                        <div x-show="doc.rejection_reason" class="text-[10px] text-rose-500 mt-0.5" x-text="'Reason: ' + doc.rejection_reason"></div>
+                                    </td>
+                                    <td class="p-3">
+                                        <a 
+                                            :href="'/admin/delivery-partners/' + selectedRider.id + '/documents/' + doc.id + '/view'" 
+                                            target="_blank"
+                                            class="inline-flex items-center space-x-1 text-indigo-600 dark:text-indigo-400 hover:underline font-bold"
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                            <span>Open File</span>
+                                        </a>
+                                    </td>
+                                    <td class="p-3 text-right">
+                                        <div class="inline-flex items-center space-x-1.5" x-data="{ rejecting: false, reason: '' }">
+                                            <form :action="'/admin/delivery-partners/' + selectedRider.id + '/documents/' + doc.id + '/review'" method="POST" class="inline">
+                                                @csrf
+                                                <input type="hidden" name="status" value="approved">
+                                                <button 
+                                                    type="submit" 
+                                                    class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg transition"
+                                                    :disabled="doc.verification_status === 'approved'"
+                                                    :class="doc.verification_status === 'approved' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
+                                                >
+                                                    Approve
+                                                </button>
+                                            </form>
+
+                                            <button 
+                                                type="button" 
+                                                @click="rejecting = !rejecting"
+                                                class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold rounded-lg transition cursor-pointer"
+                                                :disabled="doc.verification_status === 'rejected'"
+                                                :class="doc.verification_status === 'rejected' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
+                                            >
+                                                Reject
+                                            </button>
+
+                                            <!-- Inline rejection reason popup -->
+                                            <div x-show="rejecting" x-cloak class="absolute z-20 mt-8 right-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl shadow-xl w-64 text-left">
+                                                <form :action="'/admin/delivery-partners/' + selectedRider.id + '/documents/' + doc.id + '/review'" method="POST" class="space-y-2">
+                                                    @csrf
+                                                    <input type="hidden" name="status" value="rejected">
+                                                    <label class="block text-[10px] font-bold uppercase text-slate-600 dark:text-slate-400">Rejection Reason</label>
+                                                    <input type="text" name="rejection_reason" required placeholder="e.g. Image unreadable / expired" class="w-full text-xs p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                                                    <div class="flex justify-end space-x-1 pt-1">
+                                                        <button type="button" @click="rejecting = false" class="px-2 py-1 text-[10px] text-slate-500">Cancel</button>
+                                                        <button type="submit" class="px-2.5 py-1 text-[10px] bg-rose-600 text-white font-bold rounded-lg">Confirm</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+        </div>
+
+        <x-slot name="footer">
+            <div class="flex items-center justify-between w-full">
+                <div>
+                    <template x-if="selectedRider && selectedRider.approval_status !== 'approved'">
+                        <form :action="'/admin/delivery-partners/' + selectedRider.id + '/approve'" method="POST" class="inline" onsubmit="return confirm('Approve this rider for active deliveries?');">
+                            @csrf
+                            <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer">
+                                ✓ Approve Rider &amp; Activate
+                            </button>
+                        </form>
+                    </template>
+                </div>
+                <button 
+                    type="button" 
+                    @click="$dispatch('close-modal', 'kyc-docs-modal')" 
+                    class="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 transition"
+                >
+                    Close
+                </button>
+            </div>
+        </x-slot>
+    </x-modal>
+
 </div>
 
 <script>
@@ -448,16 +806,41 @@
         return {
             modalMode: 'create',
             modalAction: '{{ route("admin.delivery_partners.store") }}',
+            rejectAction: '',
+            rejectRiderName: '',
+            selectedRider: null,
+            selectedDocs: [],
             form: {
                 id: null,
                 name: '',
                 phone: '',
                 vehicle: 'Electric Scooter',
                 vehicle_number: '',
+                emergency_contact_name: '',
+                emergency_contact_phone: '',
+                cash_in_hand_limit: 5000,
                 status: 'available',
                 current_lat: 12.9716,
                 current_lng: 77.5946,
                 is_active: true
+            },
+
+            formatDocType(type) {
+                const map = {
+                    'driving_license_front': 'Driving License (Front)',
+                    'driving_license_back': 'Driving License (Back)',
+                    'vehicle_rc': 'Vehicle Registration (RC)',
+                    'aadhaar_card': 'Aadhaar Card / Govt ID',
+                    'insurance': 'Vehicle Insurance Policy',
+                    'pan_card': 'PAN Card'
+                };
+                return map[type] || (type ? type.replace(/_/g, ' ').toUpperCase() : 'Document');
+            },
+
+            openKycModal(rider) {
+                this.selectedRider = rider;
+                this.selectedDocs = rider.documents || [];
+                this.$dispatch('open-modal', 'kyc-docs-modal');
             },
 
             openCreateModal() {
@@ -469,6 +852,9 @@
                     phone: '',
                     vehicle: 'Electric Scooter',
                     vehicle_number: '',
+                    emergency_contact_name: '',
+                    emergency_contact_phone: '',
+                    cash_in_hand_limit: 5000,
                     status: 'available',
                     current_lat: 12.9716,
                     current_lng: 77.5946,
@@ -486,12 +872,21 @@
                     phone: rider.phone,
                     vehicle: rider.vehicle || 'Electric Scooter',
                     vehicle_number: rider.vehicle_number || '',
+                    emergency_contact_name: rider.emergency_contact_name || '',
+                    emergency_contact_phone: rider.emergency_contact_phone || '',
+                    cash_in_hand_limit: rider.cash_in_hand_limit || 5000,
                     status: rider.status || 'available',
                     current_lat: rider.current_lat || 12.9716,
                     current_lng: rider.current_lng || 77.5946,
                     is_active: !!rider.is_active
                 };
                 this.$dispatch('open-modal', 'rider-modal');
+            },
+
+            openRejectModal(rider) {
+                this.rejectRiderName = rider.name;
+                this.rejectAction = '{{ url("/admin/delivery-partners") }}/' + rider.id + '/reject';
+                this.$dispatch('open-modal', 'reject-modal');
             }
         };
     }

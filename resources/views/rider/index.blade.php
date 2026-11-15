@@ -1,169 +1,298 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OneStall Rider - Fleet Portal</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="bg-slate-100 text-slate-900 min-h-screen pb-16 font-sans">
-    
-    <!-- Mobile App Header -->
-    <header class="bg-slate-900 text-white px-4 py-4 sticky top-0 z-30 shadow-md">
-        <div class="max-w-md mx-auto flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-lg shadow">
-                    🛵
-                </div>
-                <div>
-                    <h1 class="font-extrabold text-sm leading-tight">{{ $rider->name }}</h1>
-                    <div class="flex items-center gap-1.5 text-[11px] text-emerald-400 font-semibold">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        <span>{{ ucfirst($rider->status) }} • {{ $rider->vehicle ?? 'Motorcycle' }}</span>
-                    </div>
-                </div>
-            </div>
+@extends('layouts.rider', ['title' => 'Rider Dashboard - OneStall'])
 
-            <div class="flex items-center gap-2">
-                <!-- Switch Rider dropdown -->
-                <form action="{{ route('rider.switch') }}" method="POST" class="flex items-center">
-                    @csrf
-                    <select name="rider_id" onchange="this.form.submit()" class="text-xs bg-slate-800 text-white border-slate-700 rounded-lg py-1 px-2">
-                        @foreach($allRiders as $r)
-                            <option value="{{ $r->id }}" {{ $r->id === $rider->id ? 'selected' : '' }}>
-                                {{ $r->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </form>
+@section('content')
+<div class="space-y-4" x-data="riderDashboard()">
 
-                <form action="{{ route('logout') }}" method="POST" class="flex items-center">
-                    @csrf
-                    <button type="submit" class="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 text-xs font-semibold border border-rose-500/40 transition" title="Log Out">
-                        ✕
-                    </button>
-                </form>
+    <!-- KYC Action Alert for Non-Approved Riders -->
+    @if($rider->approval_status !== 'approved')
+        <div class="rounded-2xl p-4 flex items-start space-x-3 shadow-xs border {{ $rider->approval_status === 'rejected' ? 'bg-rose-50 border-rose-200 text-rose-900' : 'bg-amber-50 border-amber-200 text-amber-900' }}">
+            <div class="text-xl">⚠️</div>
+            <div class="flex-1 text-xs">
+                <div class="font-extrabold text-xs">
+                    {{ $rider->approval_status === 'rejected' ? 'KYC Verification Needs Correction' : 'KYC Verification Underway' }}
+                </div>
+                <div class="text-[11px] opacity-90 mt-0.5">
+                    {{ $rider->approval_status === 'rejected' ? ($rider->rejection_reason ?: 'One or more documents were rejected. Please review and re-upload.') : 'Upload your Driving License, RC, and ID proof to get activated for order assignments.' }}
+                </div>
+                <a href="{{ route('rider.kyc') }}" class="inline-flex items-center space-x-1 mt-2 px-3 py-1.5 {{ $rider->approval_status === 'rejected' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-amber-600 hover:bg-amber-700' }} text-white rounded-xl font-bold text-[11px] shadow-xs transition">
+                    <span>Manage KYC Documents</span>
+                    <span>&rarr;</span>
+                </a>
             </div>
         </div>
-    </header>
+    @endif
 
-    <main class="max-w-md mx-auto px-4 py-5 space-y-4">
+    <!-- Metric Strip Cards (2x2 Grid) -->
+    <div class="grid grid-cols-2 gap-3">
+        <!-- Duty Status Card -->
+        <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs flex flex-col justify-between">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Duty Availability</div>
+            <div class="flex items-center space-x-2 my-1">
+                <span class="w-2.5 h-2.5 rounded-full {{ $rider->status === 'available' ? 'bg-emerald-500 animate-pulse' : ($rider->status === 'busy' ? 'bg-amber-500' : 'bg-slate-400') }}"></span>
+                <span class="text-base font-black capitalize text-slate-900">
+                    {{ $rider->status === 'available' ? 'Online' : ucfirst($rider->status) }}
+                </span>
+            </div>
+            <form method="POST" action="{{ route('rider.toggle_duty') }}">
+                @csrf
+                <button type="submit" class="text-[11px] font-bold text-orange-600 hover:text-orange-700 underline cursor-pointer">
+                    {{ $rider->status === 'available' ? 'Go Offline' : 'Go Online' }}
+                </button>
+            </form>
+        </div>
+
+        <!-- Today Completed Deliveries -->
+        <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs flex flex-col justify-between">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Today Delivered</div>
+            <div class="text-2xl font-black text-indigo-600 my-0.5">
+                {{ number_format($completedToday) }}
+            </div>
+            <div class="text-[10px] text-slate-400">Completed drop-offs</div>
+        </div>
+
+        <!-- Today Earnings -->
+        <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs flex flex-col justify-between">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Today's Earnings</div>
+            <div class="text-xl font-black text-emerald-600 my-0.5 font-mono">
+                ₹{{ number_format($todayEarnings, 2) }}
+            </div>
+            <a href="{{ route('rider.wallet') }}" class="text-[10px] font-bold text-emerald-700 hover:underline">
+                View Wallet &rarr;
+            </a>
+        </div>
+
+        <!-- Cash in Hand (COD) -->
+        <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs flex flex-col justify-between">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cash in Hand</div>
+            <div class="text-xl font-black font-mono my-0.5 {{ (float)$rider->current_cash_in_hand >= (float)$rider->cash_in_hand_limit ? 'text-rose-600' : 'text-amber-600' }}">
+                ₹{{ number_format((float) $rider->current_cash_in_hand, 2) }}
+            </div>
+            <div class="text-[10px] text-slate-400">
+                Limit: ₹{{ number_format((float) ($rider->cash_in_hand_limit ?? 5000), 0) }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Telemetry Card -->
+    <div class="bg-slate-900 text-white rounded-2xl p-4 shadow-sm border border-slate-800 space-y-2">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-orange-400 animate-ping"></span>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Live GPS Location</span>
+            </div>
+            <span class="text-[11px] font-mono text-slate-400">
+                {{ number_format($rider->current_lat ?? 12.9716, 4) }}, {{ number_format($rider->current_lng ?? 77.5946, 4) }}
+            </span>
+        </div>
         
-        <!-- Alerts -->
-        @if(session('success'))
-            <div class="bg-emerald-500 text-white text-xs font-bold p-3 rounded-2xl shadow-sm flex items-center gap-2">
-                <span>✓</span> <span>{{ session('success') }}</span>
-            </div>
+        <button 
+            type="button" 
+            @click="sendLocationPing()" 
+            :disabled="isPinging" 
+            class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 border border-slate-700 cursor-pointer"
+        >
+            <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+            <span x-text="isPinging ? 'Pinging GPS Telemetry...' : 'Send GPS Location Ping'">Send GPS Location Ping</span>
+        </button>
+
+        <p x-show="pingMsg" x-text="pingMsg" class="text-[11px] text-emerald-400 font-bold text-center"></p>
+    </div>
+
+    <!-- Active Tasks Section Header -->
+    <div class="flex items-center justify-between pt-1">
+        <h2 class="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
+            <span>Assigned Tasks</span>
+            <span class="bg-orange-100 text-orange-800 text-[10px] px-2 py-0.5 rounded-full font-black">
+                {{ $activeAssignments->count() }}
+            </span>
+        </h2>
+        @if($rider->status === 'offline')
+            <span class="text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full">
+                ⚠️ You are Offline
+            </span>
         @endif
-        @if(session('error'))
-            <div class="bg-rose-500 text-white text-xs font-bold p-3 rounded-2xl shadow-sm flex items-center gap-2">
-                <span>✕</span> <span>{{ session('error') }}</span>
-            </div>
-        @endif
+    </div>
 
-        <!-- Quick Telemetry & GPS Simulation Card -->
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200" x-data="{
-            updating: false,
-            msg: '',
-            pingLocation() {
-                this.updating = true;
-                const newLat = {{ $rider->current_lat ?? 12.9716 }} + (Math.random() * 0.005 - 0.0025);
-                const newLng = {{ $rider->current_lng ?? 77.5946 }} + (Math.random() * 0.005 - 0.0025);
-                fetch('{{ route('rider.location_api') }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                    body: JSON.stringify({ rider_id: {{ $rider->id }}, lat: newLat, lng: newLng })
-                })
-                .then(r => r.json())
-                .then(d => {
-                    this.updating = false;
-                    this.msg = 'GPS Ping sent (' + newLat.toFixed(4) + ', ' + newLng.toFixed(4) + ')';
-                    setTimeout(() => this.msg = '', 3000);
-                })
-                .catch(e => { this.updating = false; console.error(e); });
-            }
-        }">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-slate-500 uppercase">Live GPS Coordinates</span>
-                <span class="text-[11px] font-mono text-slate-400">
-                    {{ number_format($rider->current_lat ?? 12.9716, 4) }}, {{ number_format($rider->current_lng ?? 77.5946, 4) }}
-                </span>
+    <!-- Assignments List -->
+    @if($activeAssignments->isEmpty())
+        <div class="bg-white rounded-3xl p-8 text-center border border-dashed border-slate-300 space-y-3">
+            <div class="w-14 h-14 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto text-3xl">
+                🛵
             </div>
-            <button @click="pingLocation()" :disabled="updating" class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2">
-                <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
-                <span x-text="updating ? 'Pinging GPS...' : 'Send GPS Location Ping'">Send GPS Location Ping</span>
-            </button>
-            <p x-show="msg" x-text="msg" class="text-[11px] text-emerald-600 font-bold text-center mt-2"></p>
+            <h3 class="font-bold text-slate-900 text-sm">No Active Delivery Assignments</h3>
+            <p class="text-xs text-slate-500 max-w-xs mx-auto">
+                {{ $rider->status === 'available' ? 'You are Online! You will be automatically dispatched when nearby store orders are packed and ready.' : 'You are currently Offline. Turn your duty Online to start receiving delivery orders.' }}
+            </p>
         </div>
-
-        <!-- Active Tasks Header -->
-        <div class="flex items-center justify-between pt-2">
-            <h2 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                <span>Active Assignments</span>
-                <span class="bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded-full font-bold">
-                    {{ $activeAssignments->count() }}
-                </span>
-            </h2>
-            <span class="text-xs text-slate-500">Delivered today: <strong>{{ $completedToday }}</strong></span>
-        </div>
-
-        <!-- Assignments List -->
-        @if($activeAssignments->isEmpty())
-            <div class="bg-white rounded-3xl p-8 text-center border border-dashed border-slate-300">
-                <div class="w-14 h-14 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
-                    🛵
-                </div>
-                <h3 class="font-bold text-slate-900 text-sm">No Active Delivery Assignments</h3>
-                <p class="text-xs text-slate-500 mt-1">Stay tuned. You will be automatically assigned when nearby store orders are ready for pickup.</p>
-            </div>
-        @else
-            <div class="space-y-4">
-                @foreach($activeAssignments as $assignment)
-                    @php
-                        $fo = $assignment->fulfilmentOrder;
-                        $store = $fo?->store;
-                        $order = $fo?->order;
-                    @endphp
-                    <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 space-y-4">
-                        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                            <div>
-                                <span class="text-xs font-mono font-bold text-slate-900">#{{ $fo?->fulfilment_order_number }}</span>
-                                <span class="text-[11px] text-slate-400 block">{{ $fo?->items?->count() ?? 1 }} item(s)</span>
-                            </div>
-                            <span class="px-2.5 py-1 text-xs font-bold rounded-lg uppercase
-                                {{ $assignment->status->value === 'assigned' ? 'bg-amber-100 text-amber-800' :
-                                  ($assignment->status->value === 'accepted' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800') }}">
-                                {{ $assignment->status->label() }}
+    @else
+        <div class="space-y-3.5">
+            @foreach($activeAssignments as $assignment)
+                @php
+                    $fo = $assignment->fulfilmentOrder;
+                    $store = $fo?->store;
+                    $order = $fo?->order;
+                    $isCod = $order?->payment_method === \App\Enums\PaymentMethod::COD;
+                @endphp
+                <div class="bg-white rounded-3xl p-4 sm:p-5 shadow-xs border border-slate-200 space-y-3.5">
+                    <!-- Task Header -->
+                    <div class="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                        <div>
+                            <span class="text-xs font-mono font-bold text-slate-900">
+                                #{{ $fo?->fulfilment_order_number }}
                             </span>
-                        </div>
-
-                        <!-- Pickup & Drop Locations -->
-                        <div class="space-y-2 text-xs">
-                            <div class="flex items-start gap-2.5">
-                                <span class="w-5 h-5 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">P</span>
-                                <div>
-                                    <p class="font-bold text-slate-900">{{ $store?->name ?? 'Store Outlet' }}</p>
-                                    <p class="text-[11px] text-slate-500">{{ $store?->location?->address ?? 'Nearby Dark Store Hub' }}</p>
-                                </div>
-                            </div>
-
-                            <div class="flex items-start gap-2.5">
-                                <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">D</span>
-                                <div>
-                                    <p class="font-bold text-slate-900">{{ $order?->customerAddress?->name ?? 'Customer' }}</p>
-                                    <p class="text-[11px] text-slate-500">{{ $order?->customerAddress?->line1 }}, {{ $order?->customerAddress?->city }}</p>
-                                </div>
+                            <div class="text-[10px] text-slate-400">
+                                {{ $fo?->items?->count() ?? 1 }} item(s) &bull; {{ $isCod ? 'Cash on Delivery (COD)' : 'Prepaid Online' }}
                             </div>
                         </div>
+                        <span class="px-2.5 py-1 text-[10px] font-black rounded-lg uppercase
+                            {{ $assignment->status->value === 'assigned' ? 'bg-amber-100 text-amber-800' :
+                              ($assignment->status->value === 'accepted' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800') }}">
+                            {{ $assignment->status->label() }}
+                        </span>
+                    </div>
 
-                        <!-- Action Button -->
-                        <a href="{{ route('rider.assignment', $assignment->id) }}" class="block w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold text-xs text-center shadow-md transition">
-                            Open Task & Update Status →
+                    <!-- Pickup & Drop Locations -->
+                    <div class="space-y-2 text-xs">
+                        <div class="flex items-start space-x-2.5">
+                            <span class="w-5 h-5 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">P</span>
+                            <div>
+                                <p class="font-bold text-slate-900">{{ $store?->name ?? 'Store Outlet' }}</p>
+                                <p class="text-[11px] text-slate-500 line-clamp-1">{{ $store?->location?->address ?? 'Nearby Dark Store Hub' }}</p>
+                            </div>
+                        </div>
+
+                        @php
+                            $dropName = $order?->customerAddress?->name ?? data_get($order?->address_snapshot, 'name', 'Customer');
+                            $dropLine = $order?->customerAddress?->line1 ?? (data_get($order?->address_snapshot, 'line1') ?: data_get($order?->address_snapshot, 'address_line_1', ''));
+                            $dropCity = $order?->customerAddress?->city ?? data_get($order?->address_snapshot, 'city', '');
+                            $dropAddress = trim("{$dropLine}, {$dropCity}", " ,") ?: 'Customer Delivery Location';
+                        @endphp
+                        <div class="flex items-start space-x-2.5">
+                            <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">D</span>
+                            <div>
+                                <p class="font-bold text-slate-900">{{ $dropName }}</p>
+                                <p class="text-[11px] text-slate-500 line-clamp-1">{{ $dropAddress }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="space-y-2 pt-1">
+                        @if($assignment->status->value === 'assigned')
+                            <div class="grid grid-cols-2 gap-2">
+                                <button 
+                                    type="button" 
+                                    @click="openRejectModal({{ $assignment->id }})" 
+                                    class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs text-center transition cursor-pointer"
+                                >
+                                    ✕ Decline Job
+                                </button>
+                                <form action="{{ route('rider.accept', $assignment->id) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs text-center shadow-xs transition cursor-pointer">
+                                        ✓ Accept Job
+                                    </button>
+                                </form>
+                            </div>
+                        @endif
+
+                        <a 
+                            href="{{ route('rider.assignment', $assignment->id) }}" 
+                            class="block w-full py-2.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white rounded-xl font-bold text-xs text-center shadow-xs transition"
+                        >
+                            Open Task &amp; Manage Steps &rarr;
                         </a>
                     </div>
-                @endforeach
+                </div>
+            @endforeach
+        </div>
+    @endif
+
+    <!-- Reject Task Modal -->
+    <div x-show="showRejectModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+        <div class="bg-white rounded-3xl p-5 w-full max-w-sm shadow-xl space-y-3" @click.away="showRejectModal = false">
+            <div class="text-center">
+                <span class="text-rose-500 text-2xl">⚠️</span>
+                <h3 class="font-extrabold text-base text-slate-900 mt-1">Decline Delivery Task</h3>
+                <p class="text-xs text-slate-500">
+                    Order will be immediately re-routed to the next nearest available delivery rider.
+                </p>
             </div>
-        @endif
-    </main>
-</body>
-</html>
+
+            <form :action="rejectActionUrl" method="POST" class="space-y-3">
+                @csrf
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Reason for Declining <span class="text-rose-500">*</span></label>
+                    <select name="reason" required class="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-slate-50">
+                        <option value="distance_too_far">Store or customer is too far</option>
+                        <option value="vehicle_breakdown">Vehicle breakdown / puncture</option>
+                        <option value="personal_emergency">Personal emergency</option>
+                        <option value="heavy_rain_traffic">Severe weather / traffic jam</option>
+                        <option value="other">Other reason</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button type="button" @click="showRejectModal = false" class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs">
+                        Cancel
+                    </button>
+                    <button type="submit" class="py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs shadow-xs">
+                        Confirm Decline
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function riderDashboard() {
+        return {
+            isPinging: false,
+            pingMsg: '',
+            showRejectModal: false,
+            rejectActionUrl: '',
+
+            openRejectModal(assignmentId) {
+                this.rejectActionUrl = '{{ url("/rider/orders") }}/' + assignmentId + '/reject';
+                this.showRejectModal = true;
+            },
+
+            sendLocationPing() {
+                this.isPinging = true;
+                const baseLat = {{ (float) ($rider->current_lat ?? 12.9716) }};
+                const baseLng = {{ (float) ($rider->current_lng ?? 77.5946) }};
+                const newLat = +(baseLat + (Math.random() * 0.003 - 0.0015)).toFixed(6);
+                const newLng = +(baseLng + (Math.random() * 0.003 - 0.0015)).toFixed(6);
+
+                fetch('{{ route("rider.location_api") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        rider_id: {{ $rider->id }},
+                        lat: newLat,
+                        lng: newLng,
+                        accuracy: 10.0,
+                        speed: 18.5
+                    })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    this.isPinging = false;
+                    this.pingMsg = '✓ Location ping recorded: ' + newLat + ', ' + newLng;
+                    setTimeout(() => this.pingMsg = '', 3500);
+                })
+                .catch(err => {
+                    this.isPinging = false;
+                    console.error('Telemetry error:', err);
+                });
+            }
+        };
+    }
+</script>
+@endsection
