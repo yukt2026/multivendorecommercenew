@@ -53,6 +53,30 @@ class LocationService
             'label' => 'Connaught Place, Delhi (110001)',
         ],
         [
+            'city' => 'West Delhi',
+            'state' => 'Delhi',
+            'pincode' => '110059',
+            'lat' => 28.6222,
+            'lng' => 77.0672,
+            'label' => 'Janakpuri / West Delhi (110059)',
+        ],
+        [
+            'city' => 'Noida',
+            'state' => 'Uttar Pradesh',
+            'pincode' => '201301',
+            'lat' => 28.5706,
+            'lng' => 77.3272,
+            'label' => 'Noida Sector 18 (201301)',
+        ],
+        [
+            'city' => 'Gurugram',
+            'state' => 'Haryana',
+            'pincode' => '122001',
+            'lat' => 28.4595,
+            'lng' => 77.0266,
+            'label' => 'Gurugram Cyber City (122001)',
+        ],
+        [
             'city' => 'Hyderabad',
             'state' => 'Telangana',
             'pincode' => '500001',
@@ -83,6 +107,30 @@ class LocationService
             'lat' => 22.5726,
             'lng' => 88.3639,
             'label' => 'Kolkata Central (700001)',
+        ],
+        [
+            'city' => 'Ahmedabad',
+            'state' => 'Gujarat',
+            'pincode' => '380001',
+            'lat' => 23.0225,
+            'lng' => 72.5714,
+            'label' => 'Ahmedabad Central (380001)',
+        ],
+        [
+            'city' => 'Jaipur',
+            'state' => 'Rajasthan',
+            'pincode' => '302001',
+            'lat' => 26.9124,
+            'lng' => 75.7873,
+            'label' => 'Jaipur Pink City (302001)',
+        ],
+        [
+            'city' => 'Lucknow',
+            'state' => 'Uttar Pradesh',
+            'pincode' => '226001',
+            'lat' => 26.8467,
+            'lng' => 80.9462,
+            'label' => 'Lucknow Central (226001)',
         ],
     ];
 
@@ -276,22 +324,95 @@ class LocationService
             if (
                 str_contains(strtolower($city['city']), $q) ||
                 str_contains(strtolower($city['pincode']), $q) ||
-                str_contains(strtolower($city['state']), $q)
+                str_contains(strtolower($city['state']), $q) ||
+                (isset($city['label']) && str_contains(strtolower($city['label']), $q))
             ) {
                 $results[] = $city;
             }
         }
 
-        // If numeric 6-digit pincode entered that's not in popular cities, create dynamic entry
-        if (preg_match('/^[1-9][0-9]{5}$/', $q) && empty($results)) {
-            $results[] = [
-                'city' => 'Pincode ' . $q,
-                'state' => 'India',
-                'pincode' => $q,
-                'lat' => 12.9716, // Fallback default center
-                'lng' => 77.5946,
-                'label' => "Pincode: {$q}",
-            ];
+        // Search registered physical store locations from database
+        try {
+            $storeLocations = \App\Models\StoreLocation::query()
+                ->whereNotNull('lat')
+                ->whereNotNull('lng')
+                ->where(function ($sub) use ($q) {
+                    $sub->whereRaw('LOWER(city) LIKE ?', ["%{$q}%"])
+                        ->orWhereRaw('LOWER(state) LIKE ?', ["%{$q}%"])
+                        ->orWhere('pincode', 'LIKE', "%{$q}%")
+                        ->orWhereRaw('LOWER(address_line1) LIKE ?', ["%{$q}%"]);
+                })
+                ->take(6)
+                ->get();
+
+            foreach ($storeLocations as $sl) {
+                $exists = false;
+                foreach ($results as $r) {
+                    if ($r['pincode'] === $sl->pincode && strtolower($r['city']) === strtolower($sl->city)) {
+                        $exists = true;
+                        break;
+                    }
+                }
+                if (!$exists) {
+                    $results[] = [
+                        'city' => $sl->city,
+                        'state' => $sl->state ?? 'India',
+                        'pincode' => $sl->pincode,
+                        'lat' => (float) $sl->lat,
+                        'lng' => (float) $sl->lng,
+                        'label' => "{$sl->city} ({$sl->pincode})",
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {
+            // Ignore DB errors during testing or migrations
+        }
+
+        // If numeric 6-digit pincode entered that's not in popular cities, resolve via prefix mapping
+        if (preg_match('/^[1-9][0-9]{5}$/', $q)) {
+            $hasExact = false;
+            foreach ($results as $r) {
+                if ($r['pincode'] === $q) {
+                    $hasExact = true;
+                    break;
+                }
+            }
+            if (!$hasExact) {
+                $prefix = substr($q, 0, 2);
+                $pincodeCoords = [
+                    '11' => ['city' => 'Delhi', 'state' => 'Delhi', 'lat' => 28.6139, 'lng' => 77.2090],
+                    '12' => ['city' => 'Gurugram/Faridabad', 'state' => 'Haryana', 'lat' => 28.4595, 'lng' => 77.0266],
+                    '13' => ['city' => 'Ambala/Panipat', 'state' => 'Haryana', 'lat' => 30.3782, 'lng' => 76.7767],
+                    '14' => ['city' => 'Punjab', 'state' => 'Punjab', 'lat' => 30.9010, 'lng' => 75.8573],
+                    '16' => ['city' => 'Chandigarh', 'state' => 'Chandigarh', 'lat' => 30.7333, 'lng' => 76.7794],
+                    '20' => ['city' => 'Noida/Ghaziabad', 'state' => 'Uttar Pradesh', 'lat' => 28.5355, 'lng' => 77.3910],
+                    '22' => ['city' => 'Lucknow/Amethi', 'state' => 'Uttar Pradesh', 'lat' => 26.8467, 'lng' => 80.9462],
+                    '24' => ['city' => 'Dehradun/Moradabad', 'state' => 'Uttarakhand/UP', 'lat' => 30.3165, 'lng' => 78.0322],
+                    '30' => ['city' => 'Jaipur', 'state' => 'Rajasthan', 'lat' => 26.9124, 'lng' => 75.7873],
+                    '38' => ['city' => 'Ahmedabad', 'state' => 'Gujarat', 'lat' => 23.0225, 'lng' => 72.5714],
+                    '40' => ['city' => 'Mumbai', 'state' => 'Maharashtra', 'lat' => 18.9388, 'lng' => 72.8354],
+                    '41' => ['city' => 'Pune', 'state' => 'Maharashtra', 'lat' => 18.5204, 'lng' => 73.8567],
+                    '50' => ['city' => 'Hyderabad', 'state' => 'Telangana', 'lat' => 17.3850, 'lng' => 78.4867],
+                    '56' => ['city' => 'Bengaluru', 'state' => 'Karnataka', 'lat' => 12.9716, 'lng' => 77.5946],
+                    '60' => ['city' => 'Chennai', 'state' => 'Tamil Nadu', 'lat' => 13.0827, 'lng' => 80.2707],
+                    '70' => ['city' => 'Kolkata', 'state' => 'West Bengal', 'lat' => 22.5726, 'lng' => 88.3639],
+                ];
+                $meta = $pincodeCoords[$prefix] ?? [
+                    'city' => 'Pincode ' . $q,
+                    'state' => 'India',
+                    'lat' => 20.5937,
+                    'lng' => 78.9629,
+                ];
+
+                array_unshift($results, [
+                    'city' => $meta['city'],
+                    'state' => $meta['state'],
+                    'pincode' => $q,
+                    'lat' => $meta['lat'],
+                    'lng' => $meta['lng'],
+                    'label' => "{$meta['city']} ({$q})",
+                ]);
+            }
         }
 
         return $results;

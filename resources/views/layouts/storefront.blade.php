@@ -727,9 +727,9 @@
                     </div>
                 </template>
 
-                <!-- Popular Indian Cities -->
+                <!-- Popular Indian Cities / Search Results -->
                 <div class="mt-4">
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">Popular Cities</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2" x-text="$store.location.searchQuery ? 'Search Results' : 'Popular Cities'">Popular Cities</span>
                     <div class="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto">
                         <template x-for="c in $store.location.searchResults" :key="c.pincode + c.city">
                             <button type="button"
@@ -739,7 +739,7 @@
                                         state: c.state,
                                         lat: c.lat,
                                         lng: c.lng,
-                                        address_label: c.city + ' ' + c.pincode
+                                        address_label: c.label || (c.city + ' ' + c.pincode)
                                     })"
                                     class="p-2.5 rounded-xl border border-slate-100 hover:border-indigo-300 hover:bg-slate-50 text-left transition flex items-center space-x-2">
                                 <span class="text-base">📍</span>
@@ -749,6 +749,9 @@
                                 </div>
                             </button>
                         </template>
+                        <div x-show="$store.location.searchQuery && $store.location.searchResults.length === 0" class="col-span-2 py-6 text-center text-xs text-slate-500">
+                            No matching cities or pincodes found.
+                        </div>
                     </div>
                 </div>
 

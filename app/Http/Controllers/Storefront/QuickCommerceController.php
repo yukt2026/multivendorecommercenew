@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Order;
 use App\Services\QuickCommerce\QuickCommerceService;
+use App\Services\Storefront\LocationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -15,7 +16,8 @@ use Illuminate\View\View;
 class QuickCommerceController extends Controller
 {
     public function __construct(
-        protected QuickCommerceService $quickService
+        protected QuickCommerceService $quickService,
+        protected LocationService $locationService
     ) {}
 
     /**
@@ -23,12 +25,12 @@ class QuickCommerceController extends Controller
      */
     public function index(Request $request): View
     {
-        $lat = (float) $request->session()->get('user_lat', setting('default_lat', 12.9716));
-        $lng = (float) $request->session()->get('user_lng', setting('default_lng', 77.5946));
+        $currentLoc = $this->locationService->getCurrentLocation($request);
+
+        $lat = (float) ($request->query('lat') ?? $request->session()->get('user_lat') ?? $currentLoc['lat'] ?? setting('default_lat', 12.9716));
+        $lng = (float) ($request->query('lng') ?? $request->session()->get('user_lng') ?? $currentLoc['lng'] ?? setting('default_lng', 77.5946));
 
         if ($request->has('lat') && $request->has('lng')) {
-            $lat = (float) $request->query('lat');
-            $lng = (float) $request->query('lng');
             $request->session()->put('user_lat', $lat);
             $request->session()->put('user_lng', $lng);
         }

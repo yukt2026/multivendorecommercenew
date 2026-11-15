@@ -113,21 +113,27 @@ class StorefrontService
                     ->take(8)
                     ->get();
             } catch (\Throwable $e) {
-                // Fallback if location search returns empty or SQLite math mismatch
-                $stores = Store::active()
-                    ->quickCommerce()
-                    ->with(['location', 'timings'])
-                    ->take(8)
-                    ->get();
+                $stores = collect();
             }
 
             // Filter stores currently open
             $openStores = $stores->filter(fn (Store $store) => $store->isOpenNow());
 
+            $etaMin = 15;
+            $etaMax = 25;
+            if ($openStores->isNotEmpty()) {
+                $nearest = $openStores->first();
+                $eta = $nearest->calculateQuickEta((float) ($nearest->distance_km ?? 2.0));
+                $etaMin = $eta['min_minutes'] ?? 15;
+                $etaMax = $eta['max_minutes'] ?? 25;
+            }
+
             return [
                 'is_available' => $openStores->isNotEmpty(),
                 'store_count' => $openStores->count(),
-                'eta_minutes' => 15,
+                'eta_minutes' => $etaMin,
+                'eta_max_minutes' => $etaMax,
+                'formatted_eta' => "{$etaMin}-{$etaMax} Minutes",
                 'stores' => $openStores->values(),
             ];
         });
@@ -147,25 +153,14 @@ class StorefrontService
             $radius = (float) setting('default_delivery_radius_km', 15.00);
 
             try {
-                $stores = Store::active()
+                return Store::active()
                     ->with(['location', 'timings', 'seller'])
                     ->nearby($lat, $lng, $radius)
                     ->take(8)
                     ->get();
-
-                if ($stores->isNotEmpty()) {
-                    return $stores;
-                }
             } catch (\Throwable $e) {
-                // Fall through to fallback
+                return collect();
             }
-
-            // Fallback: Return top rated active stores
-            return Store::active()
-                ->with(['location', 'timings', 'seller'])
-                ->orderByDesc('rating_avg')
-                ->take(8)
-                ->get();
         });
     }
 

@@ -54,7 +54,7 @@ class QuickCommerceService
      */
     public function getNearbyQuickStores(float $lat, float $lng, ?float $radiusKm = null)
     {
-        $maxRadius = $radiusKm ?? (float) setting('quick_default_radius_km', 8.00);
+        $defaultRadius = (float) setting('quick_default_radius_km', 8.00);
 
         // Fetch active quick commerce stores with locations
         $stores = Store::query()
@@ -73,8 +73,9 @@ class QuickCommerceService
 
             $dist = $this->calculateHaversineDistance($lat, $lng, (float) $loc->lat, (float) $loc->lng);
             $storeRadius = $store->effectiveQuickRadius();
+            $effectiveRadius = $radiusKm ?? max($storeRadius, $defaultRadius);
 
-            if ($dist <= $storeRadius && $dist <= $maxRadius) {
+            if ($dist <= $effectiveRadius) {
                 $store->distance_km = round($dist, 2);
                 $store->is_open_now = $store->isOpenNow();
                 $store->eta = $store->calculateQuickEta($dist);

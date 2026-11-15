@@ -116,7 +116,7 @@
     </section>
 
     <!-- 4. Quick Commerce Strip ("Delivery in minutes", Blinkit-inspired, shown when nearby eligible stores exist) -->
-    @if($quickCommerce['is_available'] || true)
+    @if($quickCommerce['is_available'])
         <section id="quick-commerce" class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div class="p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-slate-950 shadow-lg border border-amber-300 relative overflow-hidden flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
                 <div class="flex items-start sm:items-center space-x-3 sm:space-x-4">
@@ -129,14 +129,14 @@
                                 HYPER-LOCAL QUICK COMMERCE
                             </span>
                             <span class="text-[11px] sm:text-xs font-bold text-slate-800">
-                                &bull; {{ $quickCommerce['store_count'] }} stores live nearby
+                                &bull; {{ $quickCommerce['store_count'] }} {{ \Illuminate\Support\Str::plural('store', $quickCommerce['store_count']) }} live nearby
                             </span>
                         </div>
                         <h3 class="text-base sm:text-2xl font-black text-slate-950 tracking-tight leading-snug">
-                            Delivered to your doorstep in 10-25 Minutes!
+                            Delivered to your doorstep in {{ $quickCommerce['formatted_eta'] ?? '10-25 Minutes' }}!
                         </h3>
                         <p class="text-[11px] sm:text-xs font-medium text-slate-800 max-w-lg mt-0.5 line-clamp-2 sm:line-clamp-none">
-                            Fresh dairy, instant groceries, medicines, electronics and essentials packaged directly from stores within {{ $deliveryRadius }} km.
+                            Fresh dairy, instant groceries, medicines, electronics and essentials packaged directly from verified local stores in your delivery zone.
                         </p>
                     </div>
                 </div>
@@ -147,8 +147,45 @@
                             class="flex-1 md:flex-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs shadow-sm border border-slate-200 transition text-center">
                         Change Location
                     </button>
-                    <a href="#nearby-stores" class="flex-1 md:flex-none px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-extrabold text-xs shadow-md transition text-center">
+                    <a href="{{ route('quick.index') }}" class="flex-1 md:flex-none px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-extrabold text-xs shadow-md transition text-center">
                         View Local Stores &rarr;
+                    </a>
+                </div>
+            </div>
+        </section>
+    @else
+        <section id="quick-commerce-notice" class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div class="p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-slate-100 text-slate-900 border border-slate-200 relative overflow-hidden flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
+                <div class="flex items-start sm:items-center space-x-3 sm:space-x-4">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-slate-200 text-slate-600 flex items-center justify-center font-black text-lg sm:text-xl shadow-xs flex-shrink-0">
+                        📍
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-0.5">
+                            <span class="px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 text-[9px] sm:text-[10px] font-black uppercase tracking-wider inline-block">
+                                HYPER-LOCAL QUICK COMMERCE
+                            </span>
+                            <span class="text-[11px] sm:text-xs font-semibold text-slate-500">
+                                &bull; Expanding soon to {{ $location['city'] ?? 'your area' }}
+                            </span>
+                        </div>
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900">
+                            10-25 Min Express delivery is not active in this pincode yet
+                        </h3>
+                        <p class="text-[11px] sm:text-xs text-slate-500 max-w-lg mt-0.5">
+                            You can still order from our complete marketplace catalog with Standard &amp; Express pan-India doorstep delivery.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 w-full md:w-auto pt-1 sm:pt-0">
+                    <button type="button"
+                            @click="$store.location.modalOpen = true"
+                            class="flex-1 md:flex-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs shadow-xs border border-slate-200 transition text-center">
+                        Change Location
+                    </button>
+                    <a href="{{ route('search') }}" class="flex-1 md:flex-none px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-xs transition text-center">
+                        Explore Marketplace &rarr;
                     </a>
                 </div>
             </div>

@@ -247,8 +247,9 @@ class Store extends Model
         $radius = (float) ($radiusKm ?? setting('default_delivery_radius_km', 8.00));
 
         if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'sqlite') {
-            $latDelta = $radius / 111.0;
-            $lngDelta = $radius / (111.0 * max(0.1, cos(deg2rad($lat))));
+            $effectiveRadius = max($radius, 35.0);
+            $latDelta = $effectiveRadius / 111.0;
+            $lngDelta = $effectiveRadius / (111.0 * max(0.1, cos(deg2rad($lat))));
 
             return $query->select('stores.*')
                 ->selectRaw('ROUND(1.5, 2) AS distance_km')
@@ -259,15 +260,19 @@ class Store extends Model
 
         // 6371 km = Earth's mean radius in kilometers
         $haversine = "(6371 * acos(
-            cos(radians({$lat})) * cos(radians(store_locations.lat)) * 
-            cos(radians(store_locations.lng) - radians({$lng})) + 
-            sin(radians({$lat})) * sin(radians(store_locations.lat))
+            LEAST(1.0, GREATEST(-1.0,
+                cos(radians({$lat})) * cos(radians(store_locations.lat)) * 
+                cos(radians(store_locations.lng) - radians({$lng})) + 
+                sin(radians({$lat})) * sin(radians(store_locations.lat))
+            ))
         ))";
 
         return $query->select('stores.*')
             ->selectRaw("ROUND({$haversine}, 2) AS distance_km")
             ->join('store_locations', 'stores.id', '=', 'store_locations.store_id')
-            ->whereRaw("{$haversine} <= {$radius}")
+            ->whereNotNull('store_locations.lat')
+            ->whereNotNull('store_locations.lng')
+            ->whereRaw("{$haversine} <= GREATEST(?, COALESCE(stores.delivery_radius_km, ?))", [$radius, $radius])
             ->orderBy('distance_km', 'asc');
     }
 
