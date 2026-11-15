@@ -101,33 +101,87 @@
     @endif
 
     <!-- 9 Navigation Tabs Bar -->
-    <div class="border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
-        <nav class="flex space-x-2 sm:space-x-4 min-w-max">
-            @php
-                $tabList = [
-                    'overview' => ['label' => 'Overview', 'icon' => 'home'],
-                    'kyc' => ['label' => 'Business & KYC', 'icon' => 'badge'],
-                    'documents' => ['label' => 'Documents (' . $seller->documents->count() . ')', 'icon' => 'document'],
-                    'bank' => ['label' => 'Bank Details', 'icon' => 'credit-card'],
-                    'stores' => ['label' => 'Stores (' . $seller->stores->count() . ')', 'icon' => 'store'],
-                    'products' => ['label' => 'Products (' . $seller->products()->count() . ')', 'icon' => 'shopping-bag'],
-                    'orders' => ['label' => 'Orders (' . $seller->fulfilmentOrders()->count() . ')', 'icon' => 'truck'],
-                    'commission' => ['label' => 'Commission Override', 'icon' => 'percent'],
-                    'activity' => ['label' => 'Activity Log (' . $activityLogs->count() . ')', 'icon' => 'history'],
-                ];
-            @endphp
+    <div class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 rounded-2xl p-1.5 shadow-xs">
+        <div class="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+            <nav class="flex space-x-1 sm:space-x-1.5 min-w-max p-1" aria-label="Seller detail navigation tabs">
+                @php
+                    $tabList = [
+                        'overview' => [
+                            'label' => 'Overview', 
+                            'badge' => null,
+                            'svg' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>'
+                        ],
+                        'kyc' => [
+                            'label' => 'Business & KYC', 
+                            'badge' => null,
+                            'svg' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>'
+                        ],
+                        'documents' => [
+                            'label' => 'Documents', 
+                            'badge' => $seller->documents->count(),
+                            'svg' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>'
+                        ],
+                        'bank' => [
+                            'label' => 'Bank Details', 
+                            'badge' => null,
+                            'svg' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>'
+                        ],
+                        'stores' => [
+                            'label' => 'Stores', 
+                            'badge' => $seller->stores->count(),
+                            'svg' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>'
+                        ],
+                        'products' => [
+                            'label' => 'Products', 
+                            'badge' => $seller->products()->count(),
+                            'svg' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>'
+                        ],
+                        'orders' => [
+                            'label' => 'Orders', 
+                            'badge' => $seller->fulfilmentOrders()->count(),
+                            'svg' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>'
+                        ],
+                        'commission' => [
+                            'label' => 'Commission Override', 
+                            'badge' => null,
+                            'svg' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>'
+                        ],
+                        'activity' => [
+                            'label' => 'Activity Log', 
+                            'badge' => $activityLogs->count(),
+                            'svg' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+                        ],
+                    ];
+                @endphp
 
-            @foreach($tabList as $key => $tab)
-                <button 
-                    type="button" 
-                    @click="setTab('{{ $key }}')"
-                    :class="activeTab === '{{ $key }}' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium'"
-                    class="py-3 px-3.5 border-b-2 text-xs transition-colors flex items-center space-x-1.5 focus:outline-hidden"
-                >
-                    <span>{{ $tab['label'] }}</span>
-                </button>
-            @endforeach
-        </nav>
+                @foreach($tabList as $key => $tab)
+                    <button 
+                        type="button" 
+                        id="tab-btn-{{ $key }}"
+                        @click="setTab('{{ $key }}')"
+                        :class="activeTab === '{{ $key }}' 
+                            ? 'bg-indigo-600 text-white shadow-xs font-bold' 
+                            : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 font-medium'"
+                        class="px-3.5 py-2 rounded-xl text-xs transition-all flex items-center space-x-1.5 shrink-0 focus:outline-hidden"
+                    >
+                        <span class="shrink-0" :class="activeTab === '{{ $key }}' ? 'text-white' : 'text-slate-400 dark:text-slate-500'">
+                            {!! $tab['svg'] !!}
+                        </span>
+                        <span>{{ $tab['label'] }}</span>
+                        @if($tab['badge'] !== null)
+                            <span 
+                                :class="activeTab === '{{ $key }}' 
+                                    ? 'bg-indigo-700/80 text-white border-transparent' 
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'"
+                                class="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold border transition-colors ml-1"
+                            >
+                                {{ $tab['badge'] }}
+                            </span>
+                        @endif
+                    </button>
+                @endforeach
+            </nav>
+        </div>
     </div>
 
     <!-- ========================================== -->
@@ -215,15 +269,24 @@
                 <x-card title="Digital Storefronts" subtitle="Stores owned by this merchant">
                     <div class="space-y-3">
                         @forelse($seller->stores as $store)
-                            <div class="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 text-xs">
+                            <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 text-xs space-y-2">
                                 <div class="flex items-center justify-between">
-                                    <span class="font-bold text-slate-900 dark:text-white">{{ $store->name }}</span>
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                    <a href="{{ route('admin.stores.show', $store) }}" class="font-bold text-slate-900 dark:text-white hover:text-indigo-600 transition">
+                                        {{ $store->name }}
+                                    </a>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
                                         {{ $store->status->label() }}
                                     </span>
                                 </div>
-                                <div class="text-slate-400 font-mono text-[11px] mt-0.5">/store/{{ $store->slug }}</div>
-                                <div class="mt-2 flex items-center space-x-2 text-[10px]">
+                                <div class="flex items-center justify-between text-[11px]">
+                                    <a href="{{ route('store.show', $store->slug) }}" target="_blank" class="text-indigo-600 dark:text-indigo-400 font-mono hover:underline">
+                                        /store/{{ $store->slug }} ↗
+                                    </a>
+                                    <a href="{{ route('admin.stores.show', $store) }}" class="font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">
+                                        Manage &rarr;
+                                    </a>
+                                </div>
+                                <div class="flex items-center space-x-2 text-[10px] pt-1">
                                     @if($store->accepts_quick_commerce)
                                         <span class="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-bold">10-30m Quick</span>
                                     @endif
@@ -333,11 +396,18 @@
                                         <!-- View in modal trigger -->
                                         <button 
                                             type="button" 
-                                            @click="openDocViewer('{{ $doc->type->label() }}', '{{ $doc->file_path }}')"
+                                            @click="openDocViewer('{{ $doc->type->label() }}', '{{ route('admin.sellers.documents.download', [$seller, $doc]) }}')"
                                             class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 transition"
                                         >
                                             View
                                         </button>
+                                        <a 
+                                            href="{{ route('admin.sellers.documents.download', [$seller, $doc]) }}" 
+                                            target="_blank"
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 transition"
+                                        >
+                                            Download
+                                        </a>
 
                                         @can('approve', $seller)
                                             @if($doc->status !== \App\Enums\SellerDocumentStatus::APPROVED)
@@ -453,20 +523,30 @@
             <div class="space-y-4">
                 @forelse($seller->stores as $store)
                     <div class="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-3">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
                             <div>
-                                <h3 class="text-base font-bold text-slate-900 dark:text-white">{{ $store->name }}</h3>
-                                <div class="text-xs text-indigo-600 font-mono">/store/{{ $store->slug }}</div>
+                                <div class="flex items-center space-x-2">
+                                    <h3 class="text-base font-bold text-slate-900 dark:text-white">{{ $store->name }}</h3>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
+                                        {{ $store->status->label() }}
+                                    </span>
+                                    @if($store->is_onestall_owned)
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300">
+                                            OneStall Direct
+                                        </span>
+                                    @endif
+                                </div>
+                                <div class="text-xs text-indigo-600 dark:text-indigo-400 font-mono mt-0.5">/store/{{ $store->slug }}</div>
                             </div>
                             <div class="flex items-center space-x-2">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                                    {{ $store->status->label() }}
-                                </span>
-                                @if($store->is_onestall_owned)
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800">
-                                        OneStall Direct
-                                    </span>
-                                @endif
+                                <a href="{{ route('admin.stores.show', $store) }}" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition flex items-center">
+                                    <span>Store Console</span>
+                                    <svg class="w-3.5 h-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                </a>
+                                <a href="{{ route('store.show', $store->slug) }}" target="_blank" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 transition flex items-center">
+                                    <span>Storefront</span>
+                                    <svg class="w-3.5 h-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                </a>
                             </div>
                         </div>
 
@@ -508,6 +588,7 @@
                             <th class="py-2.5 px-4 text-center">Type</th>
                             <th class="py-2.5 px-4 text-center">Variants</th>
                             <th class="py-2.5 px-4 text-center">Status</th>
+                            <th class="py-2.5 px-6 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -522,7 +603,7 @@
                                 </td>
                                 <td class="py-3 px-4 text-center">
                                     <span class="px-2 py-0.5 rounded-md text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                                        {{ ucfirst($product->product_type ?? 'simple') }}
+                                        {{ ucfirst($product->product_type instanceof \BackedEnum ? $product->product_type->value : (string)($product->product_type ?? 'simple')) }}
                                     </span>
                                 </td>
                                 <td class="py-3 px-4 text-center font-mono font-bold text-slate-700 dark:text-slate-300">
@@ -533,10 +614,22 @@
                                         {{ $product->status->label() }}
                                     </span>
                                 </td>
+                                <td class="py-3 px-6 text-right">
+                                    <div class="inline-flex items-center space-x-2">
+                                        <a href="{{ route('admin.catalogue.moderation.show', $product) }}" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 transition">
+                                            Moderate
+                                        </a>
+                                        @if($product->slug)
+                                            <a href="{{ route('product.show', $product->slug) }}" target="_blank" class="px-2 py-1 text-xs text-slate-500 hover:text-indigo-600 transition" title="Open Public Page">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                            </a>
+                                        @endif
+                                    </div>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="py-8 text-center text-slate-400">
+                                <td colspan="6" class="py-8 text-center text-slate-400">
                                     No products found under this merchant account.
                                 </td>
                             </tr>
@@ -566,19 +659,34 @@
                             <th class="py-2.5 px-4 text-right">Platform Commission</th>
                             <th class="py-2.5 px-4 text-right">Seller Payable</th>
                             <th class="py-2.5 px-4 text-center">Status</th>
-                            <th class="py-2.5 px-6 text-right">Date</th>
+                            <th class="py-2.5 px-4 text-right">Date</th>
+                            <th class="py-2.5 px-6 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         @forelse($orders as $order)
                             <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-850/50">
                                 <td class="py-3 px-6 font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                                    #{{ $order->id }}
-                                    <div class="text-[10px] text-slate-400 font-sans">Parent: {{ $order->order?->order_number }}</div>
+                                    <a href="{{ $order->order_id ? route('admin.orders.show', $order->order_id) : '#' }}" class="hover:underline">
+                                        #{{ $order->id }}
+                                    </a>
+                                    <div class="text-[10px] text-slate-400 font-sans">
+                                        @if($order->order_id)
+                                            <a href="{{ route('admin.orders.show', $order->order_id) }}" class="hover:underline hover:text-indigo-600">
+                                                Parent: {{ $order->order?->order_number ?? 'N/A' }}
+                                            </a>
+                                        @else
+                                            Parent: {{ $order->order?->order_number ?? 'N/A' }}
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="py-3 px-4">
-                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold {{ $order->fulfilment_type->value === 'quick' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800' }}">
-                                        {{ $order->fulfilment_type->label() }}
+                                    @php
+                                        $fType = $order->fulfilment_type instanceof \BackedEnum ? $order->fulfilment_type->value : (string) $order->fulfilment_type;
+                                        $fLabel = $order->fulfilment_type instanceof \App\Enums\FulfilmentType ? $order->fulfilment_type->label() : ($fType === 'quick' ? 'Quick Commerce' : ($fType === 'pickup' ? 'Store Pickup' : 'Standard Delivery'));
+                                    @endphp
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold {{ $fType === 'quick' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300' }}">
+                                        {{ $fLabel }}
                                     </span>
                                 </td>
                                 <td class="py-3 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">
@@ -591,17 +699,36 @@
                                     ₹{{ number_format((float) $order->seller_payable, 2) }}
                                 </td>
                                 <td class="py-3 px-4 text-center">
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border {{ $order->status->badgeClass() }}">
-                                        {{ $order->status->label() }}
-                                    </span>
+                                    @if(method_exists($order, 'statusBadgeClass'))
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border {{ $order->statusBadgeClass() }}">
+                                            {{ $order->statusLabel() }}
+                                        </span>
+                                    @elseif(is_object($order->status) && method_exists($order->status, 'badgeClass'))
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border {{ $order->status->badgeClass() }}">
+                                            {{ $order->status->label() }}
+                                        </span>
+                                    @else
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700">
+                                            {{ ucwords(str_replace('_', ' ', (string) $order->status)) }}
+                                        </span>
+                                    @endif
                                 </td>
-                                <td class="py-3 px-6 text-right text-slate-400 text-[11px]">
+                                <td class="py-3 px-4 text-right text-slate-400 text-[11px]">
                                     {{ $order->created_at->format('M d, Y') }}
+                                </td>
+                                <td class="py-3 px-6 text-right">
+                                    @if($order->order_id)
+                                        <a href="{{ route('admin.orders.show', $order->order_id) }}" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 transition">
+                                            View Order
+                                        </a>
+                                    @else
+                                        <span class="text-slate-400 text-xs">-</span>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="py-8 text-center text-slate-400">
+                                <td colspan="8" class="py-8 text-center text-slate-400">
                                     No fulfilment orders found for this merchant.
                                 </td>
                             </tr>
@@ -843,11 +970,37 @@
             docRejectId: null,
             docRejectTitle: '',
 
+            init() {
+                this.$nextTick(() => {
+                    const el = document.getElementById('tab-btn-' + this.activeTab);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+                    }
+                });
+
+                window.addEventListener('popstate', () => {
+                    const url = new URL(window.location);
+                    const tab = url.searchParams.get('tab');
+                    if (tab && tab !== this.activeTab) {
+                        this.activeTab = tab;
+                        this.$nextTick(() => {
+                            document.getElementById('tab-btn-' + tab)?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+                        });
+                    }
+                });
+            },
+
             setTab(tab) {
                 this.activeTab = tab;
                 const url = new URL(window.location);
                 url.searchParams.set('tab', tab);
                 window.history.replaceState({}, '', url);
+                this.$nextTick(() => {
+                    const el = document.getElementById('tab-btn-' + tab);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+                    }
+                });
             },
 
             openDocViewer(title, path) {

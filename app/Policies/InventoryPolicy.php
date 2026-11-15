@@ -12,6 +12,7 @@ class InventoryPolicy extends BasePolicy
     public function viewAny(User $user): bool
     {
         return $user->hasRole('admin') 
+            || $user->hasRole('super_admin')
             || $user->hasRole('seller_owner') 
             || (bool) $user->seller
             || $user->hasStorePermission('inventory.view');
@@ -19,7 +20,7 @@ class InventoryPolicy extends BasePolicy
 
     public function view(User $user, Inventory $inventory): bool
     {
-        if ($user->hasRole('admin')) {
+        if ($user->hasRole('admin') || $user->hasRole('super_admin')) {
             return true;
         }
 
@@ -32,7 +33,7 @@ class InventoryPolicy extends BasePolicy
 
     public function update(User $user, Inventory $inventory): bool
     {
-        if ($user->hasRole('admin')) {
+        if ($user->hasRole('admin') || $user->hasRole('super_admin')) {
             return true;
         }
 

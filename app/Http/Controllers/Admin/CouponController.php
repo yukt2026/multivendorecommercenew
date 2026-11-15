@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Coupon;
+use App\Models\CouponUsage;
 use App\Models\Seller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,7 +22,7 @@ class CouponController extends Controller
      */
     public function index(Request $request): View
     {
-        $query = Coupon::query()->with('seller')->latest('id');
+        $query = Coupon::query()->with(['seller'])->withCount('usages')->latest('id');
 
         if ($search = $request->query('search')) {
             $query->where('code', 'like', "%{$search}%");
@@ -30,6 +31,14 @@ class CouponController extends Controller
         if ($type = $request->query('type')) {
             if ($type !== 'all') {
                 $query->where('type', $type);
+            }
+        }
+
+        if ($scope = $request->query('scope')) {
+            if ($scope === 'platform') {
+                $query->whereNull('seller_id');
+            } elseif ($scope === 'seller') {
+                $query->whereNotNull('seller_id');
             }
         }
 
@@ -50,6 +59,7 @@ class CouponController extends Controller
             'active_coupons' => Coupon::where('is_active', true)->count(),
             'platform_coupons' => Coupon::whereNull('seller_id')->count(),
             'seller_coupons' => Coupon::whereNotNull('seller_id')->count(),
+            'total_redemptions' => CouponUsage::count(),
         ];
 
         return view('admin.coupons.index', compact('coupons', 'sellers', 'categories', 'metrics'));
@@ -69,6 +79,8 @@ class CouponController extends Controller
             'usage_limit' => ['nullable', 'integer', 'min:1'],
             'per_user_limit' => ['nullable', 'integer', 'min:1'],
             'seller_id' => ['nullable', 'exists:sellers,id'],
+            'category_ids' => ['nullable', 'array'],
+            'category_ids.*' => ['integer', 'exists:categories,id'],
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'is_active' => ['nullable', 'boolean'],
@@ -78,6 +90,16 @@ class CouponController extends Controller
         $validated['is_active'] = $request->boolean('is_active', true);
         $validated['min_order'] = $validated['min_order'] ?? 0.00;
         $validated['per_user_limit'] = $validated['per_user_limit'] ?? 1;
+        $validated['seller_id'] = !empty($validated['seller_id']) ? (int) $validated['seller_id'] : null;
+
+        if (!empty($validated['category_ids'])) {
+            $validated['applies_to'] = [
+                'categories' => array_values(array_map('intval', $validated['category_ids'])),
+            ];
+        } else {
+            $validated['applies_to'] = null;
+        }
+        unset($validated['category_ids']);
 
         $coupon = Coupon::create($validated);
 
@@ -103,8 +125,10 @@ class CouponController extends Controller
             'max_discount' => ['nullable', 'numeric', 'min:0'],
             'min_order' => ['nullable', 'numeric', 'min:0'],
             'usage_limit' => ['nullable', 'integer', 'min:1'],
-            'per_user_limit' => ['required', 'integer', 'min:1'],
+            'per_user_limit' => ['nullable', 'integer', 'min:1'],
             'seller_id' => ['nullable', 'exists:sellers,id'],
+            'category_ids' => ['nullable', 'array'],
+            'category_ids.*' => ['integer', 'exists:categories,id'],
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'is_active' => ['nullable', 'boolean'],
@@ -113,6 +137,17 @@ class CouponController extends Controller
         $validated['code'] = strtoupper(trim($validated['code']));
         $validated['is_active'] = $request->boolean('is_active');
         $validated['min_order'] = $validated['min_order'] ?? 0.00;
+        $validated['per_user_limit'] = $validated['per_user_limit'] ?? 1;
+        $validated['seller_id'] = !empty($validated['seller_id']) ? (int) $validated['seller_id'] : null;
+
+        if (!empty($validated['category_ids'])) {
+            $validated['applies_to'] = [
+                'categories' => array_values(array_map('intval', $validated['category_ids'])),
+            ];
+        } else {
+            $validated['applies_to'] = null;
+        }
+        unset($validated['category_ids']);
 
         $coupon->update($validated);
 
@@ -146,15 +181,27 @@ class CouponController extends Controller
     /**
      * Toggle coupon active state.
      */
-    public function toggle(Coupon $coupon): JsonResponse
+    public function toggle(Request $request, Coupon $coupon): JsonResponse|RedirectResponse
     {
         $coupon->is_active = !$coupon->is_active;
         $coupon->save();
 
-        return response()->json([
-            'success' => true,
-            'is_active' => $coupon->is_active,
-        ]);
+        if (function_exists('activity')) {
+            activity('coupon')
+                ->performedOn($coupon)
+                ->causedBy(auth()->user())
+                ->log("Coupon #{$coupon->id} ({$coupon->code}) status changed to " . ($coupon->is_active ? 'Active' : 'Inactive'));
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'is_active' => $coupon->is_active,
+                'message' => "Coupon status updated to " . ($coupon->is_active ? 'Active' : 'Inactive'),
+            ]);
+        }
+
+        return back()->with('success', "Coupon '{$coupon->code}' status toggled to " . ($coupon->is_active ? 'Active' : 'Inactive') . '.');
     }
 
     /**
@@ -169,20 +216,23 @@ class CouponController extends Controller
 
         return response()->stream(function () {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Coupon ID', 'Code', 'Type', 'Value', 'Min Order', 'Max Discount', 'Usage Limit', 'Scope', 'Status']);
+            fputcsv($handle, ['Coupon ID', 'Code', 'Discount Type', 'Discount Value', 'Min Basket (INR)', 'Max Discount Cap (INR)', 'Total Usage Cap', 'Times Redeemed', 'Scope', 'Status', 'Valid From', 'Valid Until']);
 
-            Coupon::with('seller')->chunk(100, function ($coupons) use ($handle) {
+            Coupon::with(['seller'])->withCount('usages')->chunk(100, function ($coupons) use ($handle) {
                 foreach ($coupons as $c) {
                     fputcsv($handle, [
                         $c->id,
                         $c->code,
-                        $c->type,
-                        $c->value,
+                        $c->type_label,
+                        $c->formatted_discount,
                         $c->min_order,
-                        $c->max_discount ?? 'N/A',
+                        $c->max_discount ?? 'Unlimited',
                         $c->usage_limit ?? 'Unlimited',
+                        $c->usages_count ?? 0,
                         $c->seller ? $c->seller->business_name : 'Platform Wide',
                         $c->is_active ? 'Active' : 'Inactive',
+                        $c->starts_at ? $c->starts_at->format('Y-m-d H:i') : 'Immediate',
+                        $c->ends_at ? $c->ends_at->format('Y-m-d H:i') : 'Indefinite',
                     ]);
                 }
             });

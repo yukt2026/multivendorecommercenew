@@ -108,8 +108,13 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 text-center">
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase {{ ($c->user?->status ?? 'active') === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400' }}">
-                                {{ $c->user?->status ?? 'active' }}
+                            @php
+                                $uStatus = $c->user?->status;
+                                $statusStr = $uStatus instanceof \App\Enums\UserStatus ? $uStatus->value : (string) ($uStatus ?? 'active');
+                                $isActive = ($statusStr === 'active');
+                            @endphp
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase {{ $isActive ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400' }}">
+                                {{ $statusStr }}
                             </span>
                         </td>
                         <td class="px-6 py-4 text-slate-500 font-mono text-[11px]">
@@ -121,8 +126,8 @@
                             </a>
                             <form method="POST" action="{{ route('admin.customers.toggle_status', $c) }}" class="inline" onsubmit="return confirm('Change status for this customer?');">
                                 @csrf
-                                <button type="submit" class="px-2.5 py-1 rounded text-[11px] font-semibold transition {{ ($c->user?->status ?? 'active') === 'active' ? 'bg-rose-600 hover:bg-rose-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white' }}">
-                                    {{ ($c->user?->status ?? 'active') === 'active' ? 'Block' : 'Unblock' }}
+                                <button type="submit" class="px-2.5 py-1 rounded text-[11px] font-semibold transition {{ $isActive ? 'bg-rose-600 hover:bg-rose-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white' }}">
+                                    {{ $isActive ? 'Block' : 'Unblock' }}
                                 </button>
                             </form>
                         </td>

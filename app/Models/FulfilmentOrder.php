@@ -54,6 +54,22 @@ class FulfilmentOrder extends Model
         'cancelled_at' => 'datetime',
     ];
 
+    protected $appends = [
+        'total_amount',
+        'minutes_since_placed',
+        'is_sla_breached',
+    ];
+
+    public function getMinutesSincePlacedAttribute(): int
+    {
+        return $this->minutesSincePlaced();
+    }
+
+    public function getIsSlaBreachedAttribute(): bool
+    {
+        return $this->isSlaBreached();
+    }
+
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
@@ -190,5 +206,37 @@ class FulfilmentOrder extends Model
     public function scopeStandard(Builder $query): Builder
     {
         return $query->where('fulfilment_type', FulfilmentType::STANDARD);
+    }
+
+    public function statusBadgeClass(): string
+    {
+        return match ($this->status) {
+            'delivered' => 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60',
+            'out_for_delivery', 'in_transit' => 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800/60',
+            'ready', 'ready_to_ship', 'packed' => 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800/60',
+            'packing', 'rider_assigned', 'picked_up', 'store_accepted', 'confirmed' => 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60',
+            'cancelled', 'rejected' => 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/60',
+            default => 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+        };
+    }
+
+    public function statusLabel(): string
+    {
+        return match ($this->status) {
+            'placed' => 'Placed',
+            'store_accepted' => 'Store Accepted',
+            'packing' => 'Packing',
+            'packed' => 'Packed',
+            'ready' => 'Ready for Pickup',
+            'ready_to_ship' => 'Ready to Ship',
+            'rider_assigned' => 'Rider Assigned',
+            'picked_up' => 'Picked Up',
+            'in_transit' => 'In Transit',
+            'out_for_delivery' => 'Out for Delivery',
+            'delivered' => 'Delivered',
+            'cancelled' => 'Cancelled',
+            'rejected' => 'Store Rejected',
+            default => ucwords(str_replace('_', ' ', (string) $this->status)),
+        };
     }
 }

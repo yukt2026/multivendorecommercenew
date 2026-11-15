@@ -166,7 +166,7 @@
                         {{ $ticket->order->order_number }}
                     </a>
                     <div class="text-xs text-slate-500 mt-0.5">
-                        Total: {{ format_currency((float)$ticket->order->total) }} &bull; {{ ucfirst($ticket->order->status) }}
+                        Total: {{ format_currency((float)$ticket->order->total) }} &bull; {{ $ticket->order->status instanceof \App\Enums\OrderStatus ? $ticket->order->status->label() : ucfirst($ticket->order->status->value ?? (string) $ticket->order->status) }}
                     </div>
                 </div>
                 @endif

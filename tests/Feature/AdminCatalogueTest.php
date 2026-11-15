@@ -178,9 +178,17 @@ class AdminCatalogueTest extends TestCase
 
     public function test_admin_can_create_and_delete_brand(): void
     {
+        \Illuminate\Support\Facades\Storage::fake('public');
+
+        $file = \Illuminate\Http\UploadedFile::fake()->image('logo.png');
+
         $response = $this->actingAs($this->adminUser)->post('/admin/catalogue/brands', [
             'name' => 'Amul Dairy India',
             'is_verified' => 1,
+            'seller_id' => '', // verify empty string does not trigger foreign key constraint failure
+            'logo_file' => $file,
+            'meta_title' => 'Amul Dairy Online',
+            'meta_description' => 'Buy Amul fresh milk and dairy products online',
         ]);
 
         $response->assertRedirect();
@@ -188,9 +196,13 @@ class AdminCatalogueTest extends TestCase
             'name' => 'Amul Dairy India',
             'slug' => 'amul-dairy-india',
             'is_verified' => 1,
+            'seller_id' => null,
+            'meta_title' => 'Amul Dairy Online',
         ]);
 
         $brand = Brand::where('slug', 'amul-dairy-india')->first();
+        $this->assertNotNull($brand->logo);
+
         $deleteResponse = $this->actingAs($this->adminUser)->delete("/admin/catalogue/brands/{$brand->id}");
         $deleteResponse->assertRedirect();
         $this->assertDatabaseMissing('brands', ['id' => $brand->id]);

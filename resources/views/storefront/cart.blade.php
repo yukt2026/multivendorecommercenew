@@ -398,6 +398,28 @@
                                         <span x-show="couponLoading" class="animate-pulse">...</span>
                                     </button>
                                 </div>
+
+                                @php
+                                    $publicCoupons = \App\Models\Coupon::active()->whereNull('seller_id')->take(3)->get();
+                                @endphp
+                                @if($publicCoupons->isNotEmpty())
+                                    <div class="pt-2 space-y-1.5 border-t border-slate-100">
+                                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Available Offers:</div>
+                                        <div class="space-y-1.5">
+                                            @foreach($publicCoupons as $pc)
+                                                <div class="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                                                    <div>
+                                                        <span class="font-mono font-bold text-indigo-600">{{ $pc->code }}</span>
+                                                        <span class="text-[11px] text-slate-600 ml-1">({{ $pc->formatted_discount }} off, min ₹{{ number_format($pc->min_order, 0) }})</span>
+                                                    </div>
+                                                    <button type="button" @click="couponInput = '{{ $pc->code }}'; handleApplyCoupon()" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition">
+                                                        Apply
+                                                    </button>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
                                 <div x-show="couponMessage" x-text="couponMessage"
                                      :class="couponSuccess ? 'text-emerald-600' : 'text-rose-500'"
                                      class="text-[11px] font-semibold mt-1">

@@ -10,16 +10,21 @@
         :breadcrumbs="['Admin Central' => route('admin.dashboard'), 'Customers' => route('admin.customers.index'), ($customer->user?->name ?? 'Profile') => '#']"
     >
         <x-slot name="badge">
-            <span class="px-3 py-1 rounded-full text-xs font-bold uppercase {{ ($customer->user?->status ?? 'active') === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400' }}">
-                {{ $customer->user?->status ?? 'active' }}
+            @php
+                $uStatus = $customer->user?->status;
+                $statusStr = $uStatus instanceof \App\Enums\UserStatus ? $uStatus->value : (string) ($uStatus ?? 'active');
+                $isActive = ($statusStr === 'active');
+            @endphp
+            <span class="px-3 py-1 rounded-full text-xs font-bold uppercase {{ $isActive ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400' }}">
+                {{ $statusStr }}
             </span>
         </x-slot>
 
         <x-slot name="actions">
             <form method="POST" action="{{ route('admin.customers.toggle_status', $customer) }}" class="inline">
                 @csrf
-                <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold text-white shadow-sm transition {{ ($customer->user?->status ?? 'active') === 'active' ? 'bg-rose-600 hover:bg-rose-500' : 'bg-emerald-600 hover:bg-emerald-500' }}">
-                    {{ ($customer->user?->status ?? 'active') === 'active' ? 'Block Account' : 'Unblock Account' }}
+                <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold text-white shadow-sm transition {{ $isActive ? 'bg-rose-600 hover:bg-rose-500' : 'bg-emerald-600 hover:bg-emerald-500' }}">
+                    {{ $isActive ? 'Block Account' : 'Unblock Account' }}
                 </button>
             </form>
         </x-slot>
@@ -102,8 +107,11 @@
                         </td>
                         <td class="px-6 py-3.5 text-slate-500 font-mono text-[11px]">{{ $o->created_at->format('d M Y, h:i A') }}</td>
                         <td class="px-6 py-3.5">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase {{ $o->payment_status->value === 'paid' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400' }}">
-                                {{ $o->payment_status->value }}
+                            @php
+                                $payStatus = $o->payment_status instanceof \App\Enums\PaymentStatus ? $o->payment_status->value : (string) ($o->payment_status ?? 'pending');
+                            @endphp
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase {{ $payStatus === 'paid' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400' }}">
+                                {{ $payStatus }}
                             </span>
                         </td>
                         <td class="px-6 py-3.5">

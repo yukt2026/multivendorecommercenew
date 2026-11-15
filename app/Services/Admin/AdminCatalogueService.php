@@ -33,7 +33,15 @@ class AdminCatalogueService
     public function getCategoryTree(): Collection
     {
         return Category::whereNull('parent_id')
-            ->with(['children.children'])
+            ->with([
+                'children' => function ($q) {
+                    $q->withCount('products')->orderBy('sort_order')->orderBy('name')->with([
+                        'children' => function ($subQ) {
+                            $subQ->withCount('products')->orderBy('sort_order')->orderBy('name');
+                        }
+                    ]);
+                }
+            ])
             ->withCount('products')
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -69,6 +77,8 @@ class AdminCatalogueService
             $counter++;
         }
 
+        $data['parent_id'] = !empty($data['parent_id']) ? (int) $data['parent_id'] : null;
+        $data['commission_percent'] = (isset($data['commission_percent']) && $data['commission_percent'] !== '') ? (float) $data['commission_percent'] : null;
         $data['is_active'] = !empty($data['is_active']);
         $data['is_quick_eligible'] = !empty($data['is_quick_eligible']);
         $data['sort_order'] = (int) ($data['sort_order'] ?? 0);
@@ -87,6 +97,14 @@ class AdminCatalogueService
             $data['slug'] = Str::slug($data['name']);
         }
 
+        // Prevent self-parenting loop
+        if (!empty($data['parent_id']) && (int) $data['parent_id'] === (int) $category->id) {
+            $data['parent_id'] = null;
+        } else {
+            $data['parent_id'] = !empty($data['parent_id']) ? (int) $data['parent_id'] : null;
+        }
+
+        $data['commission_percent'] = (isset($data['commission_percent']) && $data['commission_percent'] !== '') ? (float) $data['commission_percent'] : null;
         $data['is_active'] = !empty($data['is_active']);
         $data['is_quick_eligible'] = !empty($data['is_quick_eligible']);
 
@@ -172,6 +190,7 @@ class AdminCatalogueService
             $counter++;
         }
 
+        $data['seller_id'] = !empty($data['seller_id']) ? (int) $data['seller_id'] : null;
         $data['is_verified'] = !empty($data['is_verified']);
 
         return Brand::create($data);
@@ -188,6 +207,7 @@ class AdminCatalogueService
             $data['slug'] = Str::slug($data['name']);
         }
 
+        $data['seller_id'] = !empty($data['seller_id']) ? (int) $data['seller_id'] : null;
         $data['is_verified'] = !empty($data['is_verified']);
         $brand->update($data);
 

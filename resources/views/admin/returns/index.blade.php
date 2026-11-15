@@ -49,9 +49,9 @@
 
     <!-- Filters & Query Form -->
     <x-card padding="p-4">
-        <form method="GET" action="{{ route('admin.returns.index') }}" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 items-end">
+        <form method="GET" action="{{ route('admin.returns.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
             <!-- Search -->
-            <div class="md:col-span-2">
+            <div class="sm:col-span-2">
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Search RMA / Order / Customer</label>
                 <div class="relative">
                     <input 
@@ -65,6 +65,19 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </div>
+            </div>
+
+            <!-- Seller Filter -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Merchant / Seller</label>
+                <select name="seller_id" class="w-full py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+                    <option value="">All Sellers</option>
+                    @foreach($sellers as $sel)
+                        <option value="{{ $sel->id }}" {{ request('seller_id') == $sel->id ? 'selected' : '' }}>
+                            {{ $sel->business_name ?? $sel->legal_name }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
             <!-- Status Filter -->

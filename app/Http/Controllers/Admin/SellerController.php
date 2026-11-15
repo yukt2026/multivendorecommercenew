@@ -84,12 +84,14 @@ class SellerController extends Controller
         $products = $seller->products()
             ->with(['variants', 'category', 'brand'])
             ->latest('id')
-            ->paginate(10, ['*'], 'products_page');
+            ->paginate(10, ['*'], 'products_page')
+            ->appends(array_merge($request->query(), ['tab' => 'products']));
 
         $orders = $seller->fulfilmentOrders()
             ->with(['order.customer.user'])
             ->latest('id')
-            ->paginate(10, ['*'], 'orders_page');
+            ->paginate(10, ['*'], 'orders_page')
+            ->appends(array_merge($request->query(), ['tab' => 'orders']));
 
         $activityLogs = $this->sellerService->getSellerActivityLogs($seller);
 
@@ -101,7 +103,16 @@ class SellerController extends Controller
             'pending_payout' => (float) $seller->settlements()->where('status', SettlementStatus::PENDING)->sum('net'),
         ];
 
-        $activeTab = (string) $request->query('tab', 'overview');
+        $activeTab = (string) $request->query('tab', '');
+        if (empty($activeTab)) {
+            if ($request->has('products_page')) {
+                $activeTab = 'products';
+            } elseif ($request->has('orders_page')) {
+                $activeTab = 'orders';
+            } else {
+                $activeTab = 'overview';
+            }
+        }
 
         return view('admin.sellers.show', [
             'seller' => $seller,
@@ -190,6 +201,21 @@ class SellerController extends Controller
         return redirect()
             ->route('admin.sellers.show', ['seller' => $seller, 'tab' => 'commission'])
             ->with('success', 'Commission override updated successfully.');
+    }
+
+    /**
+     * Download or view a seller KYC document.
+     */
+    public function downloadDocument(Seller $seller, SellerDocument $document): StreamedResponse
+    {
+        $this->authorize('view', $seller);
+        abort_if($document->seller_id !== $seller->id, 404);
+
+        if (!\Illuminate\Support\Facades\Storage::disk('private')->exists($document->file_path)) {
+            abort(404, 'Document file not found on private storage.');
+        }
+
+        return \Illuminate\Support\Facades\Storage::disk('private')->response($document->file_path);
     }
 
     /**

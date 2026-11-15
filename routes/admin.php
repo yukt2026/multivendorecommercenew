@@ -56,6 +56,7 @@ Route::middleware(['auth', 'role:super_admin|admin|support_admin'])->group(funct
         Route::post('/{seller}/suspend', [SellerController::class, 'suspend'])->name('suspend');
         Route::post('/{seller}/reactivate', [SellerController::class, 'reactivate'])->name('reactivate');
         Route::post('/{seller}/commission', [SellerController::class, 'updateCommission'])->name('commission.update');
+        Route::get('/{seller}/documents/{document}/download', [SellerController::class, 'downloadDocument'])->name('documents.download');
         Route::post('/{seller}/documents/{document}/review', [SellerController::class, 'reviewDocument'])->name('documents.review');
         Route::post('/{seller}/bank-accounts/{bankAccount}/verify', [SellerController::class, 'verifyBankAccount'])->name('bank.verify');
     });
@@ -109,12 +110,15 @@ Route::middleware(['auth', 'role:super_admin|admin|support_admin'])->group(funct
 
     // Global Inventory Overview & Sync Logs
     Route::prefix('inventory')->name('inventory.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\InventoryController::class, 'index'])->name('index');
+        Route::get('/sync-logs/export', [\App\Http\Controllers\Admin\InventoryController::class, 'exportSyncLogs'])->name('sync_logs.export');
+        Route::post('/sync-logs/prune', [\App\Http\Controllers\Admin\InventoryController::class, 'pruneSyncLogs'])->name('sync_logs.prune');
         Route::get('/sync-logs', [\App\Http\Controllers\Admin\InventoryController::class, 'syncLogs'])->name('sync_logs');
+        Route::get('/', [\App\Http\Controllers\Admin\InventoryController::class, 'index'])->name('index');
     });
 
     // Orders Central & Governance (Blueprint Section 21)
     Route::prefix('orders')->name('orders.')->group(function () {
+        Route::get('/export', [\App\Http\Controllers\Admin\OrderController::class, 'export'])->name('export');
         Route::get('/', [\App\Http\Controllers\Admin\OrderController::class, 'index'])->name('index');
         Route::get('/{order}', [\App\Http\Controllers\Admin\OrderController::class, 'show'])->name('show');
         Route::post('/{order}/override-status', [\App\Http\Controllers\Admin\OrderController::class, 'overrideStatus'])->name('override_status');
@@ -260,12 +264,17 @@ Route::middleware(['auth', 'role:super_admin|admin|support_admin'])->group(funct
     Route::prefix('quick-commerce')->name('quick.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\QuickCommerceOpsController::class, 'index'])->name('index');
         Route::get('/api-feed', [\App\Http\Controllers\Admin\QuickCommerceOpsController::class, 'apiFeed'])->name('api_feed');
+        Route::post('/scan-timeouts', [\App\Http\Controllers\Admin\QuickCommerceOpsController::class, 'scanTimeouts'])->name('scan_timeouts');
+        Route::post('/{fulfilmentOrder}/reroute', [\App\Http\Controllers\Admin\QuickCommerceOpsController::class, 'reroute'])->name('reroute');
     });
 
     // Delivery Partners Fleet Management (Blueprint Section 11)
     Route::prefix('delivery-partners')->name('delivery_partners.')->group(function () {
+        Route::get('/export', [\App\Http\Controllers\Admin\DeliveryPartnerController::class, 'export'])->name('export');
         Route::get('/', [\App\Http\Controllers\Admin\DeliveryPartnerController::class, 'index'])->name('index');
         Route::post('/', [\App\Http\Controllers\Admin\DeliveryPartnerController::class, 'store'])->name('store');
+        Route::put('/{deliveryPartner}', [\App\Http\Controllers\Admin\DeliveryPartnerController::class, 'update'])->name('update');
+        Route::delete('/{deliveryPartner}', [\App\Http\Controllers\Admin\DeliveryPartnerController::class, 'destroy'])->name('destroy');
         Route::post('/{deliveryPartner}/toggle', [\App\Http\Controllers\Admin\DeliveryPartnerController::class, 'toggleStatus'])->name('toggle');
     });
 

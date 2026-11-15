@@ -8,7 +8,9 @@ use App\Enums\ProductStatus;
 use App\Enums\StoreStatus;
 use App\Models\Banner;
 use App\Models\Brand;
+use App\Models\Campaign;
 use App\Models\Category;
+use App\Models\Coupon;
 use App\Models\Product;
 use App\Models\Store;
 use Illuminate\Support\Collection;
@@ -23,7 +25,7 @@ class StorefrontService
     {
         return Cache::remember('storefront.hero_banners', 600, function () {
             $banners = Banner::active()
-                ->whereIn('position', ['home_hero', 'hero_carousel', 'top_slider'])
+                ->whereIn('position', ['home_hero', 'hero_carousel', 'top_slider', 'hero'])
                 ->orderBy('sort')
                 ->get();
 
@@ -42,8 +44,35 @@ class StorefrontService
     {
         return Cache::remember('storefront.promo_banners', 600, function () {
             return Banner::active()
-                ->whereIn('position', ['home_sub', 'homepage_strip', 'promo_strip'])
+                ->whereIn('position', ['home_sub', 'homepage_strip', 'promo_strip', 'deal_banner'])
                 ->orderBy('sort')
+                ->get();
+        });
+    }
+
+    /**
+     * Get active featured campaigns for marketing & festival showcases.
+     */
+    public function getActiveCampaigns(int $limit = 4): Collection
+    {
+        return Cache::remember('storefront.active_campaigns', 600, function () use ($limit) {
+            return Campaign::active()
+                ->orderBy('starts_at', 'desc')
+                ->take($limit)
+                ->get();
+        });
+    }
+
+    /**
+     * Get active public platform coupons for promotional banners & quick apply.
+     */
+    public function getActivePublicCoupons(int $limit = 6): Collection
+    {
+        return Cache::remember('storefront.public_coupons', 600, function () use ($limit) {
+            return Coupon::active()
+                ->whereNull('seller_id')
+                ->orderBy('min_order')
+                ->take($limit)
                 ->get();
         });
     }

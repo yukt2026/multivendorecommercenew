@@ -83,19 +83,14 @@
         </div>
     </nav>
 @else
-    {{-- Demo visual presentation for static UI kit preview --}}
-    <div class="flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 sm:px-6">
-        <div class="text-xs text-slate-500 dark:text-slate-400">
-            Showing <span class="font-bold text-slate-900 dark:text-white">1</span> to <span class="font-bold text-slate-900 dark:text-white">10</span> of <span class="font-bold text-slate-900 dark:text-white">96</span> results
+    @if ($paginator && method_exists($paginator, 'total') && $paginator->total() > 0)
+        <div class="flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 sm:px-6">
+            <div class="text-xs text-slate-500 dark:text-slate-400">
+                Showing <span class="font-bold text-slate-900 dark:text-white">{{ $paginator->firstItem() ?? 1 }}</span> to <span class="font-bold text-slate-900 dark:text-white">{{ $paginator->lastItem() ?? $paginator->total() }}</span> of <span class="font-bold text-slate-900 dark:text-white">{{ $paginator->total() }}</span> results
+            </div>
+            <div class="text-xs text-slate-400 dark:text-slate-500 font-medium">
+                Page 1 of 1
+            </div>
         </div>
-        <div class="inline-flex rounded-xl shadow-xs -space-x-px text-xs">
-            <button class="px-3 py-1.5 rounded-l-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">&laquo;</button>
-            <button class="px-3 py-1.5 border border-indigo-600 bg-indigo-600 text-white font-bold">1</button>
-            <button class="px-3 py-1.5 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">2</button>
-            <button class="px-3 py-1.5 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">3</button>
-            <span class="px-3 py-1.5 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-400">...</span>
-            <button class="px-3 py-1.5 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">10</button>
-            <button class="px-3 py-1.5 rounded-r-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">&raquo;</button>
-        </div>
-    </div>
+    @endif
 @endif

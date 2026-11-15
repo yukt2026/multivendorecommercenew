@@ -66,8 +66,15 @@ class ProductModerationController extends Controller
             'specifications',
         ]);
 
+        $activities = \Spatie\Activitylog\Models\Activity::forSubject($product)
+            ->with('causer')
+            ->latest('id')
+            ->take(10)
+            ->get();
+
         return view('admin.catalogue.moderation.show', [
             'product' => $product,
+            'activities' => $activities,
         ]);
     }
 

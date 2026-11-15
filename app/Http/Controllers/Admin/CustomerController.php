@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\PaymentStatus;
+use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Order;
@@ -33,7 +35,11 @@ class CustomerController extends Controller
         if ($status = $request->query('status')) {
             if ($status !== 'all') {
                 $query->whereHas('user', function ($q) use ($status) {
-                    $q->where('status', $status);
+                    if ($status === 'blocked' || $status === 'suspended') {
+                        $q->whereIn('status', [UserStatus::SUSPENDED, 'suspended', 'blocked']);
+                    } else {
+                        $q->where('status', $status);
+                    }
                 });
             }
         }
@@ -42,8 +48,8 @@ class CustomerController extends Controller
 
         $metrics = [
             'total_customers' => Customer::count(),
-            'active_customers' => Customer::whereHas('user', fn($q) => $q->where('status', 'active'))->count(),
-            'blocked_customers' => Customer::whereHas('user', fn($q) => $q->where('status', 'blocked'))->count(),
+            'active_customers' => Customer::whereHas('user', fn($q) => $q->where('status', UserStatus::ACTIVE))->count(),
+            'blocked_customers' => Customer::whereHas('user', fn($q) => $q->whereIn('status', [UserStatus::SUSPENDED, 'suspended', 'blocked']))->count(),
             'new_this_month' => Customer::where('created_at', '>=', now()->startOfMonth())->count(),
         ];
 
@@ -57,7 +63,7 @@ class CustomerController extends Controller
     {
         $customer->load(['user', 'addresses', 'orders.fulfilmentOrders', 'wishlists.product']);
 
-        $lifetimeSpend = (float) $customer->orders()->where('payment_status', 'paid')->sum('total');
+        $lifetimeSpend = (float) $customer->orders()->where('payment_status', PaymentStatus::PAID)->sum('total');
         $ordersCount = $customer->orders()->count();
 
         return view('admin.customers.show', compact('customer', 'lifetimeSpend', 'ordersCount'));
@@ -73,8 +79,8 @@ class CustomerController extends Controller
             return back()->with('error', 'Associated user account not found.');
         }
 
-        $isSuspended = ($user->status === \App\Enums\UserStatus::SUSPENDED || $user->status === 'suspended');
-        $newStatus = $isSuspended ? \App\Enums\UserStatus::ACTIVE : \App\Enums\UserStatus::SUSPENDED;
+        $isSuspended = ($user->status === UserStatus::SUSPENDED || $user->status === 'suspended' || $user->status === 'blocked');
+        $newStatus = $isSuspended ? UserStatus::ACTIVE : UserStatus::SUSPENDED;
         $user->status = $newStatus;
         $user->save();
 
@@ -86,7 +92,7 @@ class CustomerController extends Controller
                 ->log("Customer account #{$customer->id} ({$user->name}) was {$newStatus->value}");
         }
 
-        return back()->with('success', "Customer {$user->name} has been " . ($newStatus === \App\Enums\UserStatus::ACTIVE ? 'unblocked' : 'blocked') . ".");
+        return back()->with('success', "Customer {$user->name} has been " . ($newStatus === UserStatus::ACTIVE ? 'unblocked' : 'blocked') . ".");
     }
 
     /**
@@ -95,7 +101,7 @@ class CustomerController extends Controller
     public function export(Request $request): StreamedResponse
     {
         $headers = [
-            'Content-Type' => 'text/csv',
+            'Content-Type' => 'text/csv; charset=utf-8',
             'Content-Disposition' => 'attachment; filename="customers-' . now()->format('Ymd-His') . '.csv"',
         ];
 
@@ -105,12 +111,14 @@ class CustomerController extends Controller
 
             Customer::with(['user', 'orders'])->chunk(100, function ($customers) use ($handle) {
                 foreach ($customers as $c) {
+                    $status = $c->user?->status;
+                    $statusStr = $status instanceof UserStatus ? $status->value : (string) ($status ?? 'active');
                     fputcsv($handle, [
                         $c->id,
                         $c->user?->name ?? 'N/A',
                         $c->user?->email ?? 'N/A',
                         $c->user?->phone ?? 'N/A',
-                        $c->user?->status ?? 'active',
+                        $statusStr,
                         $c->orders->count(),
                         $c->created_at->toDateTimeString(),
                     ]);

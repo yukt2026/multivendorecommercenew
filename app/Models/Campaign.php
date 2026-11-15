@@ -28,6 +28,33 @@ class Campaign extends Model
         'is_active' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(function () {
+            \Illuminate\Support\Facades\Cache::forget('storefront.active_campaigns');
+        });
+
+        static::deleted(function () {
+            \Illuminate\Support\Facades\Cache::forget('storefront.active_campaigns');
+        });
+    }
+
+    protected $appends = [
+        'type_label',
+    ];
+
+    public function getTypeLabelAttribute(): string
+    {
+        return match ($this->type) {
+            'flash_sale' => 'Flash Sale',
+            'festive_season', 'festive_sale', 'festive' => 'Festive Season',
+            'featured_stores' => 'Featured Stores',
+            'clearance' => 'Clearance',
+            'seasonal' => 'Seasonal Sale',
+            default => ucwords(str_replace('_', ' ', (string) $this->type)),
+        };
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true)

@@ -197,7 +197,7 @@ class ReturnController extends Controller
                         $order?->order_number ?? 'N/A',
                         $user?->name ?? 'N/A',
                         $user?->email ?? 'N/A',
-                        $seller?->company_name ?? 'N/A',
+                        $seller?->business_name ?? $seller?->legal_name ?? 'N/A',
                         $item?->title ?? 'N/A',
                         $item?->sku ?? 'N/A',
                         $r->qty ?? $item?->qty ?? 1,

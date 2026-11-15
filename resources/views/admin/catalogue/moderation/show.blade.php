@@ -1,7 +1,10 @@
 @extends('layouts.dashboard', ['portal' => 'admin', 'title' => 'Product Inspection: ' . $product->title])
 
 @section('content')
-<div class="space-y-6" x-data="{ rejectModalOpen: false }">
+@php
+    $initialImage = $product->media->first()?->url ?? $product->primaryImageUrl();
+@endphp
+<div class="space-y-6" x-data="{ activeImage: '{{ $initialImage }}', rejectModalOpen: false }">
     <!-- Top Navigation & Action Toolbar -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
         <div>
@@ -27,11 +30,22 @@
                 @endif
             </div>
             <p class="text-xs text-slate-500 mt-1">
-                Submitted by: <strong class="text-slate-700 dark:text-slate-200">{{ $product->seller->business_name }}</strong> &bull; HSN: <span class="font-mono">{{ $product->hsn_code ?? 'N/A' }}</span> &bull; Tax: {{ $product->tax_percent }}%
+                Submitted by: <a href="{{ route('admin.sellers.show', $product->seller) }}" class="font-bold text-slate-700 dark:text-slate-200 hover:text-indigo-600">{{ $product->seller->business_name }}</a> &bull; HSN: <span class="font-mono">{{ $product->hsn_code ?? 'N/A' }}</span> &bull; Tax: {{ $product->tax_percent }}%
             </p>
         </div>
 
         <div class="flex items-center space-x-2.5">
+            @if($product->status === \App\Enums\ProductStatus::ACTIVE && $product->slug)
+                <a 
+                    href="{{ route('product.show', $product->slug) }}" 
+                    target="_blank" 
+                    class="px-3.5 py-2 text-xs font-bold rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 transition flex items-center"
+                >
+                    <span>Customer Storefront</span>
+                    <svg class="w-3.5 h-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </a>
+            @endif
+
             <a 
                 href="{{ route('admin.catalogue.moderation.edit', $product) }}" 
                 class="px-3.5 py-2 text-xs font-bold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition flex items-center"
@@ -61,6 +75,15 @@
                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     Reject with Feedback
                 </button>
+            @else
+                <button 
+                    type="button" 
+                    @click="$dispatch('open-modal', 'reject-product-modal')"
+                    class="px-3.5 py-2 text-xs font-bold rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition flex items-center"
+                >
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                    Revoke & Reject
+                </button>
             @endif
         </div>
     </div>
@@ -82,21 +105,35 @@
             <!-- Media Gallery Box -->
             <x-card title="Product Gallery & Visual Assets" subtitle="Media previews submitted by the merchant">
                 <div class="space-y-3">
-                    <div class="w-full h-72 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center p-6 text-center text-slate-400">
-                        @if($product->media->count() > 0)
-                            <span class="text-xs font-mono">{{ $product->media->first()->path }}</span>
-                        @else
-                            <svg class="w-12 h-12 text-slate-300 dark:text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                            <span class="text-xs font-medium">Standard High-Res Primary Placeholder</span>
-                        @endif
+                    <div class="w-full h-80 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden flex items-center justify-center p-2 relative group">
+                        <img 
+                            :src="activeImage" 
+                            alt="{{ $product->title }}" 
+                            class="max-h-full max-w-full object-contain rounded-xl transition-all duration-300"
+                            onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\' width=\'100\' height=\'100\'><rect width=\'100\' height=\'100\' rx=\'16\' fill=\'%23f1f5f9\'/><text x=\'50\' y=\'58\' font-size=\'32\' text-anchor=\'middle\'>🛍️</text></svg>';"
+                        />
+                        <a 
+                            :href="activeImage" 
+                            target="_blank" 
+                            class="absolute bottom-3 right-3 px-3 py-1.5 text-[11px] font-bold rounded-lg bg-black/70 hover:bg-black text-white backdrop-blur-xs opacity-0 group-hover:opacity-100 transition flex items-center space-x-1"
+                        >
+                            <span>Open Full Size</span>
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        </a>
                     </div>
 
                     @if($product->media->count() > 1)
-                        <div class="flex items-center space-x-2 overflow-x-auto pb-1">
+                        <div class="flex items-center space-x-2 overflow-x-auto pb-1 pt-1">
                             @foreach($product->media as $media)
-                                <div class="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0 flex items-center justify-center text-[10px] text-slate-400 font-mono">
-                                    {{ $media->type }}
-                                </div>
+                                @php $mUrl = $media->url ?: image_url($media->path); @endphp
+                                <button 
+                                    type="button" 
+                                    @click="activeImage = '{{ $mUrl }}'"
+                                    :class="activeImage === '{{ $mUrl }}' ? 'ring-2 ring-indigo-600 border-indigo-600 shadow-sm' : 'border-slate-200 dark:border-slate-700 opacity-60 hover:opacity-100'"
+                                    class="w-16 h-16 rounded-xl bg-white dark:bg-slate-800 border overflow-hidden shrink-0 flex items-center justify-center transition p-1"
+                                >
+                                    <img src="{{ $mUrl }}" alt="Thumbnail" class="w-full h-full object-cover rounded-lg" />
+                                </button>
                             @endforeach
                         </div>
                     @endif
@@ -194,21 +231,37 @@
             </x-card>
 
             <!-- Product Variants & Pricing Table -->
-            <x-card title="Variants & Stock Inventory" subtitle="SKU combinations, pricing, and stock levels">
+            <x-card title="Variants & Stock Inventory" subtitle="SKU combinations, pricing, and live inventory">
                 <div class="space-y-3">
                     @forelse($product->variants as $variant)
-                        <div class="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2 text-xs">
+                        @php
+                            $totalOnHand = $variant->inventories->sum('quantity_on_hand');
+                            $totalReserved = $variant->inventories->sum('quantity_reserved');
+                            $available = max(0, $totalOnHand - $totalReserved);
+                        @endphp
+                        <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2 text-xs">
                             <div class="flex items-center justify-between">
                                 <span class="font-bold text-slate-900 dark:text-white">{{ $variant->name }}</span>
-                                @if($variant->is_default)
-                                    <span class="px-2 py-0.2 rounded-full text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                        Default SKU
-                                    </span>
-                                @endif
+                                <div class="flex items-center space-x-1.5">
+                                    @if($variant->is_default)
+                                        <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                            Default SKU
+                                        </span>
+                                    @endif
+                                    @if($available > 0)
+                                        <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            {{ $available }} Available
+                                        </span>
+                                    @else
+                                        <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            0 in Stock
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
 
                             <div class="text-[11px] font-mono text-slate-400">
-                                SKU: {{ $variant->sku }} &bull; Barcode: {{ $variant->barcode ?? 'N/A' }}
+                                SKU: <span class="font-bold text-slate-600 dark:text-slate-300">{{ $variant->sku }}</span> &bull; Barcode: {{ $variant->barcode ?? 'N/A' }}
                             </div>
 
                             <div class="grid grid-cols-3 gap-2 pt-1 text-[11px] font-mono">
@@ -225,6 +278,17 @@
                                     <span class="text-slate-500">₹{{ number_format((float) $variant->cost_price, 2) }}</span>
                                 </div>
                             </div>
+
+                            @if($variant->inventories->isNotEmpty())
+                                <div class="pt-2 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-500 flex flex-wrap gap-2">
+                                    <span class="font-bold text-slate-400">Inventory Distribution:</span>
+                                    @foreach($variant->inventories as $inv)
+                                        <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">
+                                            {{ $inv->location?->name ?? 'Hub #' . $inv->location_id }}: {{ $inv->quantity_on_hand }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
                     @empty
                         <div class="text-xs text-slate-400 italic py-3 text-center">No variants attached to this listing.</div>
@@ -234,12 +298,41 @@
 
             <!-- Specifications Table -->
             @if($product->specifications->count() > 0)
-                <x-card title="Technical Specifications" subtitle="Additional key-value specifications">
+                <x-card title="Technical Specifications" subtitle="Key-value product specifications">
                     <div class="space-y-1.5 text-xs">
                         @foreach($product->specifications as $spec)
-                            <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
-                                <span class="text-slate-400">{{ $spec->key }}</span>
+                            <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
+                                <span class="text-slate-400 font-medium">
+                                    {{ $spec->key }}
+                                    @if($spec->group)
+                                        <span class="text-[10px] text-slate-400 font-normal">({{ $spec->group }})</span>
+                                    @endif
+                                </span>
                                 <strong class="text-slate-800 dark:text-slate-200">{{ $spec->value }}</strong>
+                            </div>
+                        @endforeach
+                    </div>
+                </x-card>
+            @endif
+
+            <!-- Audit Trail & Moderation History -->
+            @if(isset($activities) && $activities->count() > 0)
+                <x-card title="Moderation Audit Trail" subtitle="Accountability log of decisions and edits">
+                    <div class="space-y-2.5 text-xs">
+                        @foreach($activities as $act)
+                            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-1">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-bold text-slate-800 dark:text-slate-200">{{ $act->description }}</span>
+                                    <span class="text-[10px] text-slate-400 font-mono">{{ $act->created_at->diffForHumans() }}</span>
+                                </div>
+                                <div class="text-[11px] text-slate-500">
+                                    By: <strong class="text-slate-700 dark:text-slate-300">{{ $act->causer?->name ?? 'System' }}</strong>
+                                </div>
+                                @if(!empty($act->properties['reason']))
+                                    <div class="text-[11px] text-rose-600 dark:text-rose-400 bg-rose-50/50 dark:bg-rose-950/30 p-1.5 rounded-lg border border-rose-100 dark:border-rose-900/40">
+                                        Reason: {{ $act->properties['reason'] }}
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>

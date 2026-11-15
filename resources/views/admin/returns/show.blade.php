@@ -269,7 +269,7 @@
                         <div class="font-semibold text-slate-900 dark:text-slate-100">
                             @if($seller)
                                 <a href="{{ route('admin.sellers.show', $seller) }}" class="text-primary-600 hover:underline">
-                                    {{ $seller->company_name }}
+                                    {{ $seller->business_name ?? $seller->legal_name ?? 'Seller' }}
                                 </a>
                             @else
                                 Platform Direct Store

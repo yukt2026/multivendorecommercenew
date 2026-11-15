@@ -169,8 +169,22 @@
 
                 <label class="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
                     <input type="checkbox" name="is_returnable" value="1" {{ old('is_returnable', $product->is_returnable) ? 'checked' : '' }} class="rounded text-indigo-600 focus:ring-indigo-500">
-                    <span>Return Policy Allowed (7 Days)</span>
+                    <span>Return Policy Allowed</span>
                 </label>
+            </div>
+
+            <div class="max-w-xs">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                    Return Window (Days)
+                </label>
+                <input 
+                    type="number" 
+                    name="return_window_days" 
+                    min="0" 
+                    max="90" 
+                    value="{{ old('return_window_days', $product->return_window_days ?? 7) }}" 
+                    class="w-full p-2.5 text-xs font-mono rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                />
             </div>
 
             <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100 dark:border-slate-800">

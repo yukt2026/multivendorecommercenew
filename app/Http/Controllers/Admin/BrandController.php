@@ -35,10 +35,18 @@ class BrandController extends Controller
         $brands = $this->catalogueService->getFilteredBrands($filters, 15);
         $sellers = Seller::orderBy('business_name')->get();
 
+        $stats = [
+            'total' => Brand::count(),
+            'verified' => Brand::where('is_verified', true)->count(),
+            'unverified' => Brand::where('is_verified', false)->count(),
+            'merchant_owned' => Brand::whereNotNull('seller_id')->count(),
+        ];
+
         return view('admin.catalogue.brands.index', [
             'brands' => $brands,
             'filters' => $filters,
             'sellers' => $sellers,
+            'stats' => $stats,
         ]);
     }
 
@@ -49,7 +57,12 @@ class BrandController extends Controller
     {
         $this->authorize('create', Brand::class);
 
-        $brand = $this->catalogueService->createBrand($request->validated());
+        $data = $request->validated();
+        if ($request->hasFile('logo_file')) {
+            $data['logo'] = $request->file('logo_file')->store('brands', 'public');
+        }
+
+        $brand = $this->catalogueService->createBrand($data);
 
         return redirect()
             ->route('admin.catalogue.brands.index')
@@ -63,7 +76,12 @@ class BrandController extends Controller
     {
         $this->authorize('update', $brand);
 
-        $this->catalogueService->updateBrand($brand, $request->validated());
+        $data = $request->validated();
+        if ($request->hasFile('logo_file')) {
+            $data['logo'] = $request->file('logo_file')->store('brands', 'public');
+        }
+
+        $this->catalogueService->updateBrand($brand, $data);
 
         return redirect()
             ->route('admin.catalogue.brands.index')

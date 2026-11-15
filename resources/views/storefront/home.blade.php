@@ -28,37 +28,39 @@
                 @if($heroBanners->isNotEmpty())
                     @foreach($heroBanners as $index => $banner)
                         @php
-                            $slideGradients = [
-                                'linear-gradient(to right, rgba(6,78,59,0.94) 30%, rgba(15,23,42,0.85) 70%, rgba(15,23,42,0.6) 100%)',
-                                'linear-gradient(to right, rgba(120,53,15,0.94) 30%, rgba(15,23,42,0.85) 70%, rgba(15,23,42,0.6) 100%)',
-                                'linear-gradient(to right, rgba(49,46,129,0.94) 30%, rgba(15,23,42,0.85) 70%, rgba(15,23,42,0.6) 100%)',
-                            ];
-                            $grad = $slideGradients[$index % count($slideGradients)];
-                            $bgStyle = $banner->image 
-                                ? "background-image: {$grad}, url('" . asset('storage/' . $banner->image) . "');"
-                                : "background-image: {$grad};";
+                            $imageUrl = $banner->image_url;
                             $targetUrl = $banner->link ? (str_starts_with($banner->link, 'http') ? $banner->link : url($banner->link)) : route('home');
                         @endphp
                         <div x-show="activeSlide === {{ $index }}"
                              x-cloak
-                             :style="activeSlide !== {{ $index }} ? 'display: none;' : ''"
                              x-transition:enter="transition ease-out duration-500"
                              x-transition:enter-start="opacity-0 translate-x-8"
                              x-transition:enter-end="opacity-100 translate-x-0"
                              x-transition:leave="transition ease-in duration-300"
                              x-transition:leave-start="opacity-100 translate-x-0"
                              x-transition:leave-end="opacity-0 -translate-x-8"
-                             class="absolute inset-0 flex items-center justify-between p-4 sm:p-12 bg-cover bg-center"
-                             style="{{ $bgStyle }}">
+                             class="absolute inset-0 flex items-center justify-between p-4 sm:p-12 overflow-hidden bg-slate-950">
 
-                            <div class="max-w-xl space-y-2 sm:space-y-4 z-10">
+                            @if($imageUrl)
+                                <!-- Background Image with responsive cover & smooth hover zoom -->
+                                <img src="{{ $imageUrl }}" 
+                                     alt="{{ $banner->title }}" 
+                                     class="absolute inset-0 w-full h-full object-cover object-center z-0 transition-transform duration-700 hover:scale-105"
+                                     loading="{{ $index === 0 ? 'eager' : 'lazy' }}">
+                                <!-- Semi-transparent scrim: text readable on left, artwork clear on right -->
+                                <div class="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/50 to-transparent z-[1] pointer-events-none"></div>
+                            @else
+                                <div class="absolute inset-0 z-0 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900"></div>
+                            @endif
+
+                            <div class="max-w-xl space-y-2 sm:space-y-4 relative z-10">
                                 <span class="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[9px] sm:text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950 shadow-sm">
                                     <span>⚡ ONESTALL SPECIAL</span>
                                 </span>
-                                <h2 class="text-base sm:text-4xl font-black text-white tracking-tight leading-tight line-clamp-2">
+                                <h2 class="text-base sm:text-4xl font-black text-white tracking-tight leading-tight line-clamp-2 drop-shadow-md">
                                     {{ $banner->title }}
                                 </h2>
-                                <p class="text-xs sm:text-sm text-slate-300 max-w-md hidden sm:block">
+                                <p class="text-xs sm:text-sm text-slate-200 max-w-md hidden sm:block drop-shadow-sm">
                                     Shop from your trusted neighbourhood retailers with 15-minute express delivery or pan-India marketplace catalog.
                                 </p>
                                 <div class="pt-1 sm:pt-2">
@@ -145,6 +147,95 @@
                         View Local Stores &rarr;
                     </a>
                 </div>
+            </div>
+        </section>
+    @endif
+
+    <!-- Available Platform Coupons Showcase Bar -->
+    @if(isset($availableCoupons) && $availableCoupons->isNotEmpty())
+        <section id="available-coupons" class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8" x-data="{ copiedCode: null }">
+            <div class="p-3.5 sm:p-4 rounded-2xl bg-indigo-50/70 border border-indigo-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-2xs">
+                <div class="flex items-center space-x-2.5">
+                    <span class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
+                        🎟️
+                    </span>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-black text-indigo-950 uppercase tracking-wider">Storewide Promo Discounts</span>
+                            <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-100 text-indigo-800">Verified Active</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500">Apply these exclusive vouchers at cart checkout for instant bill deductions</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto no-scrollbar pb-1 md:pb-0">
+                    @foreach($availableCoupons as $coup)
+                        <div class="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-white border border-indigo-200/90 shadow-2xs flex items-center space-x-2 shrink-0">
+                            <div>
+                                <span class="font-mono font-black text-xs text-indigo-700 tracking-wider">{{ $coup->code }}</span>
+                                <span class="text-[11px] font-bold text-slate-800 ml-1">({{ $coup->formatted_discount }} OFF)</span>
+                            </div>
+                            <button 
+                                type="button" 
+                                @click="navigator.clipboard.writeText('{{ $coup->code }}'); copiedCode = '{{ $coup->code }}'; setTimeout(() => copiedCode = null, 2000)"
+                                class="px-2 py-0.5 text-[10px] font-bold rounded-md transition cursor-pointer"
+                                :class="copiedCode === '{{ $coup->code }}' ? 'bg-emerald-600 text-white' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700'"
+                            >
+                                <span x-text="copiedCode === '{{ $coup->code }}' ? 'Copied!' : 'Copy'"></span>
+                            </button>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
+
+    <!-- Featured Marketing & Festival Campaigns -->
+    @if(isset($featuredCampaigns) && $featuredCampaigns->isNotEmpty())
+        <section id="featured-campaigns" class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between mb-3 sm:mb-4">
+                <div>
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-rose-600">Featured Seasonal Events</span>
+                    <h2 class="text-base sm:text-2xl font-black text-slate-900 tracking-tight">Active Mega Sale Campaigns</h2>
+                </div>
+                <a href="{{ route('campaigns.index') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center">
+                    <span>View All Festivals</span>
+                    <span class="ml-0.5">&rarr;</span>
+                </a>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                @foreach($featuredCampaigns as $camp)
+                    <a href="{{ route('campaign.show', $camp->slug) }}" class="block p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white border border-slate-800 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition duration-200 group">
+                        <div class="flex items-center justify-between mb-2.5">
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-400 text-slate-950">
+                                {{ $camp->type_label }}
+                            </span>
+                            <span class="text-[10px] text-emerald-400 flex items-center space-x-1 font-mono font-semibold">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>Live Now</span>
+                            </span>
+                        </div>
+
+                        <h3 class="text-base sm:text-lg font-black text-white group-hover:text-amber-300 transition line-clamp-1">
+                            {{ $camp->name }}
+                        </h3>
+
+                        <p class="text-xs text-slate-300 mt-1 line-clamp-2 leading-relaxed">
+                            {{ $camp->description ?: 'Explore curated flash deals, bundle offers and seasonal marketplace specials.' }}
+                        </p>
+
+                        <div class="mt-3.5 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                            <span class="text-slate-400 font-mono text-[10px]">
+                                Ends: {{ $camp->ends_at ? $camp->ends_at->format('M d, Y') : 'Limited Time' }}
+                            </span>
+                            <span class="font-bold text-amber-400 group-hover:translate-x-1 transition flex items-center space-x-1">
+                                <span>Shop Deals</span>
+                                <span>&rarr;</span>
+                            </span>
+                        </div>
+                    </a>
+                @endforeach
             </div>
         </section>
     @endif
@@ -340,14 +431,18 @@
     <!-- Promo Banner Interspersed (from banners table) -->
     @if($promoBanners->isNotEmpty())
         <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="rounded-3xl overflow-hidden shadow-md border border-slate-200 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900">
-                <a href="{{ $promoBanners->first()->link ?: route('home') }}" class="block">
-                    <img src="{{ asset('storage/' . $promoBanners->first()->image) }}"
-                         alt="{{ $promoBanners->first()->title }}"
-                         loading="lazy"
-                         onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1200 240\' width=\'1200\' height=\'240\'><rect width=\'1200\' height=\'240\' fill=\'%231e1b4b\'/><text x=\'60\' y=\'130\' font-family=\'sans-serif\' font-size=\'32\' font-weight=\'bold\' fill=\'%23ffffff\'>⚡ ONESTALL MEGA PROMO DEALS</text></svg>';"
-                         class="w-full h-auto max-h-48 object-cover">
-                </a>
+            <div class="grid grid-cols-1 {{ $promoBanners->count() > 1 ? 'md:grid-cols-2' : '' }} gap-4">
+                @foreach($promoBanners->take(2) as $promo)
+                    <div class="rounded-3xl overflow-hidden shadow-md border border-slate-200 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 group">
+                        <a href="{{ $promo->link ? (str_starts_with($promo->link, 'http') ? $promo->link : url($promo->link)) : route('home') }}" class="block">
+                            <img src="{{ $promo->image_url }}"
+                                 alt="{{ $promo->title }}"
+                                 loading="lazy"
+                                 onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1200 240\' width=\'1200\' height=\'240\'><rect width=\'1200\' height=\'240\' fill=\'%231e1b4b\'/><text x=\'60\' y=\'130\' font-family=\'sans-serif\' font-size=\'32\' font-weight=\'bold\' fill=\'%23ffffff\'>⚡ ONESTALL MEGA PROMO DEALS</text></svg>';"
+                                 class="w-full h-auto max-h-48 object-cover group-hover:scale-101 transition duration-300">
+                        </a>
+                    </div>
+                @endforeach
             </div>
         </section>
     @endif

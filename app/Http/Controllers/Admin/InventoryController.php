@@ -9,8 +9,10 @@ use App\Models\Inventory;
 use App\Models\Seller;
 use App\Models\StoreConnection;
 use App\Models\SyncLog;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InventoryController extends Controller
 {
@@ -97,27 +99,148 @@ class InventoryController extends Controller
     {
         $this->authorize('viewAny', Inventory::class);
 
-        $query = SyncLog::query()
-            ->with(['connection.store.seller:id,business_name'])
-            ->latest('id');
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('entity')) {
-            $query->where('entity', $request->entity);
-        }
-
-        if ($request->filled('direction')) {
-            $query->where('direction', $request->direction);
-        }
-
+        $query = $this->buildSyncLogsQuery($request);
         $logs = $query->paginate(25)->withQueryString();
+
+        $metrics = [
+            'total_logs' => SyncLog::count(),
+            'successful_syncs' => SyncLog::where('status', 'success')->count(),
+            'failed_syncs' => SyncLog::where('status', 'failed')->count(),
+            'partial_syncs' => SyncLog::where('status', 'partial')->count(),
+            'last_24h_syncs' => SyncLog::where('created_at', '>=', now()->subDay())->count(),
+        ];
+
+        $connections = StoreConnection::with('store:id,name')->orderBy('name')->get(['id', 'store_id', 'name', 'type']);
 
         return view('admin.inventory.sync_logs', [
             'logs' => $logs,
-            'filters' => $request->only(['status', 'entity', 'direction']),
+            'metrics' => $metrics,
+            'connections' => $connections,
+            'filters' => $request->only(['status', 'entity', 'direction', 'search', 'connection_id', 'date_from', 'date_to']),
         ]);
+    }
+
+    /**
+     * Build filtered query for sync logs.
+     */
+    protected function buildSyncLogsQuery(Request $request)
+    {
+        $query = SyncLog::query()
+            ->with(['connection.store.seller:id,business_name,legal_name'])
+            ->latest('id');
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('message', 'like', "%{$search}%")
+                  ->orWhere('entity', 'like', "%{$search}%")
+                  ->orWhereHas('connection', function ($cq) use ($search) {
+                      $cq->where('name', 'like', "%{$search}%")
+                         ->orWhereHas('store', function ($sq) use ($search) {
+                             $sq->where('name', 'like', "%{$search}%")
+                                ->orWhereHas('seller', fn ($selq) => $selq->where('business_name', 'like', "%{$search}%")->orWhere('legal_name', 'like', "%{$search}%"));
+                         });
+                  });
+            });
+        }
+
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('entity') && $request->entity !== 'all') {
+            $query->where('entity', $request->entity);
+        }
+
+        if ($request->filled('direction') && $request->direction !== 'all') {
+            $query->where('direction', $request->direction);
+        }
+
+        if ($request->filled('connection_id') && $request->connection_id !== 'all') {
+            $query->where('connection_id', (int) $request->connection_id);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Export integration sync logs to CSV.
+     */
+    public function exportSyncLogs(Request $request): StreamedResponse
+    {
+        $this->authorize('viewAny', Inventory::class);
+
+        $filename = 'inventory-sync-logs-' . now()->format('Ymd-His') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $query = $this->buildSyncLogsQuery($request);
+
+        return response()->stream(function () use ($query) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, [
+                'Log ID',
+                'Connection Name',
+                'Store Name',
+                'Seller Name',
+                'Entity',
+                'Direction',
+                'Status',
+                'Message',
+                'Created At',
+            ]);
+
+            $query->chunk(200, function ($logs) use ($handle) {
+                foreach ($logs as $log) {
+                    $store = $log->connection?->store;
+                    $seller = $store?->seller;
+
+                    fputcsv($handle, [
+                        $log->id,
+                        $log->connection?->name ?? 'Direct API',
+                        $store?->name ?? 'N/A',
+                        $seller?->business_name ?? $seller?->legal_name ?? 'N/A',
+                        strtoupper((string) $log->entity),
+                        strtoupper((string) $log->direction),
+                        strtoupper((string) $log->status),
+                        $log->message ?? '',
+                        $log->created_at->toDateTimeString(),
+                    ]);
+                }
+            });
+
+            fclose($handle);
+        }, 200, $headers);
+    }
+
+    /**
+     * Prune historical sync logs older than given retention window.
+     */
+    public function pruneSyncLogs(Request $request): RedirectResponse
+    {
+        $this->authorize('viewAny', Inventory::class);
+
+        $days = max(1, (int) $request->input('days', 30));
+        $status = $request->input('status', 'all');
+
+        $query = SyncLog::where('created_at', '<', now()->subDays($days));
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        $count = $query->delete();
+
+        return redirect()->route('admin.inventory.sync_logs')
+            ->with('success', "Cleaned up {$count} historical sync logs older than {$days} days.");
     }
 }

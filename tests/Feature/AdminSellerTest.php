@@ -11,6 +11,8 @@ use App\Enums\SellerStatus;
 use App\Enums\SellerType;
 use App\Enums\StoreStatus;
 use App\Models\Category;
+use App\Models\FulfilmentOrder;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\Seller;
 use App\Models\SellerBankAccount;
@@ -165,6 +167,39 @@ class AdminSellerTest extends TestCase
             'bank_name' => 'HDFC Bank',
             'branch_name' => 'MG Road',
             'is_primary' => true,
+        ]);
+
+        Product::factory()->create([
+            'seller_id' => $seller->id,
+            'title' => 'Ramesh Basmati Rice 5kg',
+            'product_type' => \App\Enums\ProductType::SIMPLE,
+        ]);
+
+        $custUser = User::factory()->create();
+        $customer = \App\Models\Customer::create(['user_id' => $custUser->id]);
+
+        $parentOrder = Order::create([
+            'customer_id' => $customer->id,
+            'order_number' => 'ORD-SELLER-DETAIL-1',
+            'subtotal' => 500,
+            'tax' => 25,
+            'delivery_fee' => 40,
+            'total' => 565,
+            'payment_status' => \App\Enums\PaymentStatus::PAID,
+            'payment_method' => \App\Enums\PaymentMethod::UPI,
+            'status' => \App\Enums\OrderStatus::DELIVERED,
+            'address_snapshot' => ['city' => 'Bengaluru'],
+        ]);
+
+        FulfilmentOrder::create([
+            'order_id' => $parentOrder->id,
+            'fulfilment_order_number' => 'FO-SELLER-DETAIL-1',
+            'seller_id' => $seller->id,
+            'fulfilment_type' => \App\Enums\FulfilmentType::QUICK,
+            'status' => 'delivered',
+            'subtotal' => 500,
+            'commission_amount' => 25,
+            'seller_payable' => 475,
         ]);
 
         $response = $this->actingAs($this->adminUser)->get("/admin/sellers/{$seller->id}");
@@ -448,5 +483,26 @@ class AdminSellerTest extends TestCase
         $response->assertRedirect();
         $this->assertEquals(SellerStatus::APPROVED, $seller1->fresh()->status);
         $this->assertEquals(SellerStatus::APPROVED, $seller2->fresh()->status);
+    }
+
+    public function test_admin_can_download_seller_kyc_document(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('private');
+
+        $sellerUser = User::factory()->create();
+        $seller = Seller::factory()->create(['user_id' => $sellerUser->id]);
+
+        $filePath = 'documents/sellers/pan_test.pdf';
+        \Illuminate\Support\Facades\Storage::disk('private')->put($filePath, 'fake-document-content');
+
+        $doc = SellerDocument::create([
+            'seller_id' => $seller->id,
+            'type' => SellerDocumentType::PAN_CARD,
+            'file_path' => $filePath,
+            'status' => SellerDocumentStatus::PENDING,
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->get("/admin/sellers/{$seller->id}/documents/{$doc->id}/download");
+        $response->assertStatus(200);
     }
 }

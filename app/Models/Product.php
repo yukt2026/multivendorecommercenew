@@ -81,6 +81,11 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class);
     }
 
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class, 'product_id');
+    }
+
     public function defaultVariant(): HasOne
     {
         return $this->hasOne(ProductVariant::class)->where('is_default', true);
@@ -119,6 +124,9 @@ class Product extends Model
     public function primaryImageUrl(): string
     {
         $item = $this->relationLoaded('media') ? $this->media->first() : $this->media()->orderBy('sort_order')->first();
+        if (!$item && $this->relationLoaded('variants') && $this->variants->isNotEmpty()) {
+            $item = $this->variants->flatMap->media->first();
+        }
         if ($item && $item->path) {
             $url = image_url($item->path);
             if ($url) {

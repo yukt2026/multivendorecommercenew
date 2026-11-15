@@ -1,33 +1,33 @@
 @extends('layouts.dashboard', ['portal' => 'admin', 'title' => 'Admin Central Command'])
 
 @section('content')
-<div class="space-y-8" x-data="adminDashboard()" x-init="initDashboard()">
+<div class="space-y-6 sm:space-y-8" x-data="adminDashboard()" x-init="initDashboard()">
     <!-- Page Header & Period Range Controls -->
-    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-1">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-1">
         <div>
-            <div class="flex items-center space-x-3 mb-1.5">
-                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <div class="flex items-center space-x-3 mb-1">
+                <h1 class="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
                     Central Operations & Command Hub
                 </h1>
                 <x-badge variant="success" dot pulse size="sm">
                     Live Telemetry
                 </x-badge>
             </div>
-            <p class="text-sm text-slate-500 dark:text-slate-400">
+            <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                 Omnichannel sales velocity, quick commerce fulfilment, merchant activity, and logistics health.
             </p>
         </div>
 
         <!-- Range Filter Buttons, Refresh, and CSV Export -->
-        <div class="flex flex-wrap items-center gap-2.5">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
             <!-- Period Selector Pills -->
-            <div class="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 shadow-xs">
+            <div class="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 shadow-2xs">
                 @foreach(['today' => 'Today', '7d' => '7 Days', '30d' => '30 Days', '90d' => '90 Days'] as $key => $title)
                     <button 
                         type="button"
                         @click="setRange('{{ $key }}')"
-                        :class="activeRange === '{{ $key }}' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 font-bold shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium'"
-                        class="px-3 py-1.5 text-xs rounded-lg transition-all duration-150 focus:outline-hidden"
+                        :class="activeRange === '{{ $key }}' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 font-bold shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium'"
+                        class="px-2.5 sm:px-3 py-1.5 text-xs rounded-lg transition-all duration-150 focus:outline-hidden"
                     >
                         {{ $title }}
                     </button>
@@ -39,7 +39,7 @@
                 type="button" 
                 @click="refresh()" 
                 title="Refresh metrics"
-                class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-750 shadow-xs transition-colors"
+                class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-750 shadow-2xs transition-colors"
             >
                 <svg :class="isLoading ? 'animate-spin' : ''" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -49,20 +49,21 @@
             <!-- Export Summary CSV -->
             <a 
                 :href="exportUrl"
-                class="inline-flex items-center px-3.5 py-2 text-xs font-semibold rounded-xl text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 shadow-xs transition-all hover:border-slate-300 dark:hover:border-slate-600"
+                class="inline-flex items-center px-3 py-2 text-xs font-semibold rounded-xl text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 shadow-2xs transition-all hover:border-slate-300 dark:hover:border-slate-600"
             >
                 <svg class="w-3.5 h-3.5 mr-1.5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
-                Export Summary (CSV)
+                <span class="hidden sm:inline">Export Summary (CSV)</span>
+                <span class="sm:hidden">Export</span>
             </a>
         </div>
     </div>
 
-    <!-- 8 Top-Row Stat Cards Grid -->
+    <!-- 4 Primary High-Impact Executive KPI Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         <!-- 1. Total GMV -->
-        <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-between">
+        <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden flex flex-col justify-between hover:border-indigo-300 dark:hover:border-indigo-800 transition">
             <div>
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total GMV</span>
@@ -85,7 +86,7 @@
         </div>
 
         <!-- 2. Total Orders -->
-        <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-between">
+        <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden flex flex-col justify-between hover:border-emerald-300 dark:hover:border-emerald-800 transition">
             <div>
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Orders</span>
@@ -107,8 +108,31 @@
             <div class="mt-3 pt-2 text-[11px] text-slate-400 dark:text-slate-500">Parent checkout order volume</div>
         </div>
 
-        <!-- 3. Active Sellers -->
-        <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-between">
+        <!-- 3. Platform Commission Earned -->
+        <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden flex flex-col justify-between hover:border-purple-300 dark:hover:border-purple-800 transition">
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Commission Earned</span>
+                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-full border bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/60">
+                        Net Revenue
+                    </span>
+                </div>
+                <div class="flex items-baseline justify-between gap-2">
+                    <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white" x-text="stats.platform_commission?.formatted ?? '{{ $stats['platform_commission']['formatted'] }}'">
+                        {{ $stats['platform_commission']['formatted'] }}
+                    </div>
+                    <div class="flex items-center text-xs font-bold" :class="getTrendColor(stats.platform_commission?.trend?.type)">
+                        <svg x-show="stats.platform_commission?.trend?.type === 'up'" class="w-3.5 h-3.5 mr-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+                        <svg x-show="stats.platform_commission?.trend?.type === 'down'" class="w-3.5 h-3.5 mr-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+                        <span x-text="stats.platform_commission?.trend?.text ?? '{{ $stats['platform_commission']['trend']['text'] }}'">{{ $stats['platform_commission']['trend']['text'] }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3 pt-2 text-[11px] text-slate-400 dark:text-slate-500">Platform rake from order fulfilments</div>
+        </div>
+
+        <!-- 4. Active Sellers -->
+        <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden flex flex-col justify-between hover:border-sky-300 dark:hover:border-sky-800 transition">
             <div>
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active Sellers</span>
@@ -127,127 +151,97 @@
             </div>
             <div class="mt-3 pt-2 text-[11px] text-slate-400 dark:text-slate-500">Stores selling actively on OneStall</div>
         </div>
+    </div>
+
+    <!-- Operational Queues & Live Action Strip (4 Actionable Cards) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <!-- 1. Pending KYC -->
+        <a href="{{ route('admin.sellers.index', ['status' => 'pending']) }}" class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-rose-400 dark:hover:border-rose-600 transition flex items-center justify-between group">
+            <div class="min-w-0 pr-3">
+                <div class="flex items-center space-x-1.5 text-xs font-bold text-slate-600 dark:text-slate-400">
+                    <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                    <span>Pending KYC</span>
+                </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
+                    Merchants awaiting document verification
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 shrink-0">
+                <span class="px-2.5 py-1 text-xs font-extrabold rounded-lg border" :class="(stats.pending_seller_approvals?.value ?? {{ $stats['pending_seller_approvals']['value'] }}) > 0 ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800' : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'" x-text="stats.pending_seller_approvals?.formatted ?? '{{ $stats['pending_seller_approvals']['formatted'] }}'">
+                    {{ $stats['pending_seller_approvals']['formatted'] }}
+                </span>
+                <span class="text-slate-400 group-hover:translate-x-0.5 transition-transform text-sm font-bold">→</span>
+            </div>
+        </a>
+
+        <!-- 2. Pending Products -->
+        <a href="{{ route('admin.catalogue.moderation.index') }}" class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-amber-400 dark:hover:border-amber-600 transition flex items-center justify-between group">
+            <div class="min-w-0 pr-3">
+                <div class="flex items-center space-x-1.5 text-xs font-bold text-slate-600 dark:text-slate-400">
+                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span>Pending Products</span>
+                </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
+                    Catalogue listings awaiting moderation
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 shrink-0">
+                <span class="px-2.5 py-1 text-xs font-extrabold rounded-lg border bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800" x-text="stats.pending_product_reviews?.formatted ?? '{{ $stats['pending_product_reviews']['formatted'] }}'">
+                    {{ $stats['pending_product_reviews']['formatted'] }}
+                </span>
+                <span class="text-slate-400 group-hover:translate-x-0.5 transition-transform text-sm font-bold">→</span>
+            </div>
+        </a>
+
+        <!-- 3. Quick Orders -->
+        <a href="{{ route('admin.orders.index', ['type' => 'quick']) }}" class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-emerald-600 transition flex items-center justify-between group">
+            <div class="min-w-0 pr-3">
+                <div class="flex items-center space-x-1.5 text-xs font-bold text-slate-600 dark:text-slate-400">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>Quick Orders</span>
+                </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
+                    10-30m rapid fulfilment volume
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 shrink-0">
+                <span class="px-2.5 py-1 text-xs font-extrabold rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800" x-text="stats.quick_orders?.formatted ?? '{{ $stats['quick_orders']['formatted'] }}'">
+                    {{ $stats['quick_orders']['formatted'] }}
+                </span>
+                <span class="text-slate-400 group-hover:translate-x-0.5 transition-transform text-sm font-bold">→</span>
+            </div>
+        </a>
 
         <!-- 4. Active Customers -->
-        <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-between">
-            <div>
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active Customers</span>
-                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-full border bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60">
-                        User Base
-                    </span>
+        <a href="{{ route('admin.customers.index') }}" class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-600 transition flex items-center justify-between group">
+            <div class="min-w-0 pr-3">
+                <div class="flex items-center space-x-1.5 text-xs font-bold text-slate-600 dark:text-slate-400">
+                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                    <span>Active Customers</span>
                 </div>
-                <div class="flex items-baseline justify-between gap-2">
-                    <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white" x-text="stats.active_customers?.formatted ?? '{{ $stats['active_customers']['formatted'] }}'">
-                        {{ $stats['active_customers']['formatted'] }}
-                    </div>
-                    <div class="flex items-center text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        <span x-text="stats.active_customers?.trend?.text ?? '{{ $stats['active_customers']['trend']['text'] }}'">{{ $stats['active_customers']['trend']['text'] }}</span>
-                    </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
+                    Registered buyers across platform
                 </div>
             </div>
-            <div class="mt-3 pt-2 text-[11px] text-slate-400 dark:text-slate-500">Total registered buyer accounts</div>
-        </div>
-
-        <!-- 5. Pending Seller Approvals -->
-        <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-between">
-            <div>
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Pending KYC</span>
-                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-full border" :class="(stats.pending_seller_approvals?.value ?? {{ $stats['pending_seller_approvals']['value'] }}) > 0 ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/60' : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'">
-                        Audit Queue
-                    </span>
-                </div>
-                <div class="flex items-baseline justify-between gap-2">
-                    <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white" x-text="stats.pending_seller_approvals?.formatted ?? '{{ $stats['pending_seller_approvals']['formatted'] }}'">
-                        {{ $stats['pending_seller_approvals']['formatted'] }}
-                    </div>
-                    <div class="flex items-center text-xs font-bold" :class="(stats.pending_seller_approvals?.value ?? {{ $stats['pending_seller_approvals']['value'] }}) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400'">
-                        <span x-text="stats.pending_seller_approvals?.trend?.text ?? '{{ $stats['pending_seller_approvals']['trend']['text'] }}'">{{ $stats['pending_seller_approvals']['trend']['text'] }}</span>
-                    </div>
-                </div>
+            <div class="flex items-center space-x-2 shrink-0">
+                <span class="px-2.5 py-1 text-xs font-extrabold rounded-lg border bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800" x-text="stats.active_customers?.formatted ?? '{{ $stats['active_customers']['formatted'] }}'">
+                    {{ $stats['active_customers']['formatted'] }}
+                </span>
+                <span class="text-slate-400 group-hover:translate-x-0.5 transition-transform text-sm font-bold">→</span>
             </div>
-            <div class="mt-3 pt-2 text-[11px] text-slate-400 dark:text-slate-500">Merchants awaiting document verification</div>
-        </div>
-
-        <!-- 6. Pending Product Reviews -->
-        <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-between">
-            <div>
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Pending Products</span>
-                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-full border bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60">
-                        Catalogue
-                    </span>
-                </div>
-                <div class="flex items-baseline justify-between gap-2">
-                    <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white" x-text="stats.pending_product_reviews?.formatted ?? '{{ $stats['pending_product_reviews']['formatted'] }}'">
-                        {{ $stats['pending_product_reviews']['formatted'] }}
-                    </div>
-                    <div class="flex items-center text-xs font-bold" :class="(stats.pending_product_reviews?.value ?? {{ $stats['pending_product_reviews']['value'] }}) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'">
-                        <span x-text="stats.pending_product_reviews?.trend?.text ?? '{{ $stats['pending_product_reviews']['trend']['text'] }}'">{{ $stats['pending_product_reviews']['trend']['text'] }}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="mt-3 pt-2 text-[11px] text-slate-400 dark:text-slate-500">Catalogue listings awaiting moderation</div>
-        </div>
-
-        <!-- 7. Quick Commerce Orders -->
-        <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-between">
-            <div>
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Quick Orders</span>
-                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-full border bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60">
-                        10-30 Mins
-                    </span>
-                </div>
-                <div class="flex items-baseline justify-between gap-2">
-                    <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white" x-text="stats.quick_orders?.formatted ?? '{{ $stats['quick_orders']['formatted'] }}'">
-                        {{ $stats['quick_orders']['formatted'] }}
-                    </div>
-                    <div class="flex items-center text-xs font-bold" :class="getTrendColor(stats.quick_orders?.trend?.type)">
-                        <svg x-show="stats.quick_orders?.trend?.type === 'up'" class="w-3.5 h-3.5 mr-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
-                        <svg x-show="stats.quick_orders?.trend?.type === 'down'" class="w-3.5 h-3.5 mr-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
-                        <span x-text="stats.quick_orders?.trend?.text ?? '{{ $stats['quick_orders']['trend']['text'] }}'">{{ $stats['quick_orders']['trend']['text'] }}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="mt-3 pt-2 text-[11px] text-slate-400 dark:text-slate-500">Hyperlocal rapid fulfilment dispatches</div>
-        </div>
-
-        <!-- 8. Platform Commission Earned -->
-        <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-between">
-            <div>
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Commission Earned</span>
-                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-full border bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60">
-                        Net Revenue
-                    </span>
-                </div>
-                <div class="flex items-baseline justify-between gap-2">
-                    <div class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white" x-text="stats.platform_commission?.formatted ?? '{{ $stats['platform_commission']['formatted'] }}'">
-                        {{ $stats['platform_commission']['formatted'] }}
-                    </div>
-                    <div class="flex items-center text-xs font-bold" :class="getTrendColor(stats.platform_commission?.trend?.type)">
-                        <svg x-show="stats.platform_commission?.trend?.type === 'up'" class="w-3.5 h-3.5 mr-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
-                        <svg x-show="stats.platform_commission?.trend?.type === 'down'" class="w-3.5 h-3.5 mr-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
-                        <span x-text="stats.platform_commission?.trend?.text ?? '{{ $stats['platform_commission']['trend']['text'] }}'">{{ $stats['platform_commission']['trend']['text'] }}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="mt-3 pt-2 text-[11px] text-slate-400 dark:text-slate-500">Platform rake from order fulfilments</div>
-        </div>
+        </a>
     </div>
 
     <!-- Charts Row 1: Dual-Axis Sales Trend + Orders by Type Donut -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Sales & Orders Dual-Axis Trend Line (2/3) -->
-        <div class="lg:col-span-2">
+        <div class="lg:col-span-2 min-w-0">
             <x-card 
                 title="Sales & Orders Trend" 
                 subtitle="Gross Merchandise Value (₹) on primary axis, Order Volume on secondary axis"
             >
-                <div class="relative w-full h-72 sm:h-80">
-                    <div x-show="isLoading" class="absolute inset-0 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xs flex items-center justify-center rounded-xl">
+                <div class="relative w-full h-64 sm:h-72 lg:h-80">
+                    <div x-show="isLoading" class="absolute inset-0 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xs flex items-center justify-center rounded-xl">
                         <div class="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 font-semibold text-xs">
                             <svg class="animate-spin w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                             <span>Updating trend analysis...</span>
@@ -259,13 +253,13 @@
         </div>
 
         <!-- Orders by Fulfilment Type Donut (1/3) -->
-        <div>
+        <div class="min-w-0">
             <x-card 
                 title="Orders by Fulfilment" 
                 subtitle="Standard Marketplace vs Quick vs Pickup"
             >
-                <div class="relative w-full h-72 sm:h-80 flex items-center justify-center">
-                    <div x-show="isLoading" class="absolute inset-0 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xs flex items-center justify-center rounded-xl">
+                <div class="relative w-full h-64 sm:h-72 lg:h-80 flex items-center justify-center">
+                    <div x-show="isLoading" class="absolute inset-0 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xs flex items-center justify-center rounded-xl">
                         <svg class="animate-spin w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     </div>
                     <canvas id="adminOrderTypesChart" class="w-full h-full"></canvas>
@@ -277,30 +271,34 @@
     <!-- Charts Row 2: Category Revenue Horizontal Bar + Order Status Funnel -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Category Revenue Bar -->
-        <x-card 
-            title="Revenue by Category" 
-            subtitle="Top performing product verticals by Gross Value (₹)"
-        >
-            <div class="relative w-full h-72">
-                <div x-show="isLoading" class="absolute inset-0 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xs flex items-center justify-center rounded-xl">
-                    <svg class="animate-spin w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <div class="min-w-0">
+            <x-card 
+                title="Revenue by Category" 
+                subtitle="Top performing product verticals by Gross Value (₹)"
+            >
+                <div class="relative w-full h-64 sm:h-72">
+                    <div x-show="isLoading" class="absolute inset-0 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xs flex items-center justify-center rounded-xl">
+                        <svg class="animate-spin w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    </div>
+                    <canvas id="adminCategoryRevenueChart" class="w-full h-full"></canvas>
                 </div>
-                <canvas id="adminCategoryRevenueChart" class="w-full h-full"></canvas>
-            </div>
-        </x-card>
+            </x-card>
+        </div>
 
         <!-- Order Status Funnel -->
-        <x-card 
-            title="Order Pipeline & Funnel" 
-            subtitle="Drop-off and fulfilment progression through pipeline"
-        >
-            <div class="relative w-full h-72">
-                <div x-show="isLoading" class="absolute inset-0 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xs flex items-center justify-center rounded-xl">
-                    <svg class="animate-spin w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <div class="min-w-0">
+            <x-card 
+                title="Order Pipeline & Funnel" 
+                subtitle="Drop-off and fulfilment progression through pipeline"
+            >
+                <div class="relative w-full h-64 sm:h-72">
+                    <div x-show="isLoading" class="absolute inset-0 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xs flex items-center justify-center rounded-xl">
+                        <svg class="animate-spin w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    </div>
+                    <canvas id="adminStatusFunnelChart" class="w-full h-full"></canvas>
                 </div>
-                <canvas id="adminStatusFunnelChart" class="w-full h-full"></canvas>
-            </div>
-        </x-card>
+            </x-card>
+        </div>
     </div>
 
     <!-- Top 10 Sellers Table with Sparklines -->
@@ -317,7 +315,7 @@
                         <th class="py-3 px-4 text-right">Orders</th>
                         <th class="py-3 px-4 text-right">GMV (₹)</th>
                         <th class="py-3 px-6 text-center">7-Day Sparkline</th>
-                        <th class="py-3 px-4 text-center">Status</th>
+                        <th class="py-3 px-4 text-center">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80">
@@ -326,21 +324,21 @@
                             <td class="py-3.5 px-6">
                                 <div class="flex items-center space-x-3">
                                     <span 
-                                        class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px]"
+                                        class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] shrink-0"
                                         :class="index === 0 ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-extrabold' : (index === 1 ? 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300' : 'text-slate-500 dark:text-slate-400')"
                                         x-text="'#' + (index + 1)"
                                     ></span>
-                                    <div>
-                                        <div class="font-bold text-slate-900 dark:text-white" x-text="seller.business_name"></div>
-                                        <div class="text-[11px] text-slate-400 dark:text-slate-500" x-text="seller.owner_name"></div>
+                                    <div class="min-w-0">
+                                        <a :href="'/admin/sellers/' + seller.id" class="font-bold text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition truncate block" x-text="seller.business_name"></a>
+                                        <div class="text-[11px] text-slate-400 dark:text-slate-500 truncate" x-text="seller.owner_name"></div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-3.5 px-4">
+                            <td class="py-3.5 px-4 whitespace-nowrap">
                                 <span class="px-2 py-0.5 rounded-md font-medium text-[11px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50" x-text="seller.seller_type"></span>
                             </td>
-                            <td class="py-3.5 px-4 text-right font-mono font-medium text-slate-700 dark:text-slate-300" x-text="seller.order_count"></td>
-                            <td class="py-3.5 px-4 text-right font-mono font-bold text-slate-900 dark:text-white" x-text="seller.formatted_sales"></td>
+                            <td class="py-3.5 px-4 text-right font-mono font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap" x-text="seller.order_count"></td>
+                            <td class="py-3.5 px-4 text-right font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap" x-text="seller.formatted_sales"></td>
                             <td class="py-3.5 px-6 text-center">
                                 <div class="inline-flex items-center justify-center">
                                     <svg class="w-24 h-6 text-indigo-500" viewBox="0 0 80 24" fill="none">
@@ -355,8 +353,11 @@
                                     </svg>
                                 </div>
                             </td>
-                            <td class="py-3.5 px-4 text-center">
-                                <x-badge variant="success" size="sm">Verified</x-badge>
+                            <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                                <a :href="'/admin/sellers/' + seller.id" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition inline-flex items-center space-x-1">
+                                    <span>Profile</span>
+                                    <span>→</span>
+                                </a>
                             </td>
                         </tr>
                     </template>
@@ -378,6 +379,12 @@
             title="Recent Orders" 
             subtitle="Latest incoming consumer orders across all channels"
         >
+            <x-slot name="actions">
+                <a href="{{ route('admin.orders.index') }}" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+                    View All Orders →
+                </a>
+            </x-slot>
+
             @if(isset($widgets['recent_orders']) && count($widgets['recent_orders']) > 0)
                 <div class="overflow-x-auto -mx-6">
                     <table class="w-full text-left text-xs border-collapse">
@@ -392,18 +399,20 @@
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80">
                             @foreach($widgets['recent_orders'] as $order)
                                 <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-850/50 transition-colors">
-                                    <td class="py-3 px-6 font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                                        {{ $order->order_number }}
+                                    <td class="py-3 px-6 font-mono font-bold whitespace-nowrap">
+                                        <a href="{{ route('admin.orders.show', $order) }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">
+                                            {{ $order->order_number }}
+                                        </a>
                                         <div class="text-[10px] font-normal text-slate-400">{{ $order->created_at->diffForHumans() }}</div>
                                     </td>
                                     <td class="py-3 px-4">
-                                        <div class="font-medium text-slate-900 dark:text-white">{{ $order->customer?->user?->name ?? 'Guest User' }}</div>
-                                        <div class="text-[10px] text-slate-400">{{ $order->fulfilmentOrders->count() }} split package(s)</div>
+                                        <div class="font-medium text-slate-900 dark:text-white truncate max-w-[150px]">{{ $order->customer?->user?->name ?? 'Guest User' }}</div>
+                                        <div class="text-[10px] text-slate-400">{{ $order->fulfilmentOrders->count() }} package(s)</div>
                                     </td>
-                                    <td class="py-3 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">
+                                    <td class="py-3 px-4 text-right font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">
                                         ₹{{ number_format((float) $order->total, 2) }}
                                     </td>
-                                    <td class="py-3 px-4 text-center">
+                                    <td class="py-3 px-4 text-center whitespace-nowrap">
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border {{ $order->status->badgeClass() }}">
                                             {{ $order->status->label() }}
                                         </span>
@@ -426,6 +435,12 @@
             title="Pending Merchant KYC Queue" 
             subtitle="Sellers awaiting verification before store go-live"
         >
+            <x-slot name="actions">
+                <a href="{{ route('admin.sellers.index', ['status' => 'pending']) }}" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+                    View KYC Queue →
+                </a>
+            </x-slot>
+
             @if(isset($widgets['pending_kyc']) && count($widgets['pending_kyc']) > 0)
                 <div class="space-y-3">
                     @foreach($widgets['pending_kyc'] as $seller)
@@ -443,7 +458,7 @@
                             </div>
                             <div class="shrink-0 flex items-center space-x-2">
                                 <a href="{{ route('admin.sellers.show', $seller) }}" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition inline-block">
-                                    Audit KYC &rarr;
+                                    Audit KYC →
                                 </a>
                             </div>
                         </div>
@@ -462,10 +477,16 @@
             title="Open Support Inquiries" 
             subtitle="Customer and merchant escalations needing resolution"
         >
+            <x-slot name="actions">
+                <a href="{{ route('admin.support.index') }}" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+                    Support Helpdesk →
+                </a>
+            </x-slot>
+
             @if(isset($widgets['open_tickets']) && count($widgets['open_tickets']) > 0)
                 <div class="space-y-2.5">
                     @foreach($widgets['open_tickets'] as $ticket)
-                        <div class="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3">
+                        <a href="{{ route('admin.support.show', $ticket) }}" class="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 hover:border-indigo-300 dark:hover:border-indigo-700 transition block group">
                             <div class="min-w-0">
                                 <div class="flex items-center space-x-2">
                                     <span class="font-mono text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
@@ -475,7 +496,7 @@
                                         {{ $ticket->priority->label() }}
                                     </span>
                                 </div>
-                                <div class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate mt-0.5">
+                                <div class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate mt-0.5 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                     {{ $ticket->subject }}
                                 </div>
                                 <div class="text-[10px] text-slate-400">
@@ -485,7 +506,7 @@
                             <span class="shrink-0 px-2 py-0.5 text-[10px] font-bold rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                                 {{ $ticket->status->label() }}
                             </span>
-                        </div>
+                        </a>
                     @endforeach
                 </div>
             @else
@@ -496,7 +517,7 @@
             @endif
         </x-card>
 
-        <!-- Widget 4: Settlements Due & Platform Health -->
+        <!-- Widget 4: Settlements Due & Platform Infrastructure -->
         <div class="space-y-6">
             <!-- Settlements Due Box -->
             <x-card 
@@ -506,19 +527,20 @@
                 <div class="p-4 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-between mb-4">
                     <div>
                         <div class="text-xs font-bold text-indigo-900 dark:text-indigo-200">Total Pending Payout</div>
-                        <div class="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">
+                        <div class="text-xl sm:text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">
                             ₹{{ number_format((float) ($widgets['total_pending_payout'] ?? 0), 2) }}
                         </div>
                     </div>
-                    <span class="px-3 py-1 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-xs cursor-pointer hover:bg-indigo-700">
-                        Execute Payouts
-                    </span>
+                    <a href="{{ route('admin.settlements.index') }}" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-xs hover:bg-indigo-700 transition inline-flex items-center space-x-1">
+                        <span>Execute Payouts</span>
+                        <span>→</span>
+                    </a>
                 </div>
 
                 @if(isset($widgets['due_settlements']) && count($widgets['due_settlements']) > 0)
                     <div class="space-y-2">
                         @foreach($widgets['due_settlements'] as $settlement)
-                            <div class="flex items-center justify-between text-xs py-1.5 border-b border-slate-100 dark:border-slate-800/80">
+                            <a href="{{ route('admin.settlements.show', $settlement) }}" class="flex items-center justify-between text-xs py-2 px-2.5 rounded-lg border border-transparent hover:border-slate-200 dark:hover:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
                                 <div>
                                     <div class="font-bold text-slate-800 dark:text-slate-200">{{ $settlement->seller?->business_name ?? 'Merchant' }}</div>
                                     <div class="text-[10px] text-slate-400">#{{ $settlement->settlement_number }}</div>
@@ -527,7 +549,7 @@
                                     <div class="font-mono font-bold text-slate-900 dark:text-white">₹{{ number_format((float) $settlement->net, 2) }}</div>
                                     <span class="text-[10px] text-amber-600 font-semibold">Pending</span>
                                 </div>
-                            </div>
+                            </a>
                         @endforeach
                     </div>
                 @else
@@ -546,7 +568,7 @@
                         <div class="text-xl font-extrabold text-slate-900 dark:text-white mt-1">
                             {{ $widgets['queue_backlog'] ?? 0 }}
                         </div>
-                        <div class="text-[10px] text-emerald-600 font-semibold mt-0.5">Redis / MySQL Workers Active</div>
+                        <div class="text-[10px] text-emerald-600 font-semibold mt-0.5">Database Workers Active</div>
                     </div>
 
                     <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800">

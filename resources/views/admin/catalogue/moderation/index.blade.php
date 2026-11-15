@@ -16,39 +16,47 @@
 
     <!-- 4 Stats Counters Row -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <x-stat-card 
-            label="Pending Moderation" 
-            :value="number_format($stats['pending_count'])" 
-            change="Awaiting Decision" 
-            changeType="neutral" 
-            color="amber"
-        />
-        <x-stat-card 
-            label="Approved Today" 
-            :value="number_format($stats['approved_today'])" 
-            change="Published to Catalog" 
-            changeType="up" 
-            color="emerald"
-        />
-        <x-stat-card 
-            label="Rejected Listings" 
-            :value="number_format($stats['rejected_count'])" 
-            change="Feedback Sent" 
-            changeType="down" 
-            color="rose"
-        />
-        <x-stat-card 
-            label="Total Active SKUs" 
-            :value="number_format($stats['total_active'])" 
-            change="Live Omnichannel" 
-            changeType="up" 
-            color="primary"
-        />
+        <a href="{{ route('admin.catalogue.moderation.index', ['status' => 'pending_review']) }}" class="block transition hover:scale-[1.01]">
+            <x-stat-card 
+                label="Pending Moderation" 
+                :value="number_format($stats['pending_count'])" 
+                change="Awaiting Decision" 
+                changeType="neutral" 
+                color="amber"
+            />
+        </a>
+        <a href="{{ route('admin.catalogue.moderation.index', ['status' => 'active']) }}" class="block transition hover:scale-[1.01]">
+            <x-stat-card 
+                label="Approved Today" 
+                :value="number_format($stats['approved_today'])" 
+                change="Published to Catalog" 
+                changeType="up" 
+                color="emerald"
+            />
+        </a>
+        <a href="{{ route('admin.catalogue.moderation.index', ['status' => 'rejected']) }}" class="block transition hover:scale-[1.01]">
+            <x-stat-card 
+                label="Rejected Listings" 
+                :value="number_format($stats['rejected_count'])" 
+                change="Feedback Sent" 
+                changeType="down" 
+                color="rose"
+            />
+        </a>
+        <a href="{{ route('admin.catalogue.moderation.index', ['status' => 'active']) }}" class="block transition hover:scale-[1.01]">
+            <x-stat-card 
+                label="Total Active SKUs" 
+                :value="number_format($stats['total_active'])" 
+                change="Live Omnichannel" 
+                changeType="up" 
+                color="primary"
+            />
+        </a>
     </div>
 
     <!-- Filters Bar Card -->
     <x-card padding="p-5">
-        <form method="GET" action="{{ route('admin.catalogue.moderation.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <form method="GET" action="{{ route('admin.catalogue.moderation.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
             <div class="lg:col-span-2">
                 <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Search Products</label>
                 <input 
@@ -66,6 +74,7 @@
                     <option value="pending_review" {{ ($filters['status'] ?? '') === 'pending_review' ? 'selected' : '' }}>Pending Review</option>
                     <option value="rejected" {{ ($filters['status'] ?? '') === 'rejected' ? 'selected' : '' }}>Rejected by Admin</option>
                     <option value="active" {{ ($filters['status'] ?? '') === 'active' ? 'selected' : '' }}>Live in Catalog</option>
+                    <option value="inactive" {{ ($filters['status'] ?? '') === 'inactive' ? 'selected' : '' }}>Inactive / Archived</option>
                     <option value="all" {{ ($filters['status'] ?? '') === 'all' ? 'selected' : '' }}>All Statuses</option>
                 </select>
             </div>
@@ -80,10 +89,20 @@
                 </select>
             </div>
 
+            <div>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Merchant / Seller</label>
+                <select name="seller_id" class="w-full py-2 px-3 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+                    <option value="">All Merchants</option>
+                    @foreach($sellers as $s)
+                        <option value="{{ $s->id }}" {{ ($filters['seller_id'] ?? '') == $s->id ? 'selected' : '' }}>{{ $s->business_name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
             <div class="flex items-end space-x-2">
                 <button type="submit" class="flex-1 py-2 px-3 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition">Filter</button>
-                @if(array_filter($filters))
-                    <a href="{{ route('admin.catalogue.moderation.index') }}" class="py-2 px-3 text-xs font-semibold rounded-xl bg-slate-200 dark:bg-slate-750 text-slate-700 dark:text-slate-300">Reset</a>
+                @if(!empty($filters['search']) || !empty($filters['category_id']) || !empty($filters['seller_id']) || (($filters['status'] ?? 'pending_review') !== 'pending_review'))
+                    <a href="{{ route('admin.catalogue.moderation.index') }}" class="py-2 px-3 text-xs font-semibold rounded-xl bg-slate-200 dark:bg-slate-750 text-slate-700 dark:text-slate-300 hover:bg-slate-300 transition">Reset</a>
                 @endif
             </div>
         </form>
@@ -138,7 +157,7 @@
                         @endphp
                         <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-850/50">
                             <td class="py-3.5 px-4 text-center">
-                                <input type="checkbox" value="{{ $product->id }}" x-model="selectedIds" class="rounded-sm border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500">
+                                <input type="checkbox" :value="{{ $product->id }}" x-model="selectedIds" class="rounded-sm border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500">
                             </td>
                             <td class="py-3.5 px-4">
                                 <div class="flex items-center space-x-3">
@@ -162,7 +181,13 @@
                                 </div>
                             </td>
                             <td class="py-3.5 px-4 text-slate-700 dark:text-slate-300">
-                                <span class="font-medium text-slate-900 dark:text-white">{{ $product->seller?->business_name ?? 'N/A' }}</span>
+                                @if($product->seller)
+                                    <a href="{{ route('admin.sellers.show', $product->seller) }}" class="font-medium text-slate-900 dark:text-white hover:text-indigo-600 transition">
+                                        {{ $product->seller->business_name }}
+                                    </a>
+                                @else
+                                    <span class="text-slate-400">N/A</span>
+                                @endif
                                 <div class="text-[10px] text-slate-400">Owner: {{ $product->seller?->user?->name ?? 'N/A' }}</div>
                             </td>
                             <td class="py-3.5 px-4">
@@ -202,7 +227,9 @@
                                                 Approve
                                             </button>
                                         </form>
+                                    @endif
 
+                                    @if($product->status !== \App\Enums\ProductStatus::REJECTED)
                                         <button 
                                             type="button" 
                                             @click="openRejectModal({{ $product->id }}, '{{ addslashes($product->title) }}')"
@@ -210,6 +237,18 @@
                                         >
                                             Reject
                                         </button>
+                                    @endif
+
+                                    @if($product->status === \App\Enums\ProductStatus::ACTIVE && $product->slug)
+                                        <a 
+                                            href="{{ route('product.show', $product->slug) }}" 
+                                            target="_blank" 
+                                            class="px-2 py-1 text-xs text-indigo-600 hover:text-indigo-700 font-bold transition flex items-center"
+                                            title="View on Customer Storefront"
+                                        >
+                                            <span>Storefront</span>
+                                            <svg class="w-3 h-3 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                        </a>
                                     @endif
                                 </div>
                             </td>
@@ -235,7 +274,7 @@
 
     <!-- Reject Product Modal -->
     <x-modal name="reject-product-modal" title="Reject Product Listing" size="md">
-        <form :action="'{{ url('/admin/catalogue/moderation') }}/' + rejectProductId + '/reject'" method="POST" class="space-y-4">
+        <form :action="'{{ url('/admin/catalogue/moderation') }}/' + (rejectProductId || '') + '/reject'" @submit="if(!rejectProductId) $event.preventDefault()" method="POST" class="space-y-4">
             @csrf
             <div>
                 <p class="text-xs text-slate-500 mb-3 leading-relaxed">
@@ -268,7 +307,7 @@
             selectedIds: [],
             rejectProductId: null,
             rejectProductTitle: '',
-            allIds: @js($products->pluck('id')->toArray()),
+            allIds: @js($products->pluck('id')->values()->toArray()),
 
             toggleAll(e) {
                 if (e.target.checked) {

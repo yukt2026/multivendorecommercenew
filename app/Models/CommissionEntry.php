@@ -40,6 +40,11 @@ class CommissionEntry extends Model
         return $this->belongsTo(FulfilmentOrder::class);
     }
 
+    public function order()
+    {
+        return $this->hasOneThrough(Order::class, FulfilmentOrder::class, 'id', 'id', 'fulfilment_order_id', 'order_id');
+    }
+
     public function rule(): BelongsTo
     {
         return $this->belongsTo(CommissionRule::class, 'rule_id');

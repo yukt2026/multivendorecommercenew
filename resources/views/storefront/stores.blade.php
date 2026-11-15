@@ -385,7 +385,7 @@
 
                             <a href="{{ route('store.show', $store->slug) }}"
                                class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 text-white font-bold text-xs shadow-xs active:scale-95 transition flex items-center space-x-1">
-                                <span>Enter Store</span>
+                                <span>Enter Storefront</span>
                                 <span>&rarr;</span>
                             </a>
                         </div>

@@ -26,6 +26,8 @@ class HomeController extends Controller
         $location = $this->locationService->getCurrentLocation($request);
         $heroBanners = $this->storefrontService->getHeroBanners();
         $promoBanners = $this->storefrontService->getPromoBanners();
+        $featuredCampaigns = $this->storefrontService->getActiveCampaigns(3);
+        $availableCoupons = $this->storefrontService->getActivePublicCoupons(4);
         $quickCommerce = $this->storefrontService->getQuickCommerceStatus($location['lat'], $location['lng']);
         $categories = $this->storefrontService->getCategories();
         $nearbyStores = $this->storefrontService->getNearbyStores($location['lat'], $location['lng']);
@@ -40,6 +42,8 @@ class HomeController extends Controller
             'location' => $location,
             'heroBanners' => $heroBanners,
             'promoBanners' => $promoBanners,
+            'featuredCampaigns' => $featuredCampaigns,
+            'availableCoupons' => $availableCoupons,
             'quickCommerce' => $quickCommerce,
             'categories' => $categories,
             'nearbyStores' => $nearbyStores,

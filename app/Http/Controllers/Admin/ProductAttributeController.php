@@ -26,8 +26,15 @@ class ProductAttributeController extends Controller
     {
         $attributes = $this->catalogueService->getAttributesWithValues();
 
+        $stats = [
+            'total_attributes' => $attributes->count(),
+            'total_values' => $attributes->sum('values_count'),
+            'color_attributes' => $attributes->filter(fn($a) => $a->values->whereNotNull('code')->isNotEmpty())->count(),
+        ];
+
         return view('admin.catalogue.attributes.index', [
             'attributes' => $attributes,
+            'stats' => $stats,
         ]);
     }
 

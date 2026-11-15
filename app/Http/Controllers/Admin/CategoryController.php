@@ -42,7 +42,12 @@ class CategoryController extends Controller
     {
         $this->authorize('create', Category::class);
 
-        $category = $this->catalogueService->createCategory($request->validated());
+        $validated = $request->validated();
+        if ($request->hasFile('image_file')) {
+            $validated['image'] = $request->file('image_file')->store('categories', 'public');
+        }
+
+        $category = $this->catalogueService->createCategory($validated);
 
         return redirect()
             ->route('admin.catalogue.categories.index')
@@ -56,7 +61,12 @@ class CategoryController extends Controller
     {
         $this->authorize('update', $category);
 
-        $this->catalogueService->updateCategory($category, $request->validated());
+        $validated = $request->validated();
+        if ($request->hasFile('image_file')) {
+            $validated['image'] = $request->file('image_file')->store('categories', 'public');
+        }
+
+        $this->catalogueService->updateCategory($category, $validated);
 
         return redirect()
             ->route('admin.catalogue.categories.index')

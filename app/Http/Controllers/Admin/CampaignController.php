@@ -25,11 +25,31 @@ class CampaignController extends Controller
             $query->where('name', 'like', "%{$search}%");
         }
 
+        if ($type = $request->query('type')) {
+            if ($type !== 'all') {
+                if (in_array($type, ['festive', 'festive_season', 'festive_sale'], true)) {
+                    $query->whereIn('type', ['festive_season', 'festive_sale', 'festive']);
+                } else {
+                    $query->where('type', $type);
+                }
+            }
+        }
+
+        if ($status = $request->query('status')) {
+            if ($status === 'active') {
+                $query->where('is_active', true);
+            } elseif ($status === 'inactive') {
+                $query->where('is_active', false);
+            }
+        }
+
         $campaigns = $query->paginate(15)->withQueryString();
 
         $metrics = [
             'total' => Campaign::count(),
             'active' => Campaign::active()->count(),
+            'flash_sales' => Campaign::where('type', 'flash_sale')->count(),
+            'festive' => Campaign::whereIn('type', ['festive_season', 'festive_sale', 'festive'])->count(),
         ];
 
         return view('admin.campaigns.index', compact('campaigns', 'metrics'));
@@ -49,7 +69,13 @@ class CampaignController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $validated['slug'] = Str::slug($validated['name']) . '-' . Str::random(4);
+        $baseSlug = Str::slug($validated['name']);
+        $slug = $baseSlug . '-' . Str::random(4);
+        while (Campaign::where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . Str::random(6);
+        }
+
+        $validated['slug'] = $slug;
         $validated['is_active'] = $request->boolean('is_active', true);
 
         $campaign = Campaign::create($validated);
@@ -82,6 +108,13 @@ class CampaignController extends Controller
 
         $campaign->update($validated);
 
+        if (function_exists('activity')) {
+            activity('campaign')
+                ->performedOn($campaign)
+                ->causedBy(auth()->user())
+                ->log("Campaign #{$campaign->id} ({$campaign->name}) updated");
+        }
+
         return redirect()->route('admin.campaigns.index')->with('success', "Campaign '{$campaign->name}' updated successfully.");
     }
 
@@ -93,20 +126,38 @@ class CampaignController extends Controller
         $name = $campaign->name;
         $campaign->delete();
 
+        if (function_exists('activity')) {
+            activity('campaign')
+                ->causedBy(auth()->user())
+                ->log("Campaign {$name} deleted");
+        }
+
         return redirect()->route('admin.campaigns.index')->with('success', "Campaign '{$name}' deleted.");
     }
 
     /**
      * Toggle active status.
      */
-    public function toggle(Campaign $campaign): JsonResponse
+    public function toggle(Request $request, Campaign $campaign): JsonResponse|RedirectResponse
     {
         $campaign->is_active = !$campaign->is_active;
         $campaign->save();
 
-        return response()->json([
-            'success' => true,
-            'is_active' => $campaign->is_active,
-        ]);
+        if (function_exists('activity')) {
+            activity('campaign')
+                ->performedOn($campaign)
+                ->causedBy(auth()->user())
+                ->log("Campaign #{$campaign->id} ({$campaign->name}) status changed to " . ($campaign->is_active ? 'Active' : 'Inactive'));
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'is_active' => $campaign->is_active,
+                'message' => "Campaign status updated to " . ($campaign->is_active ? 'Active' : 'Inactive'),
+            ]);
+        }
+
+        return back()->with('success', "Campaign '{$campaign->name}' status toggled to " . ($campaign->is_active ? 'Active' : 'Inactive') . '.');
     }
 }

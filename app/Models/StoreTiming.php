@@ -17,8 +17,30 @@ class StoreTiming extends Model
         'day_of_week',
         'opens_at',
         'closes_at',
+        'open_time',
+        'close_time',
         'is_closed',
     ];
+
+    public function setOpenTimeAttribute(?string $value): void
+    {
+        $this->attributes['opens_at'] = $value;
+    }
+
+    public function setCloseTimeAttribute(?string $value): void
+    {
+        $this->attributes['closes_at'] = $value;
+    }
+
+    public function getOpenTimeAttribute(): ?string
+    {
+        return $this->opens_at;
+    }
+
+    public function getCloseTimeAttribute(): ?string
+    {
+        return $this->closes_at;
+    }
 
     protected function casts(): array
     {

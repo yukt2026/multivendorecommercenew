@@ -121,13 +121,13 @@ class SinglePageCheckoutTest extends TestCase
             'accepts_quick_commerce' => true,
             'delivery_radius_km' => 8.0,
         ]);
-        // Set store open 7 days a week (09:00 - 23:00)
+        // Set store open 7 days a week (00:00 - 23:59)
         for ($day = 0; $day <= 6; $day++) {
             StoreTiming::create([
                 'store_id' => $this->localStore->id,
                 'day_of_week' => $day,
-                'open_time' => '00:00:00',
-                'close_time' => '23:59:59',
+                'opens_at' => '00:00:00',
+                'closes_at' => '23:59:59',
                 'is_closed' => false,
             ]);
         }

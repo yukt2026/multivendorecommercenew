@@ -43,6 +43,40 @@ class Coupon extends Model
         'is_active' => 'boolean',
     ];
 
+    protected $appends = [
+        'formatted_discount',
+        'type_label',
+    ];
+
+    protected static function booted(): void
+    {
+        static::saved(function () {
+            \Illuminate\Support\Facades\Cache::forget('storefront.public_coupons');
+        });
+
+        static::deleted(function () {
+            \Illuminate\Support\Facades\Cache::forget('storefront.public_coupons');
+        });
+    }
+
+    public function getFormattedDiscountAttribute(): string
+    {
+        if ($this->type === CouponType::PERCENT || $this->type?->value === 'percent') {
+            return rtrim(rtrim(number_format((float) $this->value, 2), '0'), '.') . '%';
+        }
+
+        return format_currency((float) $this->value);
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        if ($this->type instanceof CouponType) {
+            return $this->type->label();
+        }
+
+        return $this->type === 'percent' ? 'Percentage Discount' : 'Flat Amount Discount';
+    }
+
     public function seller(): BelongsTo
     {
         return $this->belongsTo(Seller::class);

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\FulfilmentType;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
+use App\Models\FulfilmentOrder;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\Seller;
@@ -17,6 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OrderController extends Controller
 {
@@ -26,22 +29,13 @@ class OrderController extends Controller
     ) {}
 
     /**
-     * Global Orders Registry.
+     * Shared orders query builder supporting searching, filtering, and export.
      */
-    public function index(Request $request): View
+    protected function buildOrdersQuery(Request $request)
     {
         $query = Order::query()
             ->with(['customer.user', 'fulfilmentOrders.store', 'fulfilmentOrders.seller', 'payments'])
             ->latest();
-
-        // Metrics Summary
-        $metrics = [
-            'total_orders' => Order::count(),
-            'total_revenue' => (float) Order::where('payment_status', PaymentStatus::PAID)->sum('total'),
-            'processing' => Order::whereIn('status', [OrderStatus::PLACED, OrderStatus::PROCESSING])->count(),
-            'delivered' => Order::where('status', OrderStatus::DELIVERED)->count(),
-            'cancelled' => Order::where('status', OrderStatus::CANCELLED)->count(),
-        ];
 
         // Status Filter
         if ($status = $request->query('status')) {
@@ -55,6 +49,26 @@ class OrderController extends Controller
             if ($paymentStatus !== 'all') {
                 $query->where('payment_status', $paymentStatus);
             }
+        }
+
+        // Fulfilment Type Filter (Quick Commerce vs Standard)
+        if ($fulfilmentType = $request->query('fulfilment_type')) {
+            if ($fulfilmentType !== 'all') {
+                $query->whereHas('fulfilmentOrders', function ($foq) use ($fulfilmentType) {
+                    $foq->where('fulfilment_type', $fulfilmentType);
+                });
+            }
+        }
+
+        // Date Range Filter
+        if ($dateRange = $request->query('date_range')) {
+            match ($dateRange) {
+                'today' => $query->whereDate('created_at', today()),
+                'yesterday' => $query->whereDate('created_at', today()->subDay()),
+                'week' => $query->where('created_at', '>=', now()->subDays(7)),
+                'month' => $query->where('created_at', '>=', now()->startOfMonth()),
+                default => null,
+            };
         }
 
         // Search Filter
@@ -73,14 +87,97 @@ class OrderController extends Controller
             });
         }
 
+        return $query;
+    }
+
+    /**
+     * Global Orders Registry.
+     */
+    public function index(Request $request): View
+    {
+        $query = $this->buildOrdersQuery($request);
+
+        // Metrics Summary
+        $metrics = [
+            'total_orders' => Order::count(),
+            'total_revenue' => (float) Order::where('payment_status', PaymentStatus::PAID)->sum('total'),
+            'processing' => Order::whereIn('status', [OrderStatus::PLACED, OrderStatus::PROCESSING])->count(),
+            'delivered' => Order::where('status', OrderStatus::DELIVERED)->count(),
+            'cancelled' => Order::where('status', OrderStatus::CANCELLED)->count(),
+            'quick_orders' => FulfilmentOrder::where('fulfilment_type', FulfilmentType::QUICK)->count(),
+        ];
+
         $orders = $query->paginate(20)->withQueryString();
 
         return view('admin.orders.index', [
             'orders' => $orders,
             'metrics' => $metrics,
-            'status' => $status ?? 'all',
-            'paymentStatus' => $paymentStatus ?? 'all',
-            'search' => $search ?? '',
+            'status' => $request->query('status', 'all'),
+            'paymentStatus' => $request->query('payment_status', 'all'),
+            'fulfilmentType' => $request->query('fulfilment_type', 'all'),
+            'dateRange' => $request->query('date_range', 'all'),
+            'search' => $request->query('search', ''),
+        ]);
+    }
+
+    /**
+     * Stream CSV export of orders matching active filters.
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $orders = $this->buildOrdersQuery($request)->get();
+        $fileName = 'orders_export_' . now()->format('Y_m_d_His') . '.csv';
+
+        return response()->streamDownload(function () use ($orders) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, [
+                'Order Number',
+                'Date Placed',
+                'Customer Name',
+                'Customer Email',
+                'Customer Phone',
+                'Delivery City',
+                'Pincode',
+                'Fulfilment Types',
+                'Payment Method',
+                'Payment Status',
+                'Order Status',
+                'Packages Count',
+                'Subtotal',
+                'Discount',
+                'Delivery Fee',
+                'Tax',
+                'Total',
+            ]);
+
+            foreach ($orders as $order) {
+                $addr = $order->address_snapshot ?? [];
+                $types = $order->fulfilmentOrders->pluck('fulfilment_type')->unique()->map(fn ($t) => is_object($t) ? $t->value : $t)->implode(', ');
+                fputcsv($handle, [
+                    $order->order_number,
+                    $order->created_at->format('Y-m-d H:i:s'),
+                    $addr['name'] ?? $order->customer?->user?->name ?? 'Guest',
+                    $order->customer?->user?->email ?? 'N/A',
+                    $addr['phone'] ?? $order->customer?->user?->phone ?? 'N/A',
+                    $addr['city'] ?? 'N/A',
+                    $addr['pincode'] ?? 'N/A',
+                    $types ?: 'standard',
+                    $order->payment_method?->value ?? (string) $order->payment_method,
+                    $order->payment_status?->value ?? (string) $order->payment_status,
+                    $order->status?->value ?? (string) $order->status,
+                    $order->fulfilmentOrders->count(),
+                    $order->subtotal,
+                    $order->discount,
+                    $order->delivery_fee,
+                    $order->tax,
+                    $order->total,
+                ]);
+            }
+
+            fclose($handle);
+        }, $fileName, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
         ]);
     }
 
@@ -97,6 +194,7 @@ class OrderController extends Controller
             'fulfilmentOrders.store',
             'fulfilmentOrders.seller',
             'fulfilmentOrders.shipment.tracking',
+            'fulfilmentOrders.deliveryAssignment.deliveryPartner',
             'fulfilmentOrders.statusHistory.changedByUser',
             'statusHistory.changedByUser',
         ]);

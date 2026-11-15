@@ -57,27 +57,54 @@ class StoreController extends Controller
      */
     public function map(): View
     {
+        $this->authorize('viewAny', Store::class);
+
         $stores = Store::query()
-            ->with(['seller', 'location'])
+            ->with(['seller.user', 'location', 'timings'])
             ->whereHas('location', fn($q) => $q->whereNotNull('lat')->whereNotNull('lng'))
             ->get();
 
+        $unmappedCount = Store::whereDoesntHave('location', fn($q) => $q->whereNotNull('lat')->whereNotNull('lng'))->count();
+
+        $metrics = [
+            'total_geocoded' => $stores->count(),
+            'quick_commerce' => $stores->where('accepts_quick_commerce', true)->count(),
+            'standard' => $stores->where('accepts_quick_commerce', false)->count(),
+            'active' => $stores->where('status', StoreStatus::ACTIVE)->count(),
+            'unmapped' => $unmappedCount,
+            'cities_count' => $stores->pluck('location.city')->filter()->unique()->count(),
+            'avg_radius' => round((float) ($stores->avg(fn($s) => $s->effectiveDeliveryRadius()) ?? 8.0), 1),
+        ];
+
         $mapData = $stores->map(function ($store) {
+            $loc = $store->location;
             return [
                 'id' => $store->id,
                 'name' => $store->name,
+                'slug' => $store->slug,
                 'seller' => $store->seller?->business_name ?? 'N/A',
-                'lat' => $store->location?->lat ?? 12.9716,
-                'lng' => $store->location?->lng ?? 77.5946,
-                'radius' => $store->effectiveDeliveryRadius(),
+                'lat' => (float) ($loc?->lat ?? 12.9716),
+                'lng' => (float) ($loc?->lng ?? 77.5946),
+                'address' => $loc?->address ?? 'N/A',
+                'city' => $loc?->city ?? 'N/A',
+                'state' => $loc?->state ?? '',
+                'pincode' => $loc?->pincode ?? '',
+                'phone' => $store->phone ?? $store->seller?->user?->phone ?? 'N/A',
+                'email' => $store->email ?? $store->seller?->user?->email ?? 'N/A',
+                'radius' => (float) $store->effectiveDeliveryRadius(),
                 'status' => $store->status->value,
-                'is_quick' => $store->accepts_quick_commerce,
-                'city' => $store->location?->city ?? 'N/A',
+                'status_label' => $store->status->label(),
+                'is_active' => $store->status === StoreStatus::ACTIVE,
+                'is_quick' => (bool) $store->accepts_quick_commerce,
+                'is_pickup' => (bool) $store->accepts_pickup,
+                'is_onestall_owned' => (bool) $store->is_onestall_owned,
+                'rating_avg' => (float) ($store->rating_avg ?? 0),
                 'url' => route('admin.stores.show', $store),
+                'storefront_url' => route('store.show', $store->slug),
             ];
         });
 
-        return view('admin.stores.map', compact('stores', 'mapData'));
+        return view('admin.stores.map', compact('stores', 'mapData', 'metrics'));
     }
 
     /**

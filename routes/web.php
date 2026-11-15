@@ -56,6 +56,8 @@ Route::get('/p/{slug}', [ProductDetailController::class, 'show'])->name('product
 Route::post('/p/{slug}/review', [ProductDetailController::class, 'submitReview'])->name('product.review.submit');
 Route::post('/p/{slug}/question', [ProductDetailController::class, 'submitQuestion'])->name('product.question.submit');
 Route::get('/page/{slug}', [\App\Http\Controllers\Storefront\CmsPageController::class, 'show'])->name('pages.show');
+Route::get('/campaigns', [\App\Http\Controllers\Storefront\CampaignController::class, 'index'])->name('campaigns.index');
+Route::get('/campaign/{slug}', [\App\Http\Controllers\Storefront\CampaignController::class, 'show'])->name('campaign.show');
 
 // Dynamic Sitemaps & Robots.txt (Blueprint Section 32)
 Route::get('/sitemap.xml', [\App\Http\Controllers\Storefront\SitemapController::class, 'index'])->name('sitemap.index');

@@ -23,8 +23,9 @@ class CategoryRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:categories,slug,' . $categoryId],
-            'parent_id' => ['nullable', 'exists:categories,id'],
+            'parent_id' => ['nullable'],
             'image' => ['nullable', 'string', 'max:500'],
+            'image_file' => ['nullable', 'image', 'max:2048'],
             'commission_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'is_quick_eligible' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],

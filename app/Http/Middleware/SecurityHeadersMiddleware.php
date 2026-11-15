@@ -33,8 +33,8 @@ class SecurityHeadersMiddleware
 
         // Content Security Policy
         $headers['Content-Security-Policy'] = "default-src 'self'; " .
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.bunny.net https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; " .
-            "style-src 'self' 'unsafe-inline' https://fonts.bunny.net; " .
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.bunny.net https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; " .
+            "style-src 'self' 'unsafe-inline' https://fonts.bunny.net https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; " .
             "font-src 'self' https://fonts.bunny.net data:; " .
             "img-src 'self' data: https: blob:; " .
             "connect-src 'self' https: wss: ws:; " .
