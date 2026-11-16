@@ -21,12 +21,11 @@
     <header class="bg-slate-900 text-white px-4 py-3 sticky top-0 z-40 shadow-md border-b border-slate-800">
         <div class="max-w-md mx-auto flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <a href="{{ route('rider.profile') }}" class="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center font-black text-base shadow-sm shrink-0 overflow-hidden" title="View Profile">
+                <a href="{{ route('rider.profile') }}" class="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center font-black text-base shadow-sm shrink-0 overflow-hidden relative" title="View Profile">
                     @if($rider && $rider->avatar_url)
-                        <img src="{{ $rider->avatar_url }}" alt="{{ $rider->name }}" class="w-full h-full object-cover">
-                    @else
-                        <span>🛵</span>
+                        <img src="{{ $rider->avatar_url }}" alt="{{ $rider->name }}" class="w-full h-full object-cover" onerror="this.remove()">
                     @endif
+                    <span class="text-white text-xs select-none">🛵</span>
                 </a>
                 <div>
                     <a href="{{ route('rider.profile') }}" class="font-extrabold text-xs text-white leading-tight truncate max-w-[130px] block hover:text-orange-400 transition">
@@ -70,7 +69,7 @@
     </header>
 
     <!-- Main Content Container -->
-    <main class="flex-1 max-w-md w-full mx-auto px-4 py-4 space-y-4">
+    <main class="flex-1 max-w-md w-full mx-auto px-4 py-4 pb-28 space-y-4">
         
         <!-- Alerts -->
         @if(session('success'))
@@ -98,58 +97,58 @@
     </main>
 
     <!-- Bottom Navigation Bar (Mobile Native App Style) -->
-    <nav class="fixed bottom-0 inset-x-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-40 shadow-lg">
-        <div class="max-w-md mx-auto grid grid-cols-5 h-16">
+    <nav class="fixed bottom-0 left-0 right-0 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-50 shadow-2xl">
+        <div class="max-w-md w-full mx-auto grid grid-cols-5 h-16 px-1">
             <!-- 1. Tasks / Dashboard -->
             <a 
                 href="{{ route('rider.dashboard') }}" 
-                class="flex flex-col items-center justify-center space-y-1 relative transition {{ request()->routeIs('rider.dashboard') || request()->routeIs('rider.assignment') ? 'text-orange-600 font-extrabold' : 'text-slate-400 hover:text-slate-600 font-medium' }}"
+                class="flex flex-col items-center justify-center space-y-1 relative transition py-1 select-none {{ request()->routeIs('rider.dashboard') || request()->routeIs('rider.assignment') ? 'text-orange-600 font-extrabold' : 'text-slate-400 hover:text-slate-600 font-medium' }}"
             >
                 <div class="relative">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                    <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                     @if($activeCount > 0)
-                        <span class="absolute -top-1 -right-2 bg-orange-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+                        <span class="absolute -top-1.5 -right-2 bg-orange-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
                             {{ $activeCount }}
                         </span>
                     @endif
                 </div>
-                <span class="text-[10px]">Tasks</span>
+                <span class="text-[10px] leading-tight">Tasks</span>
             </a>
 
             <!-- 2. History -->
             <a 
                 href="{{ route('rider.history') }}" 
-                class="flex flex-col items-center justify-center space-y-1 transition {{ request()->routeIs('rider.history') ? 'text-orange-600 font-extrabold' : 'text-slate-400 hover:text-slate-600 font-medium' }}"
+                class="flex flex-col items-center justify-center space-y-1 transition py-1 select-none {{ request()->routeIs('rider.history') ? 'text-orange-600 font-extrabold' : 'text-slate-400 hover:text-slate-600 font-medium' }}"
             >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span class="text-[10px]">History</span>
+                <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span class="text-[10px] leading-tight">History</span>
             </a>
 
             <!-- 3. Wallet / Earnings -->
             <a 
                 href="{{ route('rider.wallet') }}" 
-                class="flex flex-col items-center justify-center space-y-1 transition {{ request()->routeIs('rider.wallet') ? 'text-orange-600 font-extrabold' : 'text-slate-400 hover:text-slate-600 font-medium' }}"
+                class="flex flex-col items-center justify-center space-y-1 transition py-1 select-none {{ request()->routeIs('rider.wallet') ? 'text-orange-600 font-extrabold' : 'text-slate-400 hover:text-slate-600 font-medium' }}"
             >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                <span class="text-[10px]">Wallet</span>
+                <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                <span class="text-[10px] leading-tight">Wallet</span>
             </a>
 
             <!-- 4. Profile -->
             <a 
                 href="{{ route('rider.profile') }}" 
-                class="flex flex-col items-center justify-center space-y-1 transition {{ request()->routeIs('rider.profile') ? 'text-orange-600 font-extrabold' : 'text-slate-400 hover:text-slate-600 font-medium' }}"
+                class="flex flex-col items-center justify-center space-y-1 transition py-1 select-none {{ request()->routeIs('rider.profile') ? 'text-orange-600 font-extrabold' : 'text-slate-400 hover:text-slate-600 font-medium' }}"
             >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                <span class="text-[10px]">Profile</span>
+                <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                <span class="text-[10px] leading-tight">Profile</span>
             </a>
 
             <!-- 5. Support -->
             <a 
                 href="{{ route('rider.support') }}" 
-                class="flex flex-col items-center justify-center space-y-1 transition {{ request()->routeIs('rider.support') ? 'text-orange-600 font-extrabold' : 'text-slate-400 hover:text-slate-600 font-medium' }}"
+                class="flex flex-col items-center justify-center space-y-1 transition py-1 select-none {{ request()->routeIs('rider.support') ? 'text-orange-600 font-extrabold' : 'text-slate-400 hover:text-slate-600 font-medium' }}"
             >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                <span class="text-[10px]">Support</span>
+                <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                <span class="text-[10px] leading-tight">Support</span>
             </a>
         </div>
     </nav>
